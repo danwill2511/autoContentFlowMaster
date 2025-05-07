@@ -17,3 +17,9 @@ export function useIsMobile() {
 
   return !!isMobile
 }
+
+// This is to maintain backwards compatibility with components using useMobile
+export function useMobile() {
+  const isMobile = useIsMobile();
+  return { isMobile };
+}
