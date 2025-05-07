@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
-import WorkflowCard from "@/components/dashboard/workflow-card";
-import NewWorkflowCard from "@/components/dashboard/new-workflow-card";
+import { WorkflowCard } from "@/components/dashboard/workflow-card";
+import { NewWorkflowCard } from "@/components/dashboard/new-workflow-card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
