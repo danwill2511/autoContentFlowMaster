@@ -5,18 +5,13 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { randomUUID } from "crypto";
 
-// Fix for session store type
-type SessionStore = ReturnType<typeof createMemoryStore>;
-
 const MemoryStore = createMemoryStore(session);
-type MemoryStoreInstance = InstanceType<ReturnType<typeof createMemoryStore>>;
 
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  getUserByReplitId(replitId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserSubscription(userId: number, subscription: string): Promise<User>;
   
@@ -50,7 +45,7 @@ export interface IStorage {
   updatePostStatus(id: number, status: string, postedAt?: Date): Promise<Post>;
   
   // Session store
-  sessionStore: MemoryStoreInstance;
+  sessionStore: session.SessionStore;
 }
 
 export class MemStorage implements IStorage {
@@ -64,7 +59,7 @@ export class MemStorage implements IStorage {
   private platformCurrentId: number;
   private workflowPlatformCurrentId: number;
   private postCurrentId: number;
-  sessionStore: MemoryStoreInstance;
+  sessionStore: session.SessionStore;
 
   constructor() {
     this.usersMap = new Map();
@@ -106,9 +101,9 @@ export class MemStorage implements IStorage {
   // Get user by Replit ID
   async getUserByReplitId(replitId: string): Promise<User | undefined> {
     if (!replitId) return undefined;
-    // This method seems to be using a database that doesn't exist in this in-memory implementation
-    // So we'll return undefined for now
-    return undefined;
+    return Array.from(this.usersMap.values()).find(
+      (user) => user.replitId === replitId
+    );
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
@@ -123,9 +118,6 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id, 
-      name: insertUser.name ?? null,
-      replitId: insertUser.replitId ?? null,
-      subscription: insertUser.subscription ?? "free",
       createdAt: now 
     };
     this.usersMap.set(id, user);
@@ -170,8 +162,6 @@ export class MemStorage implements IStorage {
     const workflow: Workflow = {
       ...insertWorkflow,
       id,
-      status: insertWorkflow.status ?? "active",
-      nextPostDate: insertWorkflow.nextPostDate ?? null,
       createdAt: now
     };
     this.workflowsMap.set(id, workflow);
@@ -226,9 +216,6 @@ export class MemStorage implements IStorage {
     const platform: Platform = {
       ...insertPlatform,
       id,
-      apiKey: insertPlatform.apiKey ?? null,
-      apiSecret: insertPlatform.apiSecret ?? null,
-      accessToken: insertPlatform.accessToken ?? null,
       createdAt: now
     };
     this.platformsMap.set(id, platform);
@@ -315,8 +302,6 @@ export class MemStorage implements IStorage {
     const post: Post = {
       ...insertPost,
       id,
-      status: insertPost.status ?? "pending",
-      postedAt: insertPost.postedAt ?? null,
       createdAt: now
     };
     this.postsMap.set(id, post);

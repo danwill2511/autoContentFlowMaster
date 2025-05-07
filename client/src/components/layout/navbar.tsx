@@ -64,15 +64,11 @@ const Navbar = () => {
                     <p className="truncate text-sm font-medium text-neutral-900">{user?.email}</p>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile" className="w-full cursor-pointer">
-                      Profile
-                    </Link>
+                  <DropdownMenuItem onClick={() => window.location.href = "/profile"}>
+                    Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="w-full cursor-pointer">
-                      Settings
-                    </Link>
+                  <DropdownMenuItem onClick={() => window.location.href = "/settings"}>
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout}>
