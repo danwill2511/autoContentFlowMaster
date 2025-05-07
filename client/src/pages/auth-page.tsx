@@ -3,6 +3,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
+import { useReplitAuth } from "@/hooks/use-replit-auth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,8 +42,14 @@ type RegisterValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
+  const replitAuth = useReplitAuth();
   const [location, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<string>("login");
+  
+  // Make Replit Auth available globally
+  useEffect(() => {
+    window.replitAuth = replitAuth;
+  }, [replitAuth]);
 
   const loginForm = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -131,10 +138,29 @@ export default function AuthPage() {
                       />
                       <Button
                         type="submit"
-                        className="w-full mt-6"
+                        className="w-full"
                         disabled={loginMutation.isPending}
                       >
                         {loginMutation.isPending ? "Logging in..." : "Login"}
+                      </Button>
+                      
+                      <div className="relative my-4">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-gray-300"></span>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                          <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => window.replitAuth?.login()}
+                      >
+                        <img src="https://replit.com/public/images/icon-square.png" alt="Replit Logo" className="w-5 h-5 mr-2" />
+                        Login with Replit
                       </Button>
                     </form>
                   </Form>

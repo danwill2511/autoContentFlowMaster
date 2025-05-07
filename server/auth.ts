@@ -30,6 +30,18 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+// Helper to get Replit user data from request headers
+function getReplitUser(req: Express.Request) {
+  if (req.headers["x-replit-user-id"]) {
+    return {
+      id: req.headers["x-replit-user-id"] as string,
+      name: req.headers["x-replit-user-name"] as string,
+      profileImage: req.headers["x-replit-user-profile-image"] as string,
+    };
+  }
+  return null;
+}
+
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "auto-content-flow-secret",
@@ -109,6 +121,37 @@ export function setupAuth(app: Express) {
 
   app.post("/api/login", (req, res, next) => {
     try {
+      // Check for Replit Auth first
+      const replitUser = getReplitUser(req);
+      if (replitUser && req.body.useReplitAuth) {
+        // Check if user exists in our system, if not create one
+        storage.getUserByReplitId(replitUser.id)
+          .then(async (user) => {
+            if (!user) {
+              // Create a new user with Replit credentials
+              user = await storage.createUser({
+                name: replitUser.name,
+                username: replitUser.name.toLowerCase().replace(/\s+/g, '_'),
+                email: `${replitUser.id}@replit.user`,
+                password: randomBytes(32).toString('hex'),
+                subscription: "free",
+                replitId: replitUser.id
+              });
+            }
+            
+            req.login(user, (err) => {
+              if (err) return next(err);
+              
+              // Remove password from the response
+              const { password, ...userWithoutPassword } = user;
+              return res.status(200).json(userWithoutPassword);
+            });
+          })
+          .catch(next);
+        return;
+      }
+      
+      // Fallback to regular login
       loginSchema.parse(req.body);
       
       passport.authenticate("local", (err: Error, user: SelectUser, info: any) => {

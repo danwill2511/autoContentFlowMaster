@@ -1,5 +1,6 @@
 import { users, workflows, platforms, workflowPlatforms, posts } from "@shared/schema";
 import type { User, InsertUser, Workflow, InsertWorkflow, Platform, InsertPlatform, WorkflowPlatform, InsertWorkflowPlatform, Post, InsertPost } from "@shared/schema";
+import { and, eq } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { randomUUID } from "crypto";
@@ -96,6 +97,14 @@ export class MemStorage implements IStorage {
     );
   }
   
+
+  // Get user by Replit ID
+  async getUserByReplitId(replitId: string): Promise<User | undefined> {
+    if (!replitId) return undefined;
+    const [user] = await this.db.select().from(users).where(eq(users.replitId, replitId)).limit(1);
+    return user;
+  },
+
   async getUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.usersMap.values()).find(
       (user) => user.email === email
