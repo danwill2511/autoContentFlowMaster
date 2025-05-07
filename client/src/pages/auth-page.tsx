@@ -31,12 +31,13 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const { login, register } = useAuth();
+  const { loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const [_, navigate] = useLocation();
-  const { replitAuthAvailable, loginWithReplit } = useReplitAuth();
+  const replitAuth = useReplitAuth();
+  const replitAuthAvailable = !!window.replitAuth;
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -58,52 +59,25 @@ export default function AuthPage() {
     },
   });
 
-  const onLoginSubmit = async (data: LoginFormValues) => {
-    setIsLoading(true);
-    try {
-      await login(data.email, data.password);
-      navigate("/dashboard");
-    } catch (error) {
-      toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Something went wrong",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const onLoginSubmit = (data: LoginFormValues) => {
+    loginMutation.mutate({
+      email: data.email,
+      password: data.password
+    });
   };
 
-  const onRegisterSubmit = async (data: RegisterFormValues) => {
-    setIsLoading(true);
-    try {
-      await register(data.username, data.email, data.password);
-      toast({
-        title: "Registration successful",
-        description: "You can now log in with your credentials",
-      });
-      setActiveTab("login");
-    } catch (error) {
-      toast({
-        title: "Registration failed",
-        description: error instanceof Error ? error.message : "Something went wrong",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const onRegisterSubmit = (data: RegisterFormValues) => {
+    registerMutation.mutate({
+      username: data.username,
+      email: data.email,
+      password: data.password,
+      subscription: "free"
+    });
   };
 
-  const handleReplitLogin = async () => {
-    try {
-      await loginWithReplit();
-      navigate("/dashboard");
-    } catch (error) {
-      toast({
-        title: "Login failed",
-        description: "Could not login with Replit",
-        variant: "destructive",
-      });
+  const handleReplitLogin = () => {
+    if (replitAuthAvailable) {
+      replitAuth.login();
     }
   };
 
