@@ -5,10 +5,11 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { randomUUID } from "crypto";
 
-// Fix for session.Store type
+// Fix for session store type
 type SessionStore = ReturnType<typeof createMemoryStore>;
 
 const MemoryStore = createMemoryStore(session);
+type MemoryStoreInstance = InstanceType<ReturnType<typeof createMemoryStore>>;
 
 export interface IStorage {
   // User methods
@@ -49,7 +50,7 @@ export interface IStorage {
   updatePostStatus(id: number, status: string, postedAt?: Date): Promise<Post>;
   
   // Session store
-  sessionStore: SessionStore;
+  sessionStore: MemoryStoreInstance;
 }
 
 export class MemStorage implements IStorage {
@@ -63,7 +64,7 @@ export class MemStorage implements IStorage {
   private platformCurrentId: number;
   private workflowPlatformCurrentId: number;
   private postCurrentId: number;
-  sessionStore: SessionStore;
+  sessionStore: MemoryStoreInstance;
 
   constructor() {
     this.usersMap = new Map();
@@ -225,6 +226,9 @@ export class MemStorage implements IStorage {
     const platform: Platform = {
       ...insertPlatform,
       id,
+      apiKey: insertPlatform.apiKey ?? null,
+      apiSecret: insertPlatform.apiSecret ?? null,
+      accessToken: insertPlatform.accessToken ?? null,
       createdAt: now
     };
     this.platformsMap.set(id, platform);
@@ -311,6 +315,8 @@ export class MemStorage implements IStorage {
     const post: Post = {
       ...insertPost,
       id,
+      status: insertPost.status ?? "pending",
+      postedAt: insertPost.postedAt ?? null,
       createdAt: now
     };
     this.postsMap.set(id, post);
