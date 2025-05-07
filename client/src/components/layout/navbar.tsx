@@ -21,7 +21,11 @@ import {
 } from "@/components/ui/sheet";
 
 export function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, logoutMutation } = useAuth();
+  
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
   const [_, navigate] = useLocation();
   const { isMobile } = useMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -74,6 +78,12 @@ export function Navbar() {
                 </div>
                 <div 
                   className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+                  onClick={() => handleNavigation("/analytics")}
+                >
+                  Analytics
+                </div>
+                <div 
+                  className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
                   onClick={() => handleNavigation("/subscriptions")}
                 >
                   Subscription
@@ -117,7 +127,7 @@ export function Navbar() {
                       Settings
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={logout}>
+                    <DropdownMenuItem onClick={handleLogout}>
                       Logout
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -172,6 +182,12 @@ export function Navbar() {
                         onClick={() => handleNavigation("/platforms")}
                       >
                         <span className="text-sm font-medium">Platforms</span>
+                      </div>
+                      <div 
+                        className="flex items-center cursor-pointer p-2 hover:bg-neutral-100 rounded-md"
+                        onClick={() => handleNavigation("/analytics")}
+                      >
+                        <span className="text-sm font-medium">Analytics</span>
                       </div>
                       <div 
                         className="flex items-center cursor-pointer p-2 hover:bg-neutral-100 rounded-md"
