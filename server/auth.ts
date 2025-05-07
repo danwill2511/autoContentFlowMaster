@@ -123,7 +123,7 @@ export function setupAuth(app: Express) {
     try {
       // Check for Replit Auth first
       const replitUser = getReplitUser(req);
-      if (replitUser && req.body.useReplitAuth === true) {
+      if (replitUser) {
         // Check if user exists in our system, if not create one
         storage.getUserByReplitId(replitUser.id)
           .then(async (user) => {
@@ -135,7 +135,8 @@ export function setupAuth(app: Express) {
                 email: `${replitUser.id}@replit.user`,
                 password: randomBytes(32).toString('hex'),
                 subscription: "free",
-                replitId: replitUser.id
+                replitId: replitUser.id,
+                profileImage: replitUser.profileImage
               });
             }
             

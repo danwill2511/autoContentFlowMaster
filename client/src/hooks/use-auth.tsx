@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -23,6 +23,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
+  const [userFromReplit, setUserFromReplit] = useState<User | null>(null); // Added state for Replit user
 
   const {
     data: user,
@@ -98,10 +99,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Effect to check for Replit user
+  useEffect(() => {
+    const checkUser = async () => {
+      if (!user && !userFromReplit) { // Check both user states
+        try {
+          const response = await fetch('/api/user');
+          if (response.ok) {
+            const userData = await response.json();
+            setUserFromReplit(userData); // Update Replit user state
+          }
+        } catch (error) {
+          console.error('Error checking user:', error);
+        }
+      }
+    };
+    checkUser();
+  }, [user, userFromReplit]); // Added userFromReplit to dependency array
+
+
   return (
     <AuthContext.Provider
       value={{
-        user: user ?? null,
+        user: userFromReplit || user ?? null, // Use Replit user if available
         isLoading,
         error,
         loginMutation,

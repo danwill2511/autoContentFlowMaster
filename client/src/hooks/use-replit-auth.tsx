@@ -52,6 +52,13 @@ export const ReplitAuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     fetchUser();
+    
+    // Initialize login function globally
+    if (typeof window !== 'undefined') {
+      window.replitAuth = {
+        login: login
+      };
+    }
   }, []);
 
   const login = () => {
