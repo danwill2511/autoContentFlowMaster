@@ -1,113 +1,117 @@
-import OpenAI from "openai";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { Configuration, OpenAIApi } from "openai";
 
-export async function generateContent({
-  contentType,
-  contentTone,
-  topics,
-  platforms,
-  length = "medium",
-}: {
+// Initialize OpenAI configuration
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY || "",
+});
+
+const openai = new OpenAIApi(configuration);
+
+// Check if OpenAI API key is set
+const isOpenAIConfigured = !!process.env.OPENAI_API_KEY;
+
+interface ContentGenerationOptions {
   contentType: string;
   contentTone: string;
   topics: string;
   platforms: string[];
-  length?: "short" | "medium" | "long";
-}): Promise<string> {
-  const platformsJoined = platforms.join(", ");
+  length?: string;
+}
+
+// Generate content based on user specifications
+export async function generateContent(options: ContentGenerationOptions): Promise<string> {
+  if (!isOpenAIConfigured) {
+    return "OpenAI API key is not configured. Please add your API key to continue generating content.";
+  }
+
+  const { contentType, contentTone, topics, platforms, length = "medium" } = options;
   
-  const lengthGuide = {
-    short: "Keep it concise, ideal for social media (under 280 characters for Twitter).",
-    medium: "Around 2-3 paragraphs, suitable for a LinkedIn post or short blog.",
-    long: "Comprehensive content with 5+ paragraphs, ideal for in-depth articles."
-  }[length];
-
-  const prompt = `
-    Create ${contentType} content about ${topics} with a ${contentTone} tone.
-    This content will be posted on: ${platformsJoined}.
-    ${lengthGuide}
-    
-    Generate content that is original, engaging, and tailored specifically for these platforms.
-    Include relevant hashtags where appropriate.
-    Format the content properly based on the platform requirements.
-  `;
-
+  // Format platforms for better prompt
+  const platformsList = platforms.join(", ");
+  
+  // Determine length constraints
+  let wordCount = 300; // Default medium length
+  if (length === "short") wordCount = 150;
+  if (length === "long") wordCount = 600;
+  
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 1500,
+    const response = await openai.createCompletion({
+      model: "gpt-3.5-turbo-instruct", // Using instruct model for better content generation
+      prompt: `Create ${contentType} content with a ${contentTone} tone about ${topics}. 
+      This content will be adapted for the following platforms: ${platformsList}.
+      Make it approximately ${wordCount} words.
+      The content should be engaging, informative, and tailored to trending interests.
+      Format with appropriate paragraphs, headings, and structure.`,
+      max_tokens: 800,
+      temperature: 0.7,
     });
 
-    return response.choices[0].message.content || "Failed to generate content";
+    return response.data.choices[0].text?.trim() || 
+      "Could not generate content. Please try again with different parameters.";
   } catch (error) {
     console.error("Error generating content with OpenAI:", error);
-    throw new Error("Failed to generate content. Please try again later.");
+    return "An error occurred while generating content. Please try again later.";
   }
 }
 
+// Adapt general content for specific platforms
 export async function generatePlatformSpecificContent(
-  generalContent: string,
+  content: string,
   platform: string
 ): Promise<string> {
-  const platformGuidelines = {
-    "Twitter": "Format for Twitter with maximum 280 characters. Include relevant hashtags.",
-    "LinkedIn": "Format for LinkedIn with professional tone. Can be longer and more detailed.",
-    "Facebook": "Format for Facebook with engaging tone. Include call to action.",
-    "Pinterest": "Format as a compelling description for a Pinterest pin. Include relevant hashtags.",
-    "YouTube": "Format as a YouTube video description with timestamps and links if relevant."
+  if (!isOpenAIConfigured) {
+    return "OpenAI API key is not configured. Please add your API key to continue generating content.";
+  }
+
+  // Platform-specific formatting instructions
+  const platformInstructions: Record<string, string> = {
+    "LinkedIn": "professional, business-oriented with appropriate hashtags",
+    "Twitter": "concise (under 280 characters), engaging, with hashtags",
+    "Facebook": "conversational, engaging, with a call to action",
+    "Pinterest": "descriptive, visual-oriented, with keywords for SEO",
+    "YouTube": "engaging video description with timestamps, keywords, and call to action",
+    "Instagram": "visual, concise, with popular hashtags and emoji"
   };
 
-  const guideline = platformGuidelines[platform as keyof typeof platformGuidelines] || 
-    "Adapt this content appropriately for the platform";
-
-  const prompt = `
-    Adapt the following content specifically for ${platform}:
-    
-    ${generalContent}
-    
-    Guidelines:
-    ${guideline}
-    
-    Return only the reformatted content without explanations.
-  `;
+  const instruction = platformInstructions[platform] || "appropriate for social media";
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 1000,
+    const response = await openai.createCompletion({
+      model: "gpt-3.5-turbo-instruct",
+      prompt: `Adapt the following content for ${platform}. Make it ${instruction}:
+      
+      ${content}
+      
+      The adapted content should maintain the core message but be optimized for ${platform}'s format and audience.`,
+      max_tokens: 500,
+      temperature: 0.7,
     });
 
-    return response.choices[0].message.content || generalContent;
+    return response.data.choices[0].text?.trim() || 
+      `Could not adapt content for ${platform}. Please try again.`;
   } catch (error) {
     console.error(`Error adapting content for ${platform}:`, error);
-    return generalContent; // Return original content if adaptation fails
+    return `An error occurred while adapting content for ${platform}. Please try again later.`;
   }
 }
 
+// Find trending topics in a specific category
 export async function findTrendingTopics(category: string): Promise<string[]> {
-  const prompt = `
-    What are the current trending topics in ${category}?
-    
-    Please return a JSON array of 5 topics as strings.
-    Format: ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"]
-    
-    Make these topics specific and relevant to current discussions in the field.
-  `;
+  if (!isOpenAIConfigured) {
+    return ["OpenAI API key is not configured"];
+  }
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
+    const response = await openai.createCompletion({
+      model: "gpt-3.5-turbo-instruct",
+      prompt: `What are the top 5 trending topics in ${category} right now? Provide them as a comma-separated list without numbering or additional context.`,
+      max_tokens: 100,
+      temperature: 0.7,
     });
 
-    const content = response.choices[0].message.content;
-    const result = content ? JSON.parse(content) : { topics: [] };
-    return result.topics || [];
+    const topicsText = response.data.choices[0].text?.trim() || "";
+    return topicsText.split(",").map(topic => topic.trim());
   } catch (error) {
     console.error("Error finding trending topics:", error);
     return ["Failed to fetch trending topics"];
