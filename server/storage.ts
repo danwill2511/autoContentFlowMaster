@@ -316,8 +316,13 @@ export class MemStorage implements IStorage {
     const id = this.postCurrentId++;
     const now = new Date();
     const post: Post = {
-      ...insertPost,
       id,
+      workflowId: insertPost.workflowId,
+      content: insertPost.content,
+      scheduledFor: insertPost.scheduledFor,
+      platformIds: insertPost.platformIds,
+      status: insertPost.status || "pending",
+      postedAt: insertPost.postedAt || null,
       createdAt: now
     };
     this.postsMap.set(id, post);

@@ -10,7 +10,7 @@ import { insertWorkflowSchema, insertPlatformSchema, insertWorkflowPlatformSchem
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 
 // Helper function to get Replit user data from request headers
-function getReplitUser(req: Request) {
+function getReplitUser(req: Express.Request) {
   if (req.headers["x-replit-user-id"]) {
     return {
       id: req.headers["x-replit-user-id"] as string,

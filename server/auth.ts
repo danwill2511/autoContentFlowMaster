@@ -31,7 +31,7 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 // Helper to get Replit user data from request headers
-function getReplitUser(req: Request) {
+function getReplitUser(req: Express.Request) {
   if (req.headers && req.headers["x-replit-user-id"]) {
     return {
       id: req.headers["x-replit-user-id"] as string,
