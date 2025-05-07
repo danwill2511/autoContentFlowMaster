@@ -10,7 +10,7 @@ import { insertWorkflowSchema, insertPlatformSchema, insertWorkflowPlatformSchem
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 
 // Helper function to get Replit user data from request headers
-function getReplitUser(req: Express.Request) {
+function getReplitUser(req: Request) {
   if (req.headers["x-replit-user-id"]) {
     return {
       id: req.headers["x-replit-user-id"] as string,
@@ -334,6 +334,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ content });
     } catch (error) {
       res.status(500).json({ message: "Failed to generate content" });
+    }
+  });
+  
+  // Adapt content for specific platform
+  app.post("/api/content/adapt", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      const { content, platform } = req.body;
+
+      if (!content || !platform) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const adaptedContent = await generatePlatformSpecificContent(content, platform);
+      res.json({ content: adaptedContent });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to adapt content" });
     }
   });
 

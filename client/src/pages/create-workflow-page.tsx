@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import PlatformSelector, { Platform as PlatformType } from "@/components/workflows/platform-selector";
+import ContentPreview from "@/components/workflows/content-preview";
 import {
   Form,
   FormControl,
@@ -393,7 +394,26 @@ export default function CreateWorkflowPage() {
                 <Separator />
                 
                 <div>
-                  <h3 className="text-base font-medium text-neutral-900 mb-4">4. Scheduling</h3>
+                  <h3 className="text-base font-medium text-neutral-900 mb-4">4. Content Preview</h3>
+                  <div className="grid grid-cols-1 gap-6">
+                    {selectedPlatforms.length > 0 && (
+                      <ContentPreview 
+                        contentType={form.watch("contentType")}
+                        contentTone={form.watch("contentTone")}
+                        topics={form.watch("topics")}
+                        platforms={selectedPlatforms.map(id => {
+                          const platform = platforms?.find(p => p.id === id);
+                          return platform?.name || "";
+                        }).filter(Boolean)}
+                      />
+                    )}
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="text-base font-medium text-neutral-900 mb-4">5. Scheduling</h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-6">
                     <div className="sm:col-span-3">
                       <FormField
