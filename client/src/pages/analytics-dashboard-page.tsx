@@ -36,48 +36,18 @@ export default function AnalyticsDashboardPage() {
   const [timeRange, setTimeRange] = useState("1m");
   const [platform, setPlatform] = useState("all");
   
-  // In a real app, the query key would include the timeRange and platform filters
+  // Query API with filters
   const { data: analyticsData, isLoading } = useQuery({
     queryKey: ["/api/analytics", timeRange, platform],
     queryFn: async () => {
-      // This would be replaced with an actual API call
-      return {
-        engagementData: sampleEngagementData,
-        platformPerformance: samplePlatformPerformance,
-        contentTypePerformance: sampleContentTypePerformance,
-        topPosts: [
-          {
-            id: 1,
-            title: "10 Ways to Boost Your Social Media Presence",
-            platform: "Twitter",
-            engagement: 1240,
-            date: "2023-06-15",
-          },
-          {
-            id: 2,
-            title: "The Future of Content Marketing in 2023",
-            platform: "LinkedIn",
-            engagement: 980,
-            date: "2023-06-10",
-          },
-          {
-            id: 3,
-            title: "How to Create Viral Content Every Time",
-            platform: "Instagram",
-            engagement: 820,
-            date: "2023-06-05",
-          },
-        ],
-        totalEngagement: {
-          likes: 4500,
-          comments: 2100,
-          shares: 980,
-        },
-        growthRate: 23.4,
-      };
+      const response = await fetch(`/api/analytics?timeRange=${timeRange}&platform=${platform}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics data');
+      }
+      return await response.json();
     },
-    // In development, use the sample data directly
-    initialData: {
+    // Fallback to sample data during development or when no data exists yet
+    placeholderData: {
       engagementData: sampleEngagementData,
       platformPerformance: samplePlatformPerformance,
       contentTypePerformance: sampleContentTypePerformance,

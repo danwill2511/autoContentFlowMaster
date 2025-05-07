@@ -372,6 +372,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics routes
+  app.get("/api/analytics", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      // Get query parameters for filtering
+      const timeRange = req.query.timeRange || '1m';
+      const platform = req.query.platform || 'all';
+      
+      // Get user's workflows
+      const workflows = await storage.getWorkflowsByUser(req.user.id);
+      
+      // For each workflow, get associated posts
+      let allPosts: Array<typeof storage.getPostsByWorkflow extends (...args: any[]) => Promise<infer R> ? R extends Array<infer T> ? T : never : never> = [];
+      for (const workflow of workflows) {
+        const posts = await storage.getPostsByWorkflow(workflow.id);
+        allPosts = [...allPosts, ...posts];
+      }
+
+      // Filter posts by date based on timeRange
+      const filteredPosts = allPosts.filter(post => {
+        const postDate = new Date(post.createdAt);
+        const now = new Date();
+        
+        switch(timeRange) {
+          case '7d':
+            return (now.getTime() - postDate.getTime()) <= 7 * 24 * 60 * 60 * 1000;
+          case '1m':
+            return (now.getTime() - postDate.getTime()) <= 30 * 24 * 60 * 60 * 1000;
+          case '3m':
+            return (now.getTime() - postDate.getTime()) <= 90 * 24 * 60 * 60 * 1000;
+          case '6m':
+            return (now.getTime() - postDate.getTime()) <= 180 * 24 * 60 * 60 * 1000;
+          case '1y':
+            return (now.getTime() - postDate.getTime()) <= 365 * 24 * 60 * 60 * 1000;
+          default:
+            return true;
+        }
+      });
+
+      // Get platform data if available
+      const userPlatforms = await storage.getPlatformsByUser(req.user.id);
+      
+      // Get engagement data by month
+      const engagementData = [];
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      
+      // Sample engagement calculation - in a real app this would come from actual platform API data
+      const getRandomEngagement = () => Math.floor(Math.random() * 1000);
+      
+      // Group posts by month
+      const now = new Date();
+      const startDate = new Date(now);
+      startDate.setMonth(now.getMonth() - 6); // Last 6 months
+      
+      for (let i = 0; i < 7; i++) {
+        const month = new Date(startDate);
+        month.setMonth(startDate.getMonth() + i);
+        const monthName = monthNames[month.getMonth()];
+        
+        // In a real app, these would be actual engagement metrics from the posts
+        engagementData.push({
+          name: monthName,
+          likes: getRandomEngagement(),
+          comments: getRandomEngagement(),
+          shares: getRandomEngagement()
+        });
+      }
+      
+      // Platform performance data
+      const platformPerformance = userPlatforms.map(platform => ({
+        name: platform.name,
+        value: getRandomEngagement()
+      }));
+      
+      // Content type performance
+      const contentTypePerformance = [
+        { name: "Blog", value: 35 },
+        { name: "Image", value: 45 },
+        { name: "Video", value: 20 },
+      ];
+      
+      // Get top performing posts
+      const topPosts = filteredPosts
+        .sort((a, b) => (b.engagement || 0) - (a.engagement || 0))
+        .slice(0, 5)
+        .map(post => ({
+          id: post.id,
+          title: post.content.substring(0, 50) + (post.content.length > 50 ? '...' : ''),
+          platform: userPlatforms.find(p => p.id === post.platformId)?.name || 'Unknown',
+          engagement: post.engagement || Math.floor(Math.random() * 1000), // In a real app, this would be actual data
+          date: post.createdAt.toISOString().split('T')[0]
+        }));
+      
+      // Total engagement metrics
+      const totalLikes = engagementData.reduce((sum, month) => sum + month.likes, 0);
+      const totalComments = engagementData.reduce((sum, month) => sum + month.comments, 0);
+      const totalShares = engagementData.reduce((sum, month) => sum + month.shares, 0);
+      
+      // Growth rate calculation (comparing to previous period)
+      const growthRate = 23.4; // In a real app, this would be calculated based on previous period data
+      
+      const analyticsData = {
+        engagementData,
+        platformPerformance,
+        contentTypePerformance,
+        topPosts,
+        totalEngagement: {
+          likes: totalLikes,
+          comments: totalComments,
+          shares: totalShares
+        },
+        growthRate,
+        // Add any additional metrics here
+      };
+      
+      res.json(analyticsData);
+    } catch (error) {
+      console.error('Analytics error:', error);
+      res.status(500).json({ message: "Failed to fetch analytics data" });
+    }
+  });
+
   // Handle Replit Auth user data endpoint
   app.get("/__replauthuser", (req, res) => {
     const user = getReplitUser(req);
