@@ -46,10 +46,24 @@ export default function AuthPage() {
   const [location, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<string>("login");
   
+  // Track if we've already processed Replit login
+  const [processedReplitLogin, setProcessedReplitLogin] = useState(false);
+  
   // Check for Replit Auth on mount
   useEffect(() => {
-    // Nothing needed here, the useReplitAuth hook handles authentication
-  }, []);
+    // If the Replit user changes (logged in) and we haven't processed it yet, trigger our app's login
+    if (replitAuth.user && !processedReplitLogin && !user) {
+      // Set processed flag first to prevent infinite loop
+      setProcessedReplitLogin(true);
+      
+      // User logged in with Replit, trigger our login
+      loginMutation.mutate({ 
+        email: "placeholder@example.com", 
+        password: "placeholder", 
+        useReplitAuth: true 
+      });
+    }
+  }, [replitAuth.user, loginMutation, processedReplitLogin, user]);
 
   const loginForm = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -157,18 +171,7 @@ export default function AuthPage() {
                         type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={() => {
-                          // First trigger Replit auth flow
-                          replitAuth.login();
-                          // Then once that completes, we'll send a special login request to our server
-                          setTimeout(() => {
-                            loginMutation.mutate({ 
-                              email: "placeholder@example.com", 
-                              password: "placeholder", 
-                              useReplitAuth: true 
-                            });
-                          }, 3000); // Give the Replit auth some time to complete
-                        }}
+                        onClick={() => replitAuth.login()}
                       >
                         <img src="https://replit.com/public/images/icon-square.png" alt="Replit Logo" className="w-5 h-5 mr-2" />
                         Login with Replit

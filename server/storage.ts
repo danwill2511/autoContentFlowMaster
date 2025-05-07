@@ -45,7 +45,7 @@ export interface IStorage {
   updatePostStatus(id: number, status: string, postedAt?: Date): Promise<Post>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using any for session store type to avoid compatibility issues
 }
 
 export class MemStorage implements IStorage {
@@ -59,7 +59,7 @@ export class MemStorage implements IStorage {
   private platformCurrentId: number;
   private workflowPlatformCurrentId: number;
   private postCurrentId: number;
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using any for session store type to avoid compatibility issues
 
   constructor() {
     this.usersMap = new Map();
@@ -116,8 +116,13 @@ export class MemStorage implements IStorage {
     const id = this.userCurrentId++;
     const now = new Date();
     const user: User = { 
-      ...insertUser, 
-      id, 
+      id,
+      username: insertUser.username,
+      password: insertUser.password,
+      email: insertUser.email,
+      name: insertUser.name || null,
+      replitId: insertUser.replitId || null,
+      subscription: insertUser.subscription || "free",
       createdAt: now 
     };
     this.usersMap.set(id, user);
@@ -160,8 +165,15 @@ export class MemStorage implements IStorage {
     const id = this.workflowCurrentId++;
     const now = new Date();
     const workflow: Workflow = {
-      ...insertWorkflow,
       id,
+      name: insertWorkflow.name,
+      userId: insertWorkflow.userId,
+      frequency: insertWorkflow.frequency,
+      contentType: insertWorkflow.contentType,
+      contentTone: insertWorkflow.contentTone,
+      topics: insertWorkflow.topics,
+      status: insertWorkflow.status || "active",
+      nextPostDate: insertWorkflow.nextPostDate || null,
       createdAt: now
     };
     this.workflowsMap.set(id, workflow);
@@ -214,8 +226,12 @@ export class MemStorage implements IStorage {
     const id = this.platformCurrentId++;
     const now = new Date();
     const platform: Platform = {
-      ...insertPlatform,
       id,
+      name: insertPlatform.name,
+      userId: insertPlatform.userId,
+      apiKey: insertPlatform.apiKey || null,
+      apiSecret: insertPlatform.apiSecret || null,
+      accessToken: insertPlatform.accessToken || null,
       createdAt: now
     };
     this.platformsMap.set(id, platform);
