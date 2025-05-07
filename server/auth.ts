@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -31,8 +31,8 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 // Helper to get Replit user data from request headers
-function getReplitUser(req: Express.Request) {
-  if (req.headers["x-replit-user-id"]) {
+function getReplitUser(req: Request) {
+  if (req.headers && req.headers["x-replit-user-id"]) {
     return {
       id: req.headers["x-replit-user-id"] as string,
       name: req.headers["x-replit-user-name"] as string,
@@ -123,7 +123,7 @@ export function setupAuth(app: Express) {
     try {
       // Check for Replit Auth first
       const replitUser = getReplitUser(req);
-      if (replitUser && req.body.useReplitAuth) {
+      if (replitUser && req.body.useReplitAuth === true) {
         // Check if user exists in our system, if not create one
         storage.getUserByReplitId(replitUser.id)
           .then(async (user) => {
@@ -152,7 +152,14 @@ export function setupAuth(app: Express) {
       }
       
       // Fallback to regular login
-      loginSchema.parse(req.body);
+      try {
+        loginSchema.parse(req.body);
+      } catch (validationError) {
+        if (validationError instanceof ZodError) {
+          return res.status(400).json({ message: fromZodError(validationError).message });
+        }
+        throw validationError;
+      }
       
       passport.authenticate("local", (err: Error, user: SelectUser, info: any) => {
         if (err) return next(err);

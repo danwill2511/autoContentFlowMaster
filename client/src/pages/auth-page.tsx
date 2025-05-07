@@ -46,10 +46,10 @@ export default function AuthPage() {
   const [location, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<string>("login");
   
-  // Make Replit Auth available globally
+  // Check for Replit Auth on mount
   useEffect(() => {
-    window.replitAuth = replitAuth;
-  }, [replitAuth]);
+    // Nothing needed here, the useReplitAuth hook handles authentication
+  }, []);
 
   const loginForm = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -157,7 +157,18 @@ export default function AuthPage() {
                         type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={() => window.replitAuth?.login()}
+                        onClick={() => {
+                          // First trigger Replit auth flow
+                          replitAuth.login();
+                          // Then once that completes, we'll send a special login request to our server
+                          setTimeout(() => {
+                            loginMutation.mutate({ 
+                              email: "placeholder@example.com", 
+                              password: "placeholder", 
+                              useReplitAuth: true 
+                            });
+                          }, 3000); // Give the Replit auth some time to complete
+                        }}
                       >
                         <img src="https://replit.com/public/images/icon-square.png" alt="Replit Logo" className="w-5 h-5 mr-2" />
                         Login with Replit
