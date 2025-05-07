@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useEffect } from "react";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import {
   useQuery,
   useMutation,
@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user: userFromReplit || user ?? null, // Use Replit user if available
+        user: userFromReplit || (user ?? null), // Use Replit user if available
         isLoading,
         error,
         loginMutation,

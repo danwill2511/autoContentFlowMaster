@@ -12,7 +12,18 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useReplitAuth } from "@/hooks/use-replit-auth";
-import { loginSchema, registerSchema } from "@shared/schema";
+import { loginSchema } from "@shared/schema";
+
+// Define register schema
+const registerSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -109,7 +120,7 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={isLoading || loginMutation.isLoading}>
+                  <Button type="submit" className="w-full" disabled={isLoading || loginMutation.isPending}>
                     Login
                   </Button>
                 </form>
@@ -170,7 +181,7 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={isLoading || registerMutation.isLoading}>
+                  <Button type="submit" className="w-full" disabled={isLoading || registerMutation.isPending}>
                     Register
                   </Button>
                 </form>
