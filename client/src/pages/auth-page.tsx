@@ -29,13 +29,14 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const { loginMutation, registerMutation } = useAuth();
+  const { login, register, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const [_, navigate] = useLocation();
-  const replitAuth = useReplitAuth();
-  const replitAuthAvailable = typeof window !== 'undefined' && !!window.replitAuth;
+  const { user: replitUser } = useReplitAuth();
+  // Disable Replit auth in this environment to avoid errors
+  const replitAuthAvailable = false;
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -57,26 +58,38 @@ export default function AuthPage() {
     },
   });
 
-  const onLoginSubmit = (data: LoginFormValues) => {
-    loginMutation.mutate({
-      email: data.email,
-      password: data.password
-    });
-  };
-
-  const onRegisterSubmit = (data: RegisterFormValues) => {
-    registerMutation.mutate({
-      username: data.username,
-      email: data.email,
-      password: data.password,
-      subscription: "free"
-    });
-  };
-
-  const handleReplitLogin = () => {
-    if (replitAuth && replitAuth.login) {
-      replitAuth.login();
+  const onLoginSubmit = async (data: LoginFormValues) => {
+    try {
+      await login(data.email, data.password);
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login Failed",
+        description: "Unable to login. Please check your credentials.",
+        variant: "destructive",
+      });
     }
+  };
+
+  const onRegisterSubmit = async (data: RegisterFormValues) => {
+    try {
+      await register(data.username, data.email, data.password);
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast({
+        title: "Registration Failed",
+        description: "Unable to register. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Stub handler for Replit login - not used in this environment
+  const handleReplitLogin = () => {
+    toast({
+      title: "Replit Auth",
+      description: "Replit authentication not available in this environment.",
+    });
   };
 
   return (
@@ -120,7 +133,7 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={isLoading || loginMutation.isPending}>
+                  <Button type="submit" className="w-full" disabled={isLoading || authLoading}>
                     Login
                   </Button>
                 </form>
@@ -181,7 +194,7 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={isLoading || registerMutation.isPending}>
+                  <Button type="submit" className="w-full" disabled={isLoading || authLoading}>
                     Register
                   </Button>
                 </form>

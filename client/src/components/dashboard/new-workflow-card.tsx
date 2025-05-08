@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useLocation } from 'wouter'; // Added import for useLocation
-import Card from "@/components/ui/card"; // Assuming a Card component exists
+import { Card } from "@/components/ui/card"; // Using named import instead of default
 
 
 export function NewWorkflowCard() {
