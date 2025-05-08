@@ -45,7 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    setUser(userDataFromQuery); // Update user state from query data
+    if (userDataFromQuery !== undefined) {
+      setUser(userDataFromQuery); // Update user state from query data
+    }
   }, [userDataFromQuery]);
 
   const isAuthenticated = !!user; // Added isAuthenticated logic
@@ -124,24 +126,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithReplit = async (replitUser: ReplitUser) => {
     try {
-      const response = await apiRequest({
-        url: "/api/login",
-        method: "POST",
-        data: { replitAuth: true, replitUser }, // Sending replitUser data
+      // Use loginMutation instead to ensure consistency
+      loginMutation.mutate({ 
+        username: replitUser.id, 
+        password: 'replit-auth', 
+        useReplitAuth: true 
       });
-
-      if (response.ok) {
-        const receivedUser = await response.json();
-        setUser(receivedUser);
-        queryClient.setQueryData(["/api/user"], receivedUser);
-        navigate("/");
-        toast({
-          title: "Success",
-          description: `Welcome, ${receivedUser.name || replitUser.name}!`,
-        });
-      } else {
-        throw new Error(`Login failed with status ${response.status}`);
-      }
     } catch (error) {
       console.error("Replit Auth login error:", error);
       toast({
