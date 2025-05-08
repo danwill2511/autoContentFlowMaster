@@ -6,11 +6,12 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  name: text("name"),
   email: text("email").notNull().unique(),
-  replitId: text("replit_id"), // Added replitId field
-  subscription: text("subscription").default("free").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  name: text("name"),
+  replitId: text("replitId").unique(),
+  subscription: text("subscription").default("free"),
+  isAdmin: boolean("is_admin").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const platforms = pgTable("platforms", {

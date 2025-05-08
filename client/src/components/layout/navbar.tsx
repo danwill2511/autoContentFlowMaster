@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,14 +21,14 @@ import {
 
 export function Navbar() {
   const { user, logoutMutation } = useAuth();
-  
+
   const handleLogout = () => {
     logoutMutation.mutate();
   };
   const [_, navigate] = useLocation();
   const { isMobile } = useMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
+
   const handleNavigation = (path: string) => {
     navigate(path);
     setIsMenuOpen(false);
@@ -54,7 +53,7 @@ export function Navbar() {
                 AutoContentFlow
               </span>
             </div>
-            
+
             {/* Desktop Menu */}
             {!isMobile && (
               <div className="ml-10 flex items-center space-x-4">
@@ -91,7 +90,7 @@ export function Navbar() {
               </div>
             )}
           </div>
-          
+
           {/* Right side actions */}
           <div className="flex items-center">
             {user ? (
@@ -102,7 +101,7 @@ export function Navbar() {
                     <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
                   </svg>
                 </button>
-                
+
                 {/* User dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -115,7 +114,14 @@ export function Navbar() {
                   <DropdownMenuContent align="end" className="w-56">
                     <div className="flex items-center p-2">
                       <div className="ml-2">
-                        <p className="text-sm font-medium text-neutral-900">{user.username || "User"}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-neutral-900">{user.username || "User"}</p>
+                          {user?.isAdmin && (
+                            <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded">
+                              Admin
+                            </span>
+                          )}
+                        </div>
                         <p className="truncate text-sm font-medium text-neutral-900">{user.email}</p>
                       </div>
                     </div>
@@ -148,7 +154,7 @@ export function Navbar() {
                 </Button>
               </div>
             )}
-            
+
             {/* Mobile menu button */}
             {isMobile && (
               <div className="ml-2">

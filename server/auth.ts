@@ -37,6 +37,14 @@ function getReplitUser(req: Express.Request) {
       id: req.headers["x-replit-user-id"] as string,
       name: req.headers["x-replit-user-name"] as string,
       profileImage: req.headers["x-replit-user-profile-image"] as string,
+      bio: req.headers["x-replit-user-bio"] as string,
+      url: req.headers["x-replit-user-url"] as string,
+      roles: req.headers["x-replit-user-roles"] ? 
+        (req.headers["x-replit-user-roles"] as string).split(',') : 
+        undefined,
+      teams: req.headers["x-replit-user-teams"] ? 
+        (req.headers["x-replit-user-teams"] as string).split(',') : 
+        undefined,
     };
   }
   return null;
@@ -127,6 +135,9 @@ export function setupAuth(app: Express) {
         // Check if user exists in our system, if not create one
         storage.getUserByReplitId(replitUser.id)
           .then(async (user) => {
+            // Check if the Replit user is an admin based on roles or other criteria
+            const isAdmin = replitUser.roles && replitUser.roles.includes('admin');
+            
             if (!user) {
               // Create a new user with Replit credentials
               user = await storage.createUser({
@@ -134,10 +145,19 @@ export function setupAuth(app: Express) {
                 username: replitUser.name.toLowerCase().replace(/\s+/g, '_'),
                 email: `${replitUser.id}@replit.user`,
                 password: randomBytes(32).toString('hex'),
-                subscription: "free",
+                subscription: isAdmin ? "business" : "free", // Admins get business tier
                 replitId: replitUser.id,
-                profileImage: replitUser.profileImage
+                profileImage: replitUser.profileImage,
+                isAdmin: isAdmin
               });
+            } else if (isAdmin && user.subscription !== "business") {
+              // Update existing user to admin status if they weren't before
+              user = await storage.updateUserSubscription(user.id, "business");
+              
+              // Update admin status if not already set
+              if (!user.isAdmin) {
+                user = await storage.updateUser(user.id, { isAdmin: true });
+              }
             }
             
             req.login(user, (err) => {

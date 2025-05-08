@@ -143,6 +143,21 @@ export class MemStorage implements IStorage {
     this.usersMap.set(userId, updatedUser);
     return updatedUser;
   }
+  
+  async updateUser(userId: number, updates: Partial<User>): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error(`User ${userId} not found`);
+    }
+    
+    const updatedUser: User = {
+      ...user,
+      ...updates
+    };
+    
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
 
   // Workflow methods
   async getWorkflow(id: number): Promise<Workflow | undefined> {

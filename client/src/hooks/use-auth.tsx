@@ -8,14 +8,24 @@ import { User, InsertUser, LoginData } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom"; // Added for navigation
+
+
+interface ReplitUser { // Added ReplitUser interface
+  id: string;
+  name: string;
+  // Add other necessary fields from Replit Auth
+}
 
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
-  error: Error | null;
-  loginMutation: UseMutationResult<Omit<User, "password">, Error, LoginData & { useReplitAuth?: boolean }>;
+  isAuthenticated: boolean; // Added isAuthenticated
+  loginMutation: UseMutationResult<User, Error, LoginData & { useReplitAuth?: boolean }>; // Modified to include useReplitAuth
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<Omit<User, "password">, Error, InsertUser>;
+  registerMutation: UseMutationResult<User, Error, InsertUser>;
+  loginWithReplit: (replitUser: ReplitUser) => Promise<void>; // Added loginWithReplit
+  logout: () => void; // Added logout function
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -23,10 +33,12 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
-  const [userFromReplit, setUserFromReplit] = useState<User | null>(null); // Added state for Replit user
+  const navigate = useNavigate(); // Added useNavigate hook
+  const [userFromReplit, setUserFromReplit] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null); // Added user state
 
   const {
-    data: user,
+    data: userDataFromQuery,
     error,
     isLoading,
   } = useQuery<User | null, Error>({
@@ -34,12 +46,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
+  useEffect(() => {
+    setUser(userDataFromQuery); // Update user state from query data
+  }, [userDataFromQuery]);
+
+  const isAuthenticated = !!user; // Added isAuthenticated logic
+
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData & { useReplitAuth?: boolean }) => {
       const res = await apiRequest("POST", "/api/login", credentials);
       return await res.json();
     },
-    onSuccess: (user: Omit<User, "password">) => {
+    onSuccess: (user: User) => {
+      setUser(user); // Update user state after successful login
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Login successful",
@@ -61,7 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", credentials);
       return await res.json();
     },
-    onSuccess: (user: Omit<User, "password">) => {
+    onSuccess: (user: User) => {
+      setUser(user);
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Registration successful",
@@ -83,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      setUser(null); // Clear user state after logout
       queryClient.setQueryData(["/api/user"], null);
       toast({
         title: "Logged out",
@@ -99,34 +120,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  // Effect to check for Replit user
-  useEffect(() => {
-    const checkUser = async () => {
-      if (!user && !userFromReplit) { // Check both user states
-        try {
-          const response = await fetch('/api/user');
-          if (response.ok) {
-            const userData = await response.json();
-            setUserFromReplit(userData); // Update Replit user state
-          }
-        } catch (error) {
-          console.error('Error checking user:', error);
-        }
-      }
-    };
-    checkUser();
-  }, [user, userFromReplit]); // Added userFromReplit to dependency array
 
+  const logout = () => logoutMutation.mutate(); // Added logout function
+
+
+  const loginWithReplit = async (replitUser: ReplitUser) => {
+    try {
+      const response = await apiRequest({
+        url: "/api/login",
+        method: "POST",
+        data: { replitAuth: true, replitUser }, // Sending replitUser data
+      });
+
+      if (response.ok) {
+        const receivedUser = await response.json();
+        setUser(receivedUser);
+        queryClient.setQueryData(["/api/user"], receivedUser);
+        navigate("/");
+        toast({
+          title: "Success",
+          description: `Welcome, ${receivedUser.name || replitUser.name}!`,
+        });
+      } else {
+        throw new Error(`Login failed with status ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Replit Auth login error:", error);
+      toast({
+        title: "Login Failed",
+        description: "Failed to log in with Replit. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <AuthContext.Provider
       value={{
-        user: userFromReplit || (user ?? null), // Use Replit user if available
+        user: user || userFromReplit || null,
         isLoading,
-        error,
+        isAuthenticated,
         loginMutation,
         logoutMutation,
         registerMutation,
+        loginWithReplit,
+        logout,
       }}
     >
       {children}

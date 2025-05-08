@@ -1,8 +1,8 @@
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { createContext, ReactNode, useContext, useState, useEffect } from "react";
+import { useToast } from "./use-toast";
+import { useAuth } from "./use-auth";
 
-
-// Add global window property for easy access
 declare global {
   interface Window {
     replitAuth?: {
@@ -34,6 +34,8 @@ export const ReplitAuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<ReplitUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { loginWithReplit } = useAuth();
 
   const fetchUser = async () => {
     try {
@@ -41,6 +43,11 @@ export const ReplitAuthProvider = ({ children }: { children: ReactNode }) => {
       if (res.status === 200) {
         const userData = await res.json();
         setUser(userData);
+        
+        // Auto login with Replit credentials
+        if (userData && userData.id) {
+          loginWithReplit(userData);
+        }
       }
     } catch (err) {
       console.error('Error fetching Replit user:', err);
@@ -75,13 +82,18 @@ export const ReplitAuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     function authComplete(e: MessageEvent) {
-      if (e.data !== 'auth_complete') {
-        return;
-      }
-
+      if (e.data !== 'auth_complete') return;
+      
       window.removeEventListener('message', authComplete);
-      authWindow?.close();
+      if (authWindow) {
+        authWindow.close();
+      }
+      
       fetchUser();
+      toast({
+        title: "Authentication successful",
+        description: "You've been logged in with Replit",
+      });
     }
   };
 
