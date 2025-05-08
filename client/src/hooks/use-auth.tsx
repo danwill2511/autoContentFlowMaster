@@ -128,9 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Use loginMutation instead to ensure consistency
       loginMutation.mutate({ 
-        username: replitUser.id, 
         password: 'replit-auth', 
-        useReplitAuth: true 
+        useReplitAuth: true,
+        email: replitUser.id // Using replitUser.id as the email field
       });
     } catch (error) {
       console.error("Replit Auth login error:", error);
