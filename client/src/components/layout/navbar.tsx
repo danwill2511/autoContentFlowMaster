@@ -25,12 +25,12 @@ export function Navbar() {
   const handleLogout = () => {
     logoutMutation.mutate();
   };
-  const [_, navigate] = useLocation();
+  const [_, setLocation] = useLocation();
   const { isMobile } = useMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleNavigation = (path: string) => {
-    navigate(path);
+    setLocation(path);
     setIsMenuOpen(false);
   };
 
@@ -57,36 +57,36 @@ export function Navbar() {
             {/* Desktop Menu */}
             {!isMobile && (
               <div className="ml-10 flex items-center space-x-4">
-                <div 
-                  className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+                <Button 
+                  variant="link" 
                   onClick={() => handleNavigation("/dashboard")}
                 >
                   Dashboard
-                </div>
-                <div 
-                  className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+                </Button>
+                <Button 
+                  variant="link" 
                   onClick={() => handleNavigation("/workflows")}
                 >
                   Workflows
-                </div>
-                <div 
-                  className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+                </Button>
+                <Button 
+                  variant="link" 
                   onClick={() => handleNavigation("/platforms")}
                 >
                   Platforms
-                </div>
-                <div 
-                  className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+                </Button>
+                <Button 
+                  variant="link" 
                   onClick={() => handleNavigation("/analytics")}
                 >
                   Analytics
-                </div>
-                <div 
-                  className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+                </Button>
+                <Button 
+                  variant="link" 
                   onClick={() => handleNavigation("/subscriptions")}
                 >
                   Subscription
-                </div>
+                </Button>
               </div>
             )}
           </div>
@@ -171,36 +171,51 @@ export function Navbar() {
                       <SheetTitle>Menu</SheetTitle>
                     </SheetHeader>
                     <div className="mt-6 flex flex-col gap-4">
-                      <div 
-                        className="flex items-center cursor-pointer p-2 hover:bg-neutral-100 rounded-md"
-                        onClick={() => handleNavigation("/dashboard")}
+                      <button 
+                        onClick={() => {
+                          setLocation("/");
+                          setIsMenuOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
                       >
-                        <span className="text-sm font-medium">Dashboard</span>
-                      </div>
-                      <div 
-                        className="flex items-center cursor-pointer p-2 hover:bg-neutral-100 rounded-md"
-                        onClick={() => handleNavigation("/workflows")}
+                        Dashboard
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setLocation("/workflows");
+                          setIsMenuOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
                       >
-                        <span className="text-sm font-medium">Workflows</span>
-                      </div>
-                      <div 
-                        className="flex items-center cursor-pointer p-2 hover:bg-neutral-100 rounded-md"
-                        onClick={() => handleNavigation("/platforms")}
+                        Workflows
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setLocation("/platforms");
+                          setIsMenuOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
                       >
-                        <span className="text-sm font-medium">Platforms</span>
-                      </div>
-                      <div 
-                        className="flex items-center cursor-pointer p-2 hover:bg-neutral-100 rounded-md"
-                        onClick={() => handleNavigation("/analytics")}
+                        Platforms
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setLocation("/analytics");
+                          setIsMenuOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
                       >
-                        <span className="text-sm font-medium">Analytics</span>
-                      </div>
-                      <div 
-                        className="flex items-center cursor-pointer p-2 hover:bg-neutral-100 rounded-md"
-                        onClick={() => handleNavigation("/subscriptions")}
+                        Analytics
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setLocation("/subscriptions");
+                          setIsMenuOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
                       >
-                        <span className="text-sm font-medium">Subscription</span>
-                      </div>
+                        Subscription
+                      </button>
                     </div>
                   </SheetContent>
                 </Sheet>

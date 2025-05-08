@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { useLocation, useLocation as useWouterLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Workflow } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
@@ -12,7 +12,8 @@ interface WorkflowCardProps {
 
 export function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
   const { toast } = useToast();
-  
+  const [location, setLocation] = useWouterLocation();
+
   const toggleStatus = useMutation({
     mutationFn: async (status: string) => {
       const res = await apiRequest("PUT", `/api/workflows/${workflow.id}/status`, { status });
@@ -42,22 +43,22 @@ export function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
   // Format the next post date
   const formatNextPostDate = () => {
     if (!workflow.nextPostDate) return "Not scheduled";
-    
+
     const date = new Date(workflow.nextPostDate);
     const today = new Date();
-    
+
     // Check if it's today
     if (date.toDateString() === today.toDateString()) {
       return `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     }
-    
+
     // Check if it's tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
     if (date.toDateString() === tomorrow.toDateString()) {
       return `Tomorrow, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     }
-    
+
     // Otherwise return day of week and time
     return `${date.toLocaleDateString([], { weekday: 'long' })}, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
@@ -95,10 +96,12 @@ export function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
   return (
     <div className="workflow-card bg-white shadow rounded-lg overflow-hidden border border-neutral-200 hover:shadow-md transition-shadow">
       <div className="px-4 py-5 sm:px-6 border-b border-neutral-200 bg-neutral-50 flex justify-between items-center">
-        <div>
+        <button 
+          onClick={() => setLocation(`/workflows/${workflow.id}`)} 
+          className="text-neutral-900 hover:text-primary-700 text-left"
+        >
           <h3 className="text-lg leading-6 font-medium text-neutral-900">{workflow.name}</h3>
-          <p className="mt-1 max-w-2xl text-sm text-neutral-500">{platforms.join(' + ')}</p>
-        </div>
+        </button>
         <div>
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
             workflow.status === 'active' 
@@ -120,7 +123,7 @@ export function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
             );
           })}
         </div>
-        
+
         <div className="mt-4">
           <div className="flex justify-between text-sm text-neutral-500 mb-1">
             <span>Next post:</span>
@@ -138,12 +141,12 @@ export function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
       </div>
       <div className="px-4 py-4 sm:px-6 bg-neutral-50 border-t border-neutral-200 flex justify-between">
         <Button variant="outline" size="sm" asChild>
-          <Link href={`/workflows/${workflow.id}/edit`}>
+          <button onClick={() => setLocation(`/workflows/${workflow.id}/edit`)}>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
             </svg>
             Edit
-          </Link>
+          </button>
         </Button>
         <Button 
           variant="outline" 
@@ -168,12 +171,12 @@ export function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
           )}
         </Button>
         <Button size="sm" asChild>
-          <Link href={`/workflows/${workflow.id}/analytics`}>
+          <button onClick={() => setLocation(`/workflows/${workflow.id}/analytics`)}>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
               <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
             </svg>
             Analytics
-          </Link>
+          </button>
         </Button>
       </div>
     </div>

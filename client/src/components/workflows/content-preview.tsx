@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 interface ContentPreviewProps {
   contentType: string;
@@ -13,177 +14,191 @@ interface ContentPreviewProps {
   topics: string;
   platforms: string[];
   onSave?: (content: string) => void;
+  initialContent?: string;
 }
 
-export default function ContentPreview({
-  contentType,
-  contentTone,
-  topics,
-  platforms,
-  onSave
+export function ContentPreview({ 
+  contentType, 
+  contentTone, 
+  topics, 
+  platforms, 
+  onSave,
+  initialContent
 }: ContentPreviewProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState("");
+  const { toast } = useToast();
+  const [generatedContent, setGeneratedContent] = useState<string>(initialContent || "");
   const [platformContent, setPlatformContent] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState("general");
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("general");
 
-  const generateContent = async () => {
-    if (!topics) return;
-    
-    setIsGenerating(true);
-    setGeneratedContent("");
-    setPlatformContent({});
-
-    try {
-      const response = await apiRequest("POST", "/api/content/generate", {
+  // Generate content based on parameters
+  const generateContent = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/content/generate", {
         contentType,
         contentTone,
         topics,
         platforms,
         length: "medium"
       });
-      
-      const data = await response.json();
+      return await res.json();
+    },
+    onSuccess: (data) => {
       setGeneratedContent(data.content);
-      
-      // Generate platform-specific versions
-      const platformVersions: Record<string, string> = {};
-      for (const platform of platforms) {
-        const platformRes = await apiRequest("POST", "/api/content/adapt", {
-          content: data.content,
-          platform
-        });
-        const platformData = await platformRes.json();
-        platformVersions[platform] = platformData.content;
-      }
-      
-      setPlatformContent(platformVersions);
-    } catch (error) {
-      console.error("Error generating content:", error);
-    } finally {
+      generatePlatformVersions(data.content);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to generate content",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
       setIsGenerating(false);
     }
+  });
+
+  // Generate platform-specific content
+  const generatePlatformVersions = async (content: string) => {
+    const platformVersions: Record<string, string> = {};
+    
+    for (const platform of platforms) {
+      try {
+        const res = await apiRequest("POST", "/api/content/adapt", {
+          content,
+          platform
+        });
+        const data = await res.json();
+        platformVersions[platform] = data.content;
+      } catch (error) {
+        console.error(`Failed to adapt content for ${platform}:`, error);
+        platformVersions[platform] = `Error generating content for ${platform}`;
+      }
+    }
+    
+    setPlatformContent(platformVersions);
   };
 
-  return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-lg font-medium">Content Preview</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-sm font-medium">AI Generated Content</h3>
-              <p className="text-xs text-neutral-500">
-                Preview content before scheduling in your workflow
-              </p>
-            </div>
-            <Button
-              onClick={generateContent}
-              disabled={isGenerating}
-              size="sm"
-            >
-              {isGenerating ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Generate Preview
-                </>
-              )}
-            </Button>
-          </div>
+  useEffect(() => {
+    // If all required inputs are provided and there's no initial content, generate
+    if (contentType && contentTone && topics && platforms.length > 0 && !initialContent) {
+      setIsGenerating(true);
+      generateContent.mutate();
+    }
+  }, [contentType, contentTone, topics, platforms.length, initialContent]);
 
-          {generatedContent ? (
-            <div className="mt-4">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-3">
-                  <TabsTrigger value="general">General</TabsTrigger>
-                  <TabsTrigger value="platforms">Platform Versions</TabsTrigger>
-                  <TabsTrigger value="edit">Edit</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="general" className="mt-4">
-                  <div className="rounded-md border border-neutral-200 p-4 whitespace-pre-wrap">
-                    {generatedContent}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="platforms" className="mt-4">
-                  {platforms.length > 0 ? (
-                    <div className="space-y-4">
-                      {platforms.map((platform) => (
-                        <div key={platform} className="space-y-2">
-                          <h4 className="text-sm font-medium">{platform}</h4>
-                          <div className="rounded-md border border-neutral-200 p-4 whitespace-pre-wrap">
-                            {platformContent[platform] || (
-                              <Skeleton className="h-24 w-full" />
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-neutral-500">No platforms selected.</p>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="edit" className="mt-4">
-                  <Textarea 
-                    value={generatedContent}
-                    onChange={(e) => setGeneratedContent(e.target.value)}
-                    className="h-60 resize-none"
-                  />
-                  
-                  {onSave && (
-                    <div className="mt-4 flex justify-end">
-                      <Button onClick={() => onSave(generatedContent)}>
-                        Save Content
-                      </Button>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </div>
-          ) : isGenerating ? (
-            <div className="space-y-3 mt-4">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-5/6" />
-              <Skeleton className="h-4 w-full" />
-            </div>
-          ) : (
-            <div className="text-center p-12 border border-dashed border-neutral-300 rounded-lg">
-              <svg
-                className="mx-auto h-12 w-12 text-neutral-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                />
+  return (
+    <div className="rounded-md border border-neutral-200 p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium">Content Preview</h3>
+        <Button 
+          size="sm" 
+          variant="outline" 
+          onClick={() => {
+            setIsGenerating(true);
+            generateContent.mutate();
+          }}
+          disabled={isGenerating}
+        >
+          {isGenerating ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <p className="mt-2 text-sm text-neutral-500">
-                Click the Generate Preview button to create content with AI
-              </p>
-            </div>
+              Generating...
+            </>
+          ) : (
+            <>Regenerate</>
           )}
+        </Button>
+      </div>
+      
+      {generatedContent ? (
+        <div className="mt-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid grid-cols-3">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="platforms">Platform Versions</TabsTrigger>
+              <TabsTrigger value="edit">Edit</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="general" className="mt-4">
+              <div className="rounded-md border border-neutral-200 p-4 whitespace-pre-wrap">
+                {generatedContent}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="platforms" className="mt-4">
+              {platforms.length > 0 ? (
+                <div className="space-y-4">
+                  {platforms.map((platform) => (
+                    <div key={platform} className="space-y-2">
+                      <h4 className="text-sm font-medium">{platform}</h4>
+                      <div className="rounded-md border border-neutral-200 p-4 whitespace-pre-wrap">
+                        {platformContent[platform] || (
+                          <Skeleton className="h-24 w-full" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-neutral-500">No platforms selected.</p>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="edit" className="mt-4">
+              <Textarea 
+                value={generatedContent}
+                onChange={(e) => setGeneratedContent(e.target.value)}
+                className="h-60 resize-none"
+              />
+              
+              {onSave && (
+                <div className="mt-4 flex justify-end">
+                  <Button onClick={() => onSave(generatedContent)}>
+                    Save Content
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
-      </CardContent>
-    </Card>
+      ) : isGenerating ? (
+        <div className="space-y-3 mt-4">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-full" />
+        </div>
+      ) : (
+        <div className="text-center p-12 border border-dashed border-neutral-300 rounded-lg">
+          <svg
+            className="mx-auto h-12 w-12 text-neutral-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1}
+              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+            />
+          </svg>
+          <p className="mt-2 text-sm text-neutral-500">
+            Content preview will appear here
+          </p>
+          <p className="text-xs text-neutral-400">
+            Complete the form above to generate content
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
+
+export default ContentPreview;

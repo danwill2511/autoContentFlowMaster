@@ -283,8 +283,12 @@ export default function CreateWorkflowPage() {
                       <p className="mt-2 text-sm text-neutral-500">
                         No platforms configured yet. Please add a platform first.
                       </p>
-                      <Button className="mt-4" variant="outline" asChild>
-                        <a href="/platforms">Add Platform</a>
+                      <Button 
+                        className="mt-4" 
+                        variant="outline" 
+                        onClick={() => setLocation("/platforms")}
+                      >
+                        Add Platform
                       </Button>
                     </div>
                   )}

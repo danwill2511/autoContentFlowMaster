@@ -1,169 +1,127 @@
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import {
-  useQuery,
-  useMutation,
-  UseMutationResult,
-} from "@tanstack/react-query";
-import { User, InsertUser, LoginData } from "@shared/schema";
-import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter"; // Import for navigation
+import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { User } from "@shared/schema";
 
-
-interface ReplitUser { // Added ReplitUser interface
-  id: string;
-  name: string;
-  // Add other necessary fields from Replit Auth
-}
-
+// Define Auth Context type
 type AuthContextType = {
   user: User | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   isLoading: boolean;
-  isAuthenticated: boolean; // Added isAuthenticated
-  loginMutation: UseMutationResult<User, Error, LoginData & { useReplitAuth?: boolean }>; // Modified to include useReplitAuth
-  logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<User, Error, InsertUser>;
-  loginWithReplit: (replitUser: ReplitUser) => Promise<void>; // Added loginWithReplit
-  logout: () => void; // Added logout function
 };
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+// Create Auth Context with default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  login: async () => {},
+  register: async () => {},
+  logout: async () => {},
+  isLoading: false,
+});
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const { toast } = useToast();
-  const [_, setLocation] = useLocation();
-  const [userFromReplit, setUserFromReplit] = useState<User | null>(null);
-  const [user, setUser] = useState<User | null>(null); // Added user state
+// Auth Provider props
+type AuthProviderProps = {
+  children: React.ReactNode;
+};
 
-  const {
-    data: userDataFromQuery,
-    error,
-    isLoading,
-  } = useQuery<User | null, Error>({
+// Auth Provider component
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const queryClient = useQueryClient();
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch current user
+  const { data: user, refetch: refetchUser } = useQuery<User>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    retry: false,
   });
 
-  useEffect(() => {
-    if (userDataFromQuery !== undefined) {
-      setUser(userDataFromQuery); // Update user state from query data
-    }
-  }, [userDataFromQuery]);
-
-  const isAuthenticated = !!user; // Added isAuthenticated logic
-
+  // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginData & { useReplitAuth?: boolean }) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
+    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+      const res = await apiRequest("POST", "/api/login", { email, password });
       return await res.json();
     },
-    onSuccess: (user: User) => {
-      setUser(user); // Update user state after successful login
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${user.name || user.username}!`,
-      });
-      setLocation("/");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/user"], data);
     },
   });
 
+  // Register mutation
   const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
+    mutationFn: async ({ username, email, password }: { username: string; email: string; password: string }) => {
+      const res = await apiRequest("POST", "/api/register", { username, email, password });
       return await res.json();
     },
-    onSuccess: (user: User) => {
-      setUser(user);
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "Registration successful",
-        description: `Welcome, ${user.name || user.username}!`,
-      });
-      setLocation("/");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/user"], data);
     },
   });
 
+  // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      const res = await apiRequest("POST", "/api/logout");
+      return await res.json();
     },
     onSuccess: () => {
-      setUser(null); // Clear user state after logout
       queryClient.setQueryData(["/api/user"], null);
-      toast({
-        title: "Logged out",
-        description: "You have been logged out successfully.",
-      });
-      setLocation("/auth");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Clear all queries to prevent stale data
+      queryClient.clear();
     },
   });
 
-
-  const logout = () => logoutMutation.mutate(); // Added logout function
-
-
-  const loginWithReplit = async (replitUser: ReplitUser) => {
+  // Login function
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
     try {
-      // Use loginMutation instead to ensure consistency
-      loginMutation.mutate({ 
-        password: 'replit-auth', 
-        useReplitAuth: true,
-        email: replitUser.id // Using replitUser.id as the email field
-      });
-    } catch (error) {
-      console.error("Replit Auth login error:", error);
-      toast({
-        title: "Login Failed",
-        description: "Failed to log in with Replit. Please try again.",
-        variant: "destructive",
-      });
+      await loginMutation.mutateAsync({ email, password });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user: user || userFromReplit || null,
-        isLoading,
-        isAuthenticated,
-        loginMutation,
-        logoutMutation,
-        registerMutation,
-        loginWithReplit,
-        logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
+  // Register function
+  const register = async (username: string, email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      await registerMutation.mutateAsync({ username, email, password });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-export function useAuth() {
+  // Logout function
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      await logoutMutation.mutateAsync();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Create memoized context value
+  const contextValue = useMemo(
+    () => ({
+      user: user || null,
+      login,
+      register,
+      logout,
+      isLoading: isLoading || loginMutation.isPending || registerMutation.isPending || logoutMutation.isPending,
+    }),
+    [user, isLoading, loginMutation.isPending, registerMutation.isPending, logoutMutation.isPending]
+  );
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+};
+
+// Custom hook to use auth context
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-}
+};
