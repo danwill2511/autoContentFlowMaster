@@ -1,10 +1,12 @@
 import { users, workflows, platforms, workflowPlatforms, posts } from "@shared/schema";
 import type { User, InsertUser, Workflow, InsertWorkflow, Platform, InsertPlatform, WorkflowPlatform, InsertWorkflowPlatform, Post, InsertPost } from "@shared/schema";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, lte, gte, sql } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { randomUUID } from "crypto";
 import { db } from "./db";
+import connectPg from "connect-pg-simple";
+import { pool } from './db';
 
 const MemoryStore = createMemoryStore(session);
 
@@ -83,7 +85,8 @@ export class MemStorage implements IStorage {
       password: "password123",
       name: "Demo User",
       email: "demo@example.com",
-      subscription: "essential"
+      subscription: "essential",
+      isAdmin: false
     });
   }
 
@@ -124,7 +127,8 @@ export class MemStorage implements IStorage {
       name: insertUser.name || null,
       replitId: insertUser.replitId || null,
       subscription: insertUser.subscription || "free",
-      createdAt: now 
+      isAdmin: insertUser.isAdmin !== undefined ? insertUser.isAdmin : false,
+      createdAt: now
     };
     this.usersMap.set(id, user);
     return user;
@@ -362,4 +366,236 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Define Database Storage class
+export class DatabaseStorage implements IStorage {
+  sessionStore: any;
+
+  constructor() {
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
+      tableName: 'session'
+    });
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUserByReplitId(replitId: string): Promise<User | undefined> {
+    if (!replitId) return undefined;
+    const [user] = await db.select().from(users).where(eq(users.replitId, replitId));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async updateUserSubscription(userId: number, subscription: string): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ subscription })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error(`User ${userId} not found`);
+    }
+    
+    return updatedUser;
+  }
+
+  // Workflow methods
+  async getWorkflow(id: number): Promise<Workflow | undefined> {
+    const [workflow] = await db.select().from(workflows).where(eq(workflows.id, id));
+    return workflow;
+  }
+
+  async getWorkflowsByUser(userId: number): Promise<Workflow[]> {
+    return db.select().from(workflows).where(eq(workflows.userId, userId));
+  }
+
+  async getActiveWorkflows(): Promise<Workflow[]> {
+    return db.select().from(workflows).where(eq(workflows.status, "active"));
+  }
+
+  async createWorkflow(insertWorkflow: InsertWorkflow): Promise<Workflow> {
+    const [workflow] = await db.insert(workflows).values(insertWorkflow).returning();
+    return workflow;
+  }
+
+  async updateWorkflow(id: number, workflowUpdates: Partial<InsertWorkflow>): Promise<Workflow> {
+    const [updatedWorkflow] = await db
+      .update(workflows)
+      .set(workflowUpdates)
+      .where(eq(workflows.id, id))
+      .returning();
+    
+    if (!updatedWorkflow) {
+      throw new Error(`Workflow ${id} not found`);
+    }
+    
+    return updatedWorkflow;
+  }
+
+  async updateWorkflowStatus(id: number, status: string): Promise<Workflow> {
+    return this.updateWorkflow(id, { status });
+  }
+
+  async updateWorkflowNextPostDate(id: number, nextPostDate: Date): Promise<Workflow> {
+    return this.updateWorkflow(id, { nextPostDate });
+  }
+
+  async countUserWorkflows(userId: number): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(workflows)
+      .where(eq(workflows.userId, userId));
+    
+    return result[0]?.count || 0;
+  }
+
+  // Platform methods
+  async getPlatform(id: number): Promise<Platform | undefined> {
+    const [platform] = await db.select().from(platforms).where(eq(platforms.id, id));
+    return platform;
+  }
+
+  async getPlatformsByUser(userId: number): Promise<Platform[]> {
+    return db.select().from(platforms).where(eq(platforms.userId, userId));
+  }
+
+  async getPlatformsByIds(ids: number[]): Promise<Platform[]> {
+    if (!ids.length) return [];
+    return db.select().from(platforms).where(sql`${platforms.id} IN (${ids.join(',')})`);
+  }
+
+  async createPlatform(insertPlatform: InsertPlatform): Promise<Platform> {
+    const [platform] = await db.insert(platforms).values(insertPlatform).returning();
+    return platform;
+  }
+
+  async updatePlatform(id: number, platformUpdates: Partial<InsertPlatform>): Promise<Platform> {
+    const [updatedPlatform] = await db
+      .update(platforms)
+      .set(platformUpdates)
+      .where(eq(platforms.id, id))
+      .returning();
+    
+    if (!updatedPlatform) {
+      throw new Error(`Platform ${id} not found`);
+    }
+    
+    return updatedPlatform;
+  }
+
+  // WorkflowPlatform methods
+  async getWorkflowPlatforms(workflowId: number): Promise<WorkflowPlatform[]> {
+    return db
+      .select()
+      .from(workflowPlatforms)
+      .where(eq(workflowPlatforms.workflowId, workflowId));
+  }
+
+  async createWorkflowPlatform(insertWorkflowPlatform: InsertWorkflowPlatform): Promise<WorkflowPlatform> {
+    const [workflowPlatform] = await db
+      .insert(workflowPlatforms)
+      .values(insertWorkflowPlatform)
+      .returning();
+    
+    return workflowPlatform;
+  }
+
+  // Post methods
+  async getPost(id: number): Promise<Post | undefined> {
+    const [post] = await db.select().from(posts).where(eq(posts.id, id));
+    return post;
+  }
+
+  async getPostsByWorkflow(workflowId: number): Promise<Post[]> {
+    return db
+      .select()
+      .from(posts)
+      .where(eq(posts.workflowId, workflowId))
+      .orderBy(desc(posts.scheduledFor));
+  }
+
+  async getPendingPostsDue(date: Date): Promise<Post[]> {
+    return db
+      .select()
+      .from(posts)
+      .where(
+        and(
+          eq(posts.status, "pending"),
+          lte(posts.scheduledFor, date)
+        )
+      );
+  }
+
+  async getPostsCreatedTodayCount(userId: number): Promise<number> {
+    // Get today's date at midnight
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Get all workflows for this user
+    const userWorkflows = await this.getWorkflowsByUser(userId);
+    
+    if (!userWorkflows.length) return 0;
+    
+    const userWorkflowIds = userWorkflows.map(w => w.id);
+    
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(posts)
+      .where(
+        and(
+          sql`${posts.workflowId} IN (${userWorkflowIds.join(',')})`,
+          gte(posts.createdAt, today)
+        )
+      );
+    
+    return result[0]?.count || 0;
+  }
+
+  async createPost(insertPost: InsertPost): Promise<Post> {
+    const [post] = await db.insert(posts).values(insertPost).returning();
+    return post;
+  }
+
+  async updatePostStatus(id: number, status: string, postedAt?: Date): Promise<Post> {
+    const updateData: any = { status };
+    if (postedAt) {
+      updateData.postedAt = postedAt;
+    }
+    
+    const [updatedPost] = await db
+      .update(posts)
+      .set(updateData)
+      .where(eq(posts.id, id))
+      .returning();
+    
+    if (!updatedPost) {
+      throw new Error(`Post ${id} not found`);
+    }
+    
+    return updatedPost;
+  }
+}
+
+// Create DB storage instance
+export const storage = new DatabaseStorage();

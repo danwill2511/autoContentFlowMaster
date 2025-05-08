@@ -8,7 +8,6 @@ import { User, InsertUser, LoginData } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { useLocation } from "wouter"; // Added for navigation
 
 
 interface ReplitUser { // Added ReplitUser interface
@@ -33,7 +32,6 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
-  const navigate = useNavigate(); // Added useNavigate hook
   const [userFromReplit, setUserFromReplit] = useState<User | null>(null);
   const [user, setUser] = useState<User | null>(null); // Added user state
 
