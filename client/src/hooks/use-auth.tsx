@@ -7,7 +7,7 @@ import {
 import { User, InsertUser, LoginData } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation } from "wouter"; // Import for navigation
 
 
 interface ReplitUser { // Added ReplitUser interface

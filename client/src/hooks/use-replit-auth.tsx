@@ -46,7 +46,8 @@ export const ReplitAuthProvider = ({ children }: { children: ReactNode }) => {
         
         // Auto login with Replit credentials
         if (userData && userData.id) {
-          loginWithReplit(userData);
+          // Only attempt login if we have valid user data
+          await loginWithReplit(userData);
         }
       }
     } catch (err) {
