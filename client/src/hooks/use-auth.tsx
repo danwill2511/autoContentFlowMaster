@@ -8,7 +8,7 @@ import { User, InsertUser, LoginData } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { useNavigate } from "react-router-dom"; // Added for navigation
+import { useLocation } from "wouter"; // Added for navigation
 
 
 interface ReplitUser { // Added ReplitUser interface

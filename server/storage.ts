@@ -1,9 +1,10 @@
 import { users, workflows, platforms, workflowPlatforms, posts } from "@shared/schema";
 import type { User, InsertUser, Workflow, InsertWorkflow, Platform, InsertPlatform, WorkflowPlatform, InsertWorkflowPlatform, Post, InsertPost } from "@shared/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { randomUUID } from "crypto";
+import { db } from "./db";
 
 const MemoryStore = createMemoryStore(session);
 
