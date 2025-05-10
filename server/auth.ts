@@ -99,9 +99,18 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const existingUser = await storage.getUserByEmail(req.body.email);
-      if (existingUser) {
+      // Check both email and username
+      const [existingEmail, existingUsername] = await Promise.all([
+        storage.getUserByEmail(req.body.email),
+        storage.getUserByUsername(req.body.username)
+      ]);
+      
+      if (existingEmail) {
         return res.status(400).json({ message: "Email already exists" });
+      }
+      
+      if (existingUsername) {
+        return res.status(400).json({ message: "Username already exists" });
       }
 
       const hashedPassword = await hashPassword(req.body.password);
