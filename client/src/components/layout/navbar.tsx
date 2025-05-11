@@ -20,10 +20,10 @@ import {
 } from "@/components/ui/sheet";
 
 export function Navbar() {
-  const { user, logoutMutation } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    logoutMutation.mutate();
+    logout();
   };
   const [_, setLocation] = useLocation();
   const { isMobile } = useMobile();
@@ -59,7 +59,7 @@ export function Navbar() {
               <div className="ml-10 flex items-center space-x-4">
                 <Button 
                   variant="link" 
-                  onClick={() => handleNavigation("/dashboard")}
+                  onClick={() => handleNavigation("/")}
                 >
                   Dashboard
                 </Button>
@@ -83,7 +83,7 @@ export function Navbar() {
                 </Button>
                 <Button 
                   variant="link" 
-                  onClick={() => handleNavigation("/subscriptions")}
+                  onClick={() => handleNavigation("/subscription")}
                 >
                   Subscription
                 </Button>
@@ -116,7 +116,7 @@ export function Navbar() {
                       <div className="ml-2">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-neutral-900">{user.username || "User"}</p>
-                          {user?.isAdmin && (
+                          {user.isAdmin && (
                             <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded">
                               Admin
                             </span>
@@ -209,7 +209,7 @@ export function Navbar() {
                       </button>
                       <button 
                         onClick={() => {
-                          setLocation("/subscriptions");
+                          setLocation("/subscription");
                           setIsMenuOpen(false);
                         }}
                         className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
