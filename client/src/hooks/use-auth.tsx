@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { User } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 // Define Auth Context type
 type AuthContextType = {
@@ -30,45 +31,92 @@ type AuthProviderProps = {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   // Fetch current user
-  const { data: user, refetch: refetchUser } = useQuery<User>({
+  const { data: user } = useQuery<User | null>({
     queryKey: ["/api/user"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
   });
 
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      const res = await apiRequest("POST", "/api/login", { email, password });
-      return await res.json();
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+          credentials: "include"
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Login failed");
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error("Login error:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/user"], data);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      window.location.href = '/'; // Force redirect after successful login
     },
   });
 
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: async ({ username, email, password }: { username: string; email: string; password: string }) => {
-      const res = await apiRequest("POST", "/api/register", { username, email, password });
-      return await res.json();
+      try {
+        const res = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, email, password }),
+          credentials: "include"
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Registration failed");
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error("Registration error:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/user"], data);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      window.location.href = '/'; // Force redirect after successful registration
     },
   });
 
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/logout");
-      return await res.json();
+      const res = await fetch("/api/logout", {
+        method: "POST",
+        credentials: "include"
+      });
+      
+      if (!res.ok) {
+        throw new Error("Logout failed");
+      }
+      
+      return null;
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
       // Clear all queries to prevent stale data
-      queryClient.clear();
+      queryClient.invalidateQueries();
+      window.location.href = '/auth'; // Redirect to auth page after logout
     },
   });
 
@@ -77,6 +125,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       await loginMutation.mutateAsync({ email, password });
+    } catch (error: any) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Unable to login. Please check your credentials.",
+        variant: "destructive",
+      });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +142,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       await registerMutation.mutateAsync({ username, email, password });
+    } catch (error: any) {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Unable to register. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +159,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       await logoutMutation.mutateAsync();
+    } catch (error: any) {
+      toast({
+        title: "Logout Failed",
+        description: error.message || "Unable to logout. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
