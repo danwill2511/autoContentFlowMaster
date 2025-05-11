@@ -23,6 +23,7 @@ function Router() {
       <ProtectedRoute path="/workflows/create" component={CreateWorkflowPage} />
       <ProtectedRoute path="/platforms" component={PlatformsPage} /> {/* Added route */}
       <ProtectedRoute path="/analytics" component={AnalyticsDashboardPage} />
+      <ProtectedRoute path="/subscription" component={SubscriptionPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
