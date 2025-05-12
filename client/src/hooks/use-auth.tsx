@@ -64,8 +64,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/user"], data);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      window.location.href = '/'; // Force redirect after successful login
+      // Don't invalidate the query we just set to avoid double fetching
+      // Use a callback for navigation to avoid React rendering issues
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 0);
     },
   });
 
@@ -93,8 +96,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/user"], data);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      window.location.href = '/'; // Force redirect after successful registration
+      // Don't invalidate the query we just set to avoid double fetching
+      // Use a callback for navigation to avoid React rendering issues
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 0);
     },
   });
 
@@ -114,9 +120,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
-      // Clear all queries to prevent stale data
-      queryClient.invalidateQueries();
-      window.location.href = '/auth'; // Redirect to auth page after logout
+      // Use a more targeted invalidation
+      queryClient.invalidateQueries({ queryKey: ["/api/workflows"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/platforms"] });
+      // Use a callback for navigation to avoid React rendering issues
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 0);
     },
   });
 
@@ -184,12 +194,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider value={contextValue}>
-      <div role="dialog" aria-describedby="auth-description">
-        <div id="auth-description" className="sr-only">
-          Authentication dialog for handling user login, registration and logout
-        </div>
-        {children}
-      </div>
+      {children}
     </AuthContext.Provider>
   );
 };

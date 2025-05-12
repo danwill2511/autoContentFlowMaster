@@ -44,12 +44,12 @@ export default function SubscriptionPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [paymentTab, setPaymentTab] = useState("monthly");
   
-  // Get the upgrade param from the URL if present
-  const params = new URLSearchParams(window.location.search);
-  const upgradeParam = params.get("upgrade");
-  
   // Show the dialog if the user is directed here with upgrade=true
   useEffect(() => {
+    // Move URL param reading inside useEffect to avoid render issues
+    const params = new URLSearchParams(window.location.search);
+    const upgradeParam = params.get("upgrade");
+    
     if (upgradeParam === "true" && user) {
       // Determine the next tier to suggest based on current subscription
       const currentTier = user.subscription as SubscriptionTier;
@@ -67,7 +67,7 @@ export default function SubscriptionPage() {
         setShowDialog(true);
       }
     }
-  }, [upgradeParam, user]);
+  }, [user]); // Only depend on user, not on upgradeParam
   
   // Helper to get the next tier
   const getNextTier = (currentTier: SubscriptionTier): SubscriptionTier => {
