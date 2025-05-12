@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "rest-express",
+    "slug": "rest-express",
+    "version": "1.0.0",
+    "sdkVersion": "49.0.0",
+    "platforms": []
+  }
+}
