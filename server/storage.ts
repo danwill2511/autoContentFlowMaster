@@ -49,6 +49,9 @@ export interface IStorage {
   
   // Session store
   sessionStore: any; // Using any for session store type to avoid compatibility issues
+  
+  // Test helpers
+  clearTestData(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -364,6 +367,22 @@ export class MemStorage implements IStorage {
     this.postsMap.set(id, updatedPost);
     return updatedPost;
   }
+  
+  async clearTestData(): Promise<void> {
+    // Clear all data from memory maps
+    this.usersMap.clear();
+    this.workflowsMap.clear();
+    this.platformsMap.clear();
+    this.workflowPlatformsMap.clear();
+    this.postsMap.clear();
+    
+    // Reset all IDs
+    this.userCurrentId = 1;
+    this.workflowCurrentId = 1;
+    this.platformCurrentId = 1;
+    this.workflowPlatformCurrentId = 1;
+    this.postCurrentId = 1;
+  }
 }
 
 // Define Database Storage class
@@ -594,6 +613,15 @@ export class DatabaseStorage implements IStorage {
     }
     
     return updatedPost;
+  }
+  
+  async clearTestData(): Promise<void> {
+    // Delete all data from tables in reverse order of dependencies
+    await db.delete(posts);
+    await db.delete(workflowPlatforms);
+    await db.delete(workflows);
+    await db.delete(platforms);
+    await db.delete(users);
   }
 }
 
