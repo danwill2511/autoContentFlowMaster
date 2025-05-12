@@ -4,6 +4,7 @@ import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import { WorkflowCard } from "@/components/dashboard/workflow-card";
 import { NewWorkflowCard } from "@/components/dashboard/new-workflow-card";
+import ContentFlowVisualizer from "@/components/workflows/content-flow-visualizer";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -22,6 +23,7 @@ export default function WorkflowsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("newest");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
   
   // Fetch workflows
   const { 
@@ -174,7 +176,8 @@ function renderWorkflows(
   workflows: Workflow[],
   isLoadingWorkflows: boolean,
   isLoadingPlatforms: boolean,
-  getWorkflowPlatforms: (workflow: Workflow) => string[]
+  getWorkflowPlatforms: (workflow: Workflow) => string[],
+  onSelectWorkflow?: (workflow: Workflow) => void
 ) {
   if (isLoadingWorkflows || isLoadingPlatforms) {
     return (
@@ -249,7 +252,8 @@ function renderWorkflows(
         <WorkflowCard 
           key={workflow.id} 
           workflow={workflow} 
-          platforms={getWorkflowPlatforms(workflow)} 
+          platforms={getWorkflowPlatforms(workflow)}
+          onClick={onSelectWorkflow ? () => onSelectWorkflow(workflow) : undefined}
         />
       ))}
       <NewWorkflowCard />

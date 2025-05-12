@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 interface WorkflowCardProps {
   workflow: Workflow;
   platforms: string[];
+  onClick?: () => void;
 }
 
 export const WorkflowCard = React.memo(function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
