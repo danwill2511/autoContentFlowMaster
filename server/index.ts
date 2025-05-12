@@ -3,11 +3,17 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { runMigrations } from "./db";
 import { logger, requestLogger, monitorError } from "./logger";
+import { generalLimiter, authLimiter, contentLimiter } from "./rate-limiter";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(requestLogger);
+
+// Apply rate limiting
+app.use(generalLimiter); // Apply general rate limiting to all routes
+app.use('/api/auth', authLimiter); // Stricter limits for auth routes
+app.use('/api/content', contentLimiter); // Specific limits for content generation
 
 // Global error handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
