@@ -73,3 +73,7 @@ args = "cd mobile && npm run start"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
