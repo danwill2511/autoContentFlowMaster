@@ -61,7 +61,7 @@ app.use((req, res, next) => {
     await runMigrations();
     log("Database initialized successfully");
   } catch (error) {
-    log("Database initialization failed: " + error);
+    logger.error("Database initialization failed:", error);
   }
 
   // Kill any existing process on port 5000

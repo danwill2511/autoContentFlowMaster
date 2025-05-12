@@ -510,6 +510,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const timeRange = req.query.timeRange || '1m';
       const platform = req.query.platform || 'all';
       
+      // Get user's activity data
+      const user = await storage.getUser(req.user.id);
+      const workflows = await storage.getWorkflowsByUser(req.user.id);
+      const platforms = await storage.getPlatformsByUser(req.user.id);
+      
+      // Get posts for each workflow
+      let allPosts = [];
+      let totalEngagement = 0;
+      for (const workflow of workflows) {
+        const posts = await storage.getPostsByWorkflow(workflow.id);
+        allPosts = [...allPosts, ...posts];
+        totalEngagement += posts.reduce((sum, post) => sum + (post.engagement || 0), 0);
+      }
+
+      // Calculate daily engagement for the past week
+      const dailyEngagement = Array(7).fill(0);
+      const now = new Date();
+      allPosts.forEach(post => {
+        const postDate = new Date(post.createdAt);
+        const dayDiff = Math.floor((now - postDate) / (1000 * 60 * 60 * 24));
+        if (dayDiff < 7) {
+          dailyEngagement[dayDiff] += post.engagement || 0;
+        }
+      });
+
+      // Calculate platform metrics
+      const platformMetrics = platforms.map(platform => {
+        const platformPosts = allPosts.filter(post => post.platformId === platform.id);
+        return {
+          name: platform.name,
+          posts: platformPosts.length,
+          engagement: platformPosts.reduce((sum, post) => sum + (post.engagement || 0), 0)
+        };
+      });
+
+      const analyticsData = {
+        user: {
+          joinedAt: user.createdAt,
+          subscription: user.subscription,
+          totalPosts: allPosts.length,
+          activeWorkflows: workflows.filter(w => w.status === 'active').length,
+          connectedPlatforms: platforms.length
+        },
+        engagement: {
+          total: totalEngagement,
+          daily: dailyEngagement.reverse(),
+          avgPerPost: allPosts.length ? totalEngagement / allPosts.length : 0
+        },
+        platforms: platformMetrics,
+        topPosts: allPosts
+          .sort((a, b) => (b.engagement || 0) - (a.engagement || 0))
+          .slice(0, 5)
+          .map(post => ({
+            id: post.id,
+            content: post.content.substring(0, 50) + '...',
+            platform: platforms.find(p => p.id === post.platformId)?.name || 'Unknown',
+            engagement: post.engagement || 0,
+            createdAt: post.createdAt
+          }))
+      };
+
+      res.json(analyticsData);
+    } catch (error) {
+      console.error('Analytics error:', error);
+      res.status(500).json({ message: "Failed to fetch analytics data" });
+    }
+
+    try {
+      // Get query parameters for filtering
+      const timeRange = req.query.timeRange || '1m';
+      const platform = req.query.platform || 'all';
+      
       // Get user's workflows
       const workflows = await storage.getWorkflowsByUser(req.user.id);
       
