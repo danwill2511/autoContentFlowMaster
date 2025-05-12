@@ -1,4 +1,3 @@
-
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -8,28 +7,55 @@ const openai = new OpenAI({
 const isOpenAIConfigured = !!process.env.OPENAI_API_KEY;
 
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // ms
+const INITIAL_RETRY_DELAY = 1000; // ms
+const MAX_RETRY_DELAY = 8000; // ms
 
-interface ContentGenerationOptions {
-  contentType: string;
-  contentTone: string;
-  topics: string;
-  platforms: string[];
-  length?: string;
+interface RetryOptions {
+  maxRetries?: number;
+  initialDelay?: number;
+  maxDelay?: number;
+  shouldRetry?: (error: any) => boolean;
 }
 
 async function retryWithExponentialBackoff<T>(
   operation: () => Promise<T>,
-  retries = MAX_RETRIES,
-  delay = RETRY_DELAY
+  options: RetryOptions = {}
 ): Promise<T> {
-  try {
-    return await operation();
-  } catch (error) {
-    if (retries === 0) throw error;
-    await new Promise(resolve => setTimeout(resolve, delay));
-    return retryWithExponentialBackoff(operation, retries - 1, delay * 2);
+  const {
+    maxRetries = MAX_RETRIES,
+    initialDelay = INITIAL_RETRY_DELAY,
+    maxDelay = MAX_RETRY_DELAY,
+    shouldRetry = (error) => {
+      // Retry on rate limits, temporary OpenAI issues, or network errors
+      if (error.response?.status) {
+        return [429, 500, 502, 503, 504].includes(error.response.status);
+      }
+      return error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT';
+    }
+  } = options;
+
+  let lastError: any;
+  let attempt = 0;
+
+  while (attempt <= maxRetries) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      attempt++;
+
+      if (attempt > maxRetries || !shouldRetry(error)) {
+        console.error(`Operation failed after ${attempt} attempts:`, error);
+        throw lastError;
+      }
+
+      const delay = Math.min(initialDelay * Math.pow(2, attempt - 1), maxDelay);
+      console.log(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
+
+  throw lastError;
 }
 
 export async function findTrendingTopics(category: string, region = "global"): Promise<{
@@ -78,7 +104,7 @@ export async function generateContent(options: ContentGenerationOptions): Promis
   }
 
   const { contentType, contentTone, topics, platforms, length = "medium" } = options;
-  
+
   const wordCount = {
     short: 150,
     medium: 300,
@@ -87,7 +113,7 @@ export async function generateContent(options: ContentGenerationOptions): Promis
 
   const operation = async () => {
     const trends = await findTrendingTopics(topics);
-    
+
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
@@ -181,15 +207,15 @@ export async function generatePlatformSpecificContent(
         {
           role: "user",
           content: `Adapt this content for ${platform}:
-          
+
           ${content}
-          
+
           Requirements:
           - Maximum length: ${platformConfig.maxLength} characters
           - Format: ${platformConfig.format}
           - Include ${platformConfig.hashtags ? "relevant hashtags" : "no hashtags"}
           - Structure using sections: ${platformConfig.sections.join(", ")}
-          
+
           Maintain the core message while optimizing for ${platform}'s best practices.`
         }
       ],
