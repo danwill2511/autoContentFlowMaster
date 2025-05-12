@@ -16,7 +16,7 @@ echo -e "${BRIGHT}Found ${UNIT_TEST_COUNT} unit test files${RESET}"
 
 # Run Jest tests
 echo -e "\n${YELLOW}Running Jest unit tests...${RESET}"
-npx jest --config=jest.config.js
+npx jest --config=jest.config.cjs
 
 if [ $? -eq 0 ]; then
   echo -e "\n${GREEN}✅ Unit tests completed successfully!${RESET}"

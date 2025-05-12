@@ -1,72 +1,67 @@
-# AutoContentFlow Test Suite
+# Testing in AutoContentFlow
 
-This directory contains automated tests for the AutoContentFlow application using Playwright.
+This document provides an overview of the testing infrastructure for the AutoContentFlow application.
 
 ## Test Structure
 
-- `setup.ts` - Contains the global setup function for all tests
-- `auth.spec.ts` - Tests for authentication functionality
-- `subscription.spec.ts` - Tests for subscription management
-- `workflow.spec.ts` - Tests for workflow creation and management
-- `ui-components.spec.ts` - Tests for UI components
-- `ai-assistant.spec.ts` - Tests for AI Assistant functionality
-- `gamification.spec.ts` - Tests for gamification features
+Tests are organized as follows:
+
+- `tests/unit/`: Contains unit tests for React components and utilities
+- `tests/setup.ts`: Contains setup code for test environment
 
 ## Running Tests
 
-You can run all tests with the provided script:
+### Running All Tests
 
 ```bash
 ./run-tests.sh
 ```
 
-Or manually with:
+### Running Specific Tests
+
+To run a specific test file:
 
 ```bash
-# Install Playwright browsers if not already installed
-npx playwright install --with-deps
-
-# Run all tests
-npx playwright test
-
-# Run specific test file
-npx playwright test tests/ui-components.spec.ts
-
-# Run tests with UI mode
-npx playwright test --ui
+npx jest --config=jest.config.cjs tests/unit/simple.test.js
 ```
 
-## Test Data Setup
+Replace `simple.test.js` with the name of your test file.
 
-The `setup.ts` file includes a `setupTestData()` function that:
+## Test Configuration
 
-1. Clears existing test data
-2. Creates a test user with credentials:
-   - Email: test@example.com
-   - Password: testPassword123
+- **Jest**: We use Jest as our test runner
+- **Testing Library**: We use React Testing Library for testing React components
+- **Config Files**:
+  - `jest.config.cjs`: Main Jest configuration
+  - `jest.setup.cjs`: Setup file for Jest with DOM mocks
 
-This setup is executed automatically before running tests through the global setup.
+## Component Tests
 
-## Debugging Tests
+We have implemented tests for the following components:
 
-For debugging tests:
+1. **achievement-badge**: Tests for the gamification achievement badge component
+2. **theme-switcher**: Tests for theme switching functionality
+3. **animated-counter**: Tests for animated counter, progress bar, and charts
+4. **shopify-integration**: Tests for Shopify store integration component
+5. **skeleton-loader**: Tests for loading skeleton UI component
+6. **user-engagement-tracker**: Tests for user engagement metrics tracking
+7. **ai-assistant**: Tests for AI chat assistant component
 
-1. Use the `--headed` option to run tests in a visible browser:
-   ```bash
-   npx playwright test --headed
-   ```
+## Mocking
 
-2. Use the `--debug` option for step-by-step debugging:
-   ```bash
-   npx playwright test --debug
-   ```
+Tests use mocks for external dependencies and complex components:
 
-3. Add `page.pause()` in your test code to pause execution at a specific point.
+- UI components like buttons, cards, etc. are mocked
+- External API calls are mocked
+- Browser APIs (localStorage, matchMedia, etc.) are mocked
 
-## Generating Test Reports
+## Test Utilities
 
-Generate a test report after a test run:
+The `clearTestData` method is implemented in both storage classes to ensure tests start with a clean database state:
 
-```bash
-npx playwright show-report
-```
+- `MemStorage.clearTestData()`: Clears all data from memory maps
+- `DatabaseStorage.clearTestData()`: Clears all data from database tables
+
+## Continuous Integration
+
+Run tests before deploying to ensure all components function as expected.
