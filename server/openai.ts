@@ -82,7 +82,7 @@ export async function findTrendingTopics(category: string, region = "global"): P
 
   const operation = async () => {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
           role: "system",
@@ -97,7 +97,7 @@ export async function findTrendingTopics(category: string, region = "global"): P
         }
       ],
       response_format: { type: "json_object" },
-      max_tokens: 500,
+      max_tokens: 1000, // Increased max tokens for more detailed responses
       temperature: 0.7,
     });
 
@@ -110,6 +110,15 @@ export async function findTrendingTopics(category: string, region = "global"): P
   };
 
   return retryWithExponentialBackoff(operation);
+}
+
+// Define content generation options interface
+interface ContentGenerationOptions {
+  contentType: string;
+  contentTone: string;
+  topics: string;
+  platforms: string[];
+  length?: 'short' | 'medium' | 'long';
 }
 
 export async function generateContent(options: ContentGenerationOptions): Promise<string> {
@@ -126,31 +135,71 @@ export async function generateContent(options: ContentGenerationOptions): Promis
   }[length] || 300;
 
   const operation = async () => {
-    const trends = await findTrendingTopics(topics);
+    try {
+      const trends = await findTrendingTopics(topics);
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: "You are a professional content creator specializing in multi-platform content."
-        },
-        {
-          role: "user",
-          content: `Create ${contentType} content with a ${contentTone} tone about ${topics}.
-          Consider these trending subtopics: ${trends.topics.join(", ")}
-          Target platforms: ${platforms.join(", ")}
-          Length: ~${wordCount} words
-          Make it engaging and incorporate current trends naturally.
-          Format with clear structure and SEO-friendly elements.`
-        }
-      ],
-      max_tokens: 800,
-      temperature: 0.7,
-    });
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: [
+          {
+            role: "system",
+            content: "You are a professional content creator specializing in multi-platform content. Create high-quality, engaging, and well-structured content that follows best practices for the target platforms."
+          },
+          {
+            role: "user",
+            content: `Create ${contentType} content with a ${contentTone} tone about ${topics}.
+            Consider these trending subtopics: ${trends.topics.join(", ")}
+            Target platforms: ${platforms.join(", ")}
+            Length: ~${wordCount} words
+            
+            Requirements:
+            - Make it engaging and incorporate current trends naturally
+            - Format with clear structure and SEO-friendly elements
+            - Include appropriate hashtags where relevant
+            - Add a compelling hook at the beginning
+            - Include a clear call-to-action
+            - Use appropriate formatting for different sections (headers, bullet points, etc.)
+            - Make it shareable and optimized for social media engagement`
+          }
+        ],
+        max_tokens: 1500, // Increased for more detailed content
+        temperature: 0.7,
+      });
 
-    return response.choices[0].message.content?.trim() || 
-      "Could not generate content. Please try again with different parameters.";
+      return response.choices[0].message.content?.trim() || 
+        "Could not generate content. Please try again with different parameters.";
+    } catch (error) {
+      logger.error("Error generating content:", error);
+      // If trend analysis fails, attempt to generate content without trends
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes("trending topics")) {
+        logger.info("Retrying content generation without trend analysis");
+        
+        const fallbackResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are a professional content creator specializing in multi-platform content."
+            },
+            {
+              role: "user",
+              content: `Create ${contentType} content with a ${contentTone} tone about ${topics}.
+              Target platforms: ${platforms.join(", ")}
+              Length: ~${wordCount} words
+              Make it engaging and well-structured, with SEO-friendly elements.`
+            }
+          ],
+          max_tokens: 1200,
+          temperature: 0.7,
+        });
+        
+        return fallbackResponse.choices[0].message.content?.trim() || 
+          "Could not generate content. Please try again with different parameters.";
+      }
+      
+      throw error; // Re-throw if it's not a trend analysis error
+    }
   };
 
   return retryWithExponentialBackoff(operation);
@@ -357,12 +406,32 @@ export async function generatePlatformSpecificContent(
   };
 
   const operation = async () => {
+    // First try using the platform-specific formatter
+    try {
+      if (platformFormatting[platform]) {
+        const formattedContent = platformFormatting[platform].formatContent(content, { 
+          hashtags: platformFormatting[platform].hashtags 
+        });
+        
+        // If we have successfully formatted content, return it
+        if (formattedContent) {
+          logger.info(`Formatted content for ${platform} using built-in formatter`);
+          return formattedContent;
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn(`Error using built-in formatter for ${platform}: ${errorMessage}`);
+      // Continue to use AI-based formatting as fallback
+    }
+    
+    // If built-in formatter failed or doesn't exist, use OpenAI
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
           role: "system",
-          content: `You are a ${platform} content optimization specialist.`
+          content: `You are a ${platform} content optimization specialist with extensive knowledge of social media best practices, optimal content structure, and platform-specific engagement patterns.`
         },
         {
           role: "user",
@@ -375,11 +444,15 @@ export async function generatePlatformSpecificContent(
           - Format: ${platformConfig.format}
           - Include ${platformConfig.hashtags ? "relevant hashtags" : "no hashtags"}
           - Structure using sections: ${platformConfig.sections.join(", ")}
-
+          - Add platform-specific engagement prompts
+          - Include appropriate emojis for ${platform}'s audience
+          - Format according to ${platform}'s conventions (line breaks, paragraph length, etc.)
+          - Optimize for algorithm visibility and engagement
+          
           Maintain the core message while optimizing for ${platform}'s best practices.`
         }
       ],
-      max_tokens: 500,
+      max_tokens: 1000, // Increased for more detailed formatting
       temperature: 0.7,
     });
 
