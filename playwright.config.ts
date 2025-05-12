@@ -4,6 +4,8 @@ import { PlaywrightTestConfig } from '@playwright/test';
 const config: PlaywrightTestConfig = {
   testDir: './tests',
   timeout: 30000,
+  globalSetup: './tests/setup.ts',
+  workers: 1,
   webServer: {
     command: 'npm run dev',
     port: 5000,
