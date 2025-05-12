@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -22,13 +21,37 @@ export function PlatformSettings({ platformId, platformName, settings, onChange 
   const [oauthStatus, setOauthStatus] = useState<OAuthStatus>({ connected: false });
   const [isConnecting, setIsConnecting] = useState(false);
 
+  const platformConfigs = {
+    pinterest: {
+      boardId: settings?.boardId || '',
+      pinType: settings?.pinType || 'image'
+    },
+    youtube: {
+      playlist: settings?.playlist || '',
+      visibility: settings?.visibility || 'public',
+      category: settings?.category || 'Entertainment'
+    },
+    instagram: {
+      mediaType: settings?.mediaType || 'image',
+      location: settings?.location || ''
+    },
+    linkedin: {
+      companyId: settings?.companyId || '',
+      contentType: settings?.contentType || 'article'
+    },
+    twitter: {
+      threadStyle: settings?.threadStyle || 'narrative',
+      addNumbering: settings?.addNumbering || true
+    }
+  };
+
   const handleOAuthConnect = async () => {
     setIsConnecting(true);
     try {
       const response = await fetch(`/api/platforms/${platformId}/oauth`, {
         method: 'POST',
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         window.location.href = data.authUrl;
@@ -45,7 +68,7 @@ export function PlatformSettings({ platformId, platformName, settings, onChange 
 
   const handleChange = (key: string, value: any) => {
     let validatedValue = value;
-    
+
     // Validate inputs based on platform and field type
     switch(key) {
       case "hashtagCount":
@@ -55,7 +78,7 @@ export function PlatformSettings({ platformId, platformName, settings, onChange 
         validatedValue = Math.min(Math.max(10, value), getPlatformMaxLimit(platformName));
         break;
     }
-    
+
     onChange(platformId, { ...settings, [key]: validatedValue });
   };
 
@@ -86,7 +109,7 @@ export function PlatformSettings({ platformId, platformName, settings, onChange 
             onChange={(e) => handleChange("hashtagCount", parseInt(e.target.value))}
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label>Character Limit</Label>
           <Input 
