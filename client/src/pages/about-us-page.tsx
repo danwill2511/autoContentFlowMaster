@@ -18,8 +18,7 @@ import {
   Linkedin,
   Github
 } from "lucide-react";
-import Navbar from "@/components/layout/navbar";
-import Footer from "@/components/layout/footer";
+import Layout from "@/components/layout/layout";
 
 // Team member data
 const teamMembers = [
@@ -169,10 +168,8 @@ const companyMilestones = [
 
 export default function AboutUsPage() {
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col">
-      <Navbar />
-      
-      <main className="flex-grow">
+    <Layout>
+      <div className="flex-grow">
         {/* Hero Section */}
         <section className="relative bg-gradient-to-r from-primary/90 to-indigo-700 text-white py-24">
           <div className="container mx-auto px-4 relative z-10">
@@ -382,9 +379,7 @@ export default function AboutUsPage() {
             </div>
           </div>
         </section>
-      </main>
-      
-      <Footer />
-    </div>
+      </div>
+    </Layout>
   );
 }
