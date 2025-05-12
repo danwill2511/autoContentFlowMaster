@@ -8,10 +8,12 @@ This directory contains the React Native implementation of AutoContentFlow, a mo
 - Basic React Native project structure
 - Screen hierarchy and navigation flow
 - Mobile-specific UI components
-- Push notification system setup
+- Push notification system setup using Expo Notifications
 - Authentication flow (login/logout)
-- Workflow management screens
-- Tab-based navigation
+- Workflow management screens (list, details, creation)
+- Tab-based navigation for main app screens
+- Floating Action Button (FAB) for quick access to create workflows
+- Interactive workflow cards with detail view
 
 ### 🛠️ Needs Setup
 - React Native project initialization with proper dependencies

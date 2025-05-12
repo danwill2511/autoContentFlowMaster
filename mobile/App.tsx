@@ -8,6 +8,7 @@ import { ActivityIndicator, View, StyleSheet } from 'react-native';
 
 import TabNavigator from './navigation/TabNavigator';
 import WorkflowDetailScreen from './screens/WorkflowDetailScreen';
+import CreateWorkflowScreen from './screens/CreateWorkflowScreen';
 import AuthScreen from './screens/AuthScreen';
 import { NotificationProvider } from './context/NotificationContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -50,6 +51,11 @@ function MainNavigator() {
             name="WorkflowDetail" 
             component={WorkflowDetailScreen} 
             options={{ title: 'Workflow Details' }}
+          />
+          <Stack.Screen 
+            name="CreateWorkflow" 
+            component={CreateWorkflowScreen} 
+            options={{ title: 'Create Workflow' }}
           />
         </>
       ) : (
