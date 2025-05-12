@@ -1,6 +1,6 @@
 import { users, workflows, platforms, workflowPlatforms, posts, timeOptimizations } from "@shared/schema";
 import type { User, InsertUser, Workflow, InsertWorkflow, Platform, InsertPlatform, WorkflowPlatform, InsertWorkflowPlatform, Post, InsertPost, TimeOptimization, InsertTimeOptimization } from "@shared/schema";
-import { and, eq, desc, lte, gte, sql } from "drizzle-orm";
+import { and, eq, desc, lte, gte, sql, inArray } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { randomUUID } from "crypto";

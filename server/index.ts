@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { runMigrations } from "./db";
 import { logger, requestLogger, monitorError } from "./logger";
 import { generalLimiter, authLimiter, contentLimiter } from "./rate-limiter";
+import { scheduler } from "./scheduler";
 
 const app = express();
 app.use(express.json());
@@ -104,5 +105,9 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start the post scheduler service
+    scheduler.start();
+    logger.info('Content scheduler service started');
   });
 })();

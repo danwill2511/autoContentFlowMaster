@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { generateContent, generatePlatformSpecificContent, findTrendingTopics } from "./openai";
-import { initScheduler } from "./scheduler";
+import { scheduler } from "./scheduler";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { insertWorkflowSchema, insertPlatformSchema, insertWorkflowPlatformSchema, subscriptionTiers, SubscriptionTier } from "@shared/schema";
@@ -36,7 +36,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // Initialize the scheduler for automated content creation and posting
-  initScheduler();
+  // Note: The scheduler is now started in server/index.ts after the server is listening
+  // scheduler.start();
 
   // PayPal routes
   app.get("/api/paypal/setup", async (req, res) => {

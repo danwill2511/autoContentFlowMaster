@@ -18,6 +18,7 @@ export const users = pgTable("users", {
 export const platforms = pgTable("platforms", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  type: text("type").notNull(), // e.g., "twitter", "instagram", "linkedin", etc.
   apiKey: text("api_key"),
   apiSecret: text("api_secret"),
   accessToken: text("access_token"),
