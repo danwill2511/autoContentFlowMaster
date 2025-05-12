@@ -87,6 +87,12 @@ export function Navbar() {
                 >
                   Subscription
                 </Button>
+                <Button 
+                  variant="link" 
+                  onClick={() => handleNavigation("/showcase")}
+                >
+                  Showcase
+                </Button>
               </div>
             )}
           </div>

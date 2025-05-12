@@ -15,7 +15,8 @@ import CreateWorkflowPage from "@/pages/create-workflow-page";
 import WorkflowsPage from "@/pages/workflows-page";
 import SubscriptionPage from "@/pages/subscription-page";
 import AnalyticsDashboardPage from "@/pages/analytics-dashboard-page";
-import PlatformsPage from "@/pages/platforms-page"; // Added import
+import PlatformsPage from "@/pages/platforms-page";
+import ShowcasePage from "@/pages/showcase-page";
 
 function Router() {
   return (
@@ -23,9 +24,10 @@ function Router() {
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/workflows" component={WorkflowsPage} />
       <ProtectedRoute path="/workflows/create" component={CreateWorkflowPage} />
-      <ProtectedRoute path="/platforms" component={PlatformsPage} /> {/* Added route */}
+      <ProtectedRoute path="/platforms" component={PlatformsPage} />
       <ProtectedRoute path="/analytics" component={AnalyticsDashboardPage} />
       <ProtectedRoute path="/subscription" component={SubscriptionPage} />
+      <ProtectedRoute path="/showcase" component={ShowcasePage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

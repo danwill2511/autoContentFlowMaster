@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSpring, animated } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface AnimatedCounterProps {
   value: number;
@@ -16,32 +16,61 @@ export function AnimatedCounter({
   className = '',
   onComplete
 }: AnimatedCounterProps) {
-  const [internalValue, setInternalValue] = useState(0);
+  const [displayValue, setDisplayValue] = useState(0);
   const prevValue = useRef(0);
+  const animationRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Setup animation spring
-  const springValue = useSpring({
-    from: { value: prevValue.current },
-    to: { value },
-    config: { duration: duration * 1000 },
-    onRest: () => {
-      if (onComplete) onComplete();
-    },
-  });
-  
-  // Update internal state for render
   useEffect(() => {
-    prevValue.current = internalValue;
-    setInternalValue(value);
-  }, [value]);
+    // Clear any existing animation
+    if (animationRef.current) {
+      clearInterval(animationRef.current);
+    }
+    
+    // Calculate animation steps
+    const startValue = prevValue.current;
+    const endValue = value;
+    const diff = endValue - startValue;
+    const steps = 30; // 30 frames per second * duration
+    
+    let currentStep = 0;
+    
+    // Start the animation
+    animationRef.current = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+      const easedProgress = easeOutCubic(progress);
+      const newValue = startValue + (diff * easedProgress);
+      
+      setDisplayValue(Math.round(newValue));
+      
+      // Complete the animation
+      if (currentStep >= steps) {
+        setDisplayValue(endValue);
+        clearInterval(animationRef.current!);
+        if (onComplete) onComplete();
+      }
+    }, (duration * 1000) / steps);
+    
+    // Save current value as previous for next animation
+    prevValue.current = value;
+    
+    // Cleanup
+    return () => {
+      if (animationRef.current) {
+        clearInterval(animationRef.current);
+      }
+    };
+  }, [value, duration, onComplete]);
+  
+  // Easing function
+  const easeOutCubic = (x: number): number => {
+    return 1 - Math.pow(1 - x, 3);
+  };
   
   return (
-    <animated.span
-      className={className}
-      // Use Framer Motion's animated.span with incremental value
-      // @ts-ignore - Framer Motion typings are problematic here
-      children={springValue.value.to(val => formatValue(Math.floor(val)))}
-    />
+    <span className={className}>
+      {formatValue(displayValue)}
+    </span>
   );
 }
 
@@ -62,66 +91,94 @@ interface AnimatedProgressProps {
 export function AnimatedProgress({
   value,
   max = 100,
-  duration = 1,
-  color = '#2563eb',
-  height = 8,
+  duration = 1.5,
+  color = '#3b82f6',
+  height = 6,
   className = '',
-  showLabel = false,
+  showLabel = true,
   labelClassName = '',
-  labelPosition = 'outside',
+  labelPosition = 'inside',
   formatLabel = (value, max) => `${Math.round((value / max) * 100)}%`,
   onComplete
 }: AnimatedProgressProps) {
-  const prevWidth = useRef(0);
-  const percentage = (value / max) * 100;
+  const [displayValue, setDisplayValue] = useState(0);
+  const prevValue = useRef(0);
+  const animationRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Animate the width using framer-motion
-  const width = useSpring({
-    from: { width: prevWidth.current },
-    to: { width: percentage },
-    config: { duration: duration * 1000 },
-    onRest: () => {
-      if (onComplete) onComplete();
-    },
-  });
-  
-  // Update reference for subsequent animations
   useEffect(() => {
-    prevWidth.current = percentage;
-  }, [percentage]);
+    // Clear any existing animation
+    if (animationRef.current) {
+      clearInterval(animationRef.current);
+    }
+    
+    // Calculate animation steps
+    const startValue = prevValue.current;
+    const endValue = value;
+    const diff = endValue - startValue;
+    const steps = 30; // 30 frames per second * duration
+    
+    let currentStep = 0;
+    
+    // Start the animation
+    animationRef.current = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+      const easedProgress = easeOutCubic(progress);
+      const newValue = startValue + (diff * easedProgress);
+      
+      setDisplayValue(Math.round(newValue));
+      
+      // Complete the animation
+      if (currentStep >= steps) {
+        setDisplayValue(endValue);
+        clearInterval(animationRef.current!);
+        if (onComplete) onComplete();
+      }
+    }, (duration * 1000) / steps);
+    
+    // Save current value as previous for next animation
+    prevValue.current = value;
+    
+    // Cleanup
+    return () => {
+      if (animationRef.current) {
+        clearInterval(animationRef.current);
+      }
+    };
+  }, [value, duration, onComplete]);
+  
+  // Easing function
+  const easeOutCubic = (x: number): number => {
+    return 1 - Math.pow(1 - x, 3);
+  };
+  
+  // Calculate percentage for width
+  const percentage = Math.min(100, (displayValue / max) * 100);
   
   return (
     <div className={`relative ${className}`}>
-      <div
-        className="bg-neutral-200 rounded overflow-hidden"
-        style={{ height: `${height}px` }}
+      <div 
+        className="overflow-hidden rounded-full bg-neutral-200" 
+        style={{ height }}
       >
-        <animated.div
-          className="h-full rounded"
-          style={{
-            width: width.width.to(w => `${w}%`),
-            backgroundColor: color,
-          }}
-        >
-          {showLabel && labelPosition === 'inside' && (
-            <div className="h-full px-2 flex items-center justify-center">
-              <animated.span
-                className={`text-white text-xs font-medium ${labelClassName}`}
-                // @ts-ignore
-                children={width.width.to(w => formatLabel(w * max / 100, max))}
-              />
-            </div>
-          )}
-        </animated.div>
+        <motion.div 
+          className="h-full rounded-full"
+          initial={{ width: `${Math.min(100, (prevValue.current / max) * 100)}%` }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.5 }}
+          style={{ backgroundColor: color }}
+        />
       </div>
       
+      {showLabel && labelPosition === 'inside' && (
+        <div className={`absolute inset-0 flex items-center justify-center text-xs font-medium ${labelClassName}`}>
+          {formatLabel(displayValue, max)}
+        </div>
+      )}
+      
       {showLabel && labelPosition === 'outside' && (
-        <div className="mt-1 text-right">
-          <animated.span
-            className={`text-xs ${labelClassName}`}
-            // @ts-ignore
-            children={width.width.to(w => formatLabel(w * max / 100, max))}
-          />
+        <div className={`mt-1 text-right text-xs ${labelClassName}`}>
+          {formatLabel(displayValue, max)}
         </div>
       )}
     </div>
@@ -146,62 +203,47 @@ interface AnimatedBarChartProps {
 export function AnimatedBarChart({
   data,
   height = 200,
-  maxValue: userMaxValue,
+  maxValue,
   showLabels = true,
   animate = true,
-  barSpacing = 12,
-  duration = 1,
+  barSpacing = 8,
+  duration = 0.5,
   className = ''
 }: AnimatedBarChartProps) {
-  // Calculate the max value from data if not provided
-  const maxValue = userMaxValue || Math.max(...data.map(item => item.value), 0);
-  const barWidth = `calc((100% - ${(data.length - 1) * barSpacing}px) / ${data.length})`;
+  // Calculate maximum value
+  const calculatedMax = maxValue || Math.max(...data.map(item => item.value)) * 1.2;
   
   return (
-    <div className={`relative ${className}`}>
-      <div className="relative" style={{ height: `${height}px` }}>
-        <div className="flex h-full items-end">
-          {data.map((item, index) => {
-            const percentage = (item.value / maxValue) * 100;
-            
-            return (
-              <div
-                key={index}
-                className="group flex flex-col items-center"
-                style={{ width: barWidth, marginRight: index < data.length - 1 ? `${barSpacing}px` : 0 }}
-              >
-                <div className="w-full relative flex items-end justify-center h-full">
-                  <animated.div
-                    className="w-full rounded-t-md group-hover:opacity-90 transition-opacity"
-                    style={{
-                      backgroundColor: item.color || '#2563eb',
-                      height: animate
-                        ? useSpring({
-                            from: { height: '0%' },
-                            to: { height: `${percentage}%` },
-                            config: { duration: duration * 1000 }
-                          }).height
-                        : `${percentage}%`,
-                    }}
-                  />
-                  
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    <div className="bg-neutral-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-                      {item.value.toLocaleString()}
-                    </div>
-                  </div>
+    <div className={`w-full ${className}`} style={{ height }}>
+      <div className="flex h-full items-end justify-between">
+        {data.map((item, index) => {
+          const barHeight = `${(item.value / calculatedMax) * 100}%`;
+          const barColor = item.color || '#3b82f6';
+          
+          return (
+            <div
+              key={`${item.label}-${index}`}
+              className="flex flex-col items-center"
+              style={{ width: `calc((100% - ${(data.length - 1) * barSpacing}px) / ${data.length})` }}
+            >
+              <motion.div
+                className="w-full rounded-t"
+                style={{ 
+                  backgroundColor: barColor,
+                  height: animate ? 0 : barHeight
+                }}
+                animate={{ height: barHeight }}
+                transition={{ duration }}
+              />
+              
+              {showLabels && (
+                <div className="mt-2 w-full overflow-hidden text-ellipsis whitespace-nowrap text-center text-xs">
+                  {item.label}
                 </div>
-                
-                {showLabels && (
-                  <div className="mt-2 text-xs text-center truncate w-full" title={item.label}>
-                    {item.label}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -230,112 +272,67 @@ export function AnimatedIcon({
   icon,
   animation,
   size = 'md',
-  color,
+  color = 'currentColor',
   className = '',
-  duration = 1,
+  duration = 1.5,
   onClick,
   tooltip
 }: AnimatedIconProps) {
-  const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-6 w-6',
-    lg: 'h-8 w-8',
-    xl: 'h-10 w-10'
-  };
-
-  // Animation values
-  const animations = {
+  // Size mapping
+  const sizeClass = {
+    sm: 'w-4 h-4',
+    md: 'w-6 h-6',
+    lg: 'w-8 h-8',
+    xl: 'w-12 h-12'
+  }[size];
+  
+  // Animation variants
+  const variants = {
     pulse: {
-      animate: { scale: [1, 1.05, 1] },
-      transition: { 
-        repeat: Infinity, 
-        duration: duration,
-        ease: "easeInOut"
-      }
+      scale: [1, 1.1, 1],
+      opacity: [1, 0.8, 1],
+      transition: { duration, repeat: Infinity }
     },
     bounce: {
-      animate: { y: [0, -10, 0] },
-      transition: { 
-        repeat: Infinity, 
-        duration: duration,
-        ease: "easeInOut"
-      }
+      y: ['0%', '-25%', '0%'],
+      transition: { duration, repeat: Infinity }
     },
     spin: {
-      animate: { rotate: 360 },
-      transition: { 
-        repeat: Infinity, 
-        duration: duration,
-        ease: "linear"
-      }
+      rotate: [0, 360],
+      transition: { duration, repeat: Infinity, ease: 'linear' }
     },
     shake: {
-      animate: { x: [0, -5, 5, -5, 5, 0] },
-      transition: { 
-        repeat: Infinity, 
-        duration: duration,
-        ease: "easeInOut"
-      }
+      x: [0, -10, 10, -10, 10, 0],
+      transition: { duration, repeat: Infinity, repeatDelay: 1 }
     },
     wiggle: {
-      animate: { rotate: [0, -5, 5, -5, 5, 0] },
-      transition: { 
-        repeat: Infinity, 
-        duration: duration,
-        ease: "easeInOut"
-      }
+      rotate: [0, -10, 10, -10, 10, 0],
+      transition: { duration, repeat: Infinity, repeatDelay: 1 }
     },
     flash: {
-      animate: { opacity: [1, 0.5, 1] },
-      transition: { 
-        repeat: Infinity, 
-        duration: duration,
-        ease: "easeInOut"
-      }
+      opacity: [1, 0, 1, 0, 1],
+      transition: { duration, repeat: Infinity, repeatDelay: 1 }
     },
     tada: {
-      animate: { 
-        scale: [1, 0.9, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1],
-        rotate: [0, -3, 3, -3, 3, -3, 3, -3, 0]
-      },
-      transition: { 
-        repeat: Infinity, 
-        duration: duration * 2,
-        ease: "easeInOut"
-      }
+      scale: [1, 0.9, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1],
+      rotate: [0, -3, 3, -3, 3, -3, 3, -3, 0],
+      transition: { duration, repeat: Infinity, repeatDelay: 2 }
     },
     heartbeat: {
-      animate: { scale: [1, 1.2, 1, 1.2, 1] },
-      transition: { 
-        repeat: Infinity, 
-        duration: duration,
-        ease: "easeInOut"
-      }
+      scale: [1, 1.3, 1, 1.3, 1],
+      transition: { duration, repeat: Infinity, repeatDelay: 1 }
     }
   };
   
-  const currentAnimation = animations[animation];
-  
   return (
-    <div className="relative inline-block">
-      {tooltip && (
-        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          <div className="bg-neutral-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-            {tooltip}
-          </div>
-        </div>
-      )}
-      
-      <animated.div
-        // @ts-ignore - Framer Motion typings
-        animate={currentAnimation.animate}
-        transition={currentAnimation.transition}
-        className={`inline-flex ${sizeClasses[size]} ${className} ${onClick ? 'cursor-pointer' : ''}`}
-        onClick={onClick}
-        style={{ color }}
-      >
-        {icon}
-      </animated.div>
-    </div>
+    <motion.div
+      className={`inline-flex items-center justify-center ${sizeClass} ${className}`}
+      animate={variants[animation]}
+      onClick={onClick}
+      style={{ color }}
+      title={tooltip}
+    >
+      {icon}
+    </motion.div>
   );
 }
