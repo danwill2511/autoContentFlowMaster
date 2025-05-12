@@ -56,7 +56,7 @@ interface MoodBoard {
   items: MoodBoardItem[];
 }
 
-export default function MoodBoardCreator() {
+export function MoodBoardCreator() {
   const [currentBoard, setCurrentBoard] = useState<MoodBoard>({
     id: `board-${Date.now()}`,
     name: 'My Mood Board',
@@ -602,3 +602,5 @@ export default function MoodBoardCreator() {
     </div>
   );
 }
+
+export default MoodBoardCreator;

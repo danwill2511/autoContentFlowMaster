@@ -29,7 +29,7 @@ interface ToneMarker {
   percentage: number;
 }
 
-export default function AIWritingAssistant() {
+export function AIWritingAssistant() {
   const [content, setContent] = useState<string>('');
   const [tone, setTone] = useState<string>('professional');
   const [contentType, setContentType] = useState<string>('social-post');
@@ -369,3 +369,5 @@ export default function AIWritingAssistant() {
     </div>
   );
 }
+
+export default AIWritingAssistant;

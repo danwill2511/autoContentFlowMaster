@@ -32,7 +32,7 @@ interface ColorPalette {
   type: 'monochromatic' | 'analogous' | 'complementary' | 'triadic' | 'custom';
 }
 
-export default function ColorPaletteGenerator() {
+export function ColorPaletteGenerator() {
   const [baseColor, setBaseColor] = useState<string>('#6366f1');
   const [paletteType, setPaletteType] = useState<string>('complementary');
   const [colorCount, setColorCount] = useState<number>(5);
@@ -450,3 +450,5 @@ export default function ColorPaletteGenerator() {
     </div>
   );
 }
+
+export default ColorPaletteGenerator;

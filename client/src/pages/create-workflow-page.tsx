@@ -10,8 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import PlatformSelector, { Platform as PlatformType } from "@/components/workflows/platform-selector";
-import ContentPreview from "@/components/workflows/content-preview";
-import ContentFlowVisualizer from "@/components/workflows/content-flow-visualizer";
 import {
   Form,
   FormControl,
@@ -268,35 +266,6 @@ export default function CreateWorkflowPage() {
       <Navbar />
 
       <main className="flex-grow max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 w-full">
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 rounded-3xl" />
-          <div className="relative bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-lg">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold mb-4">Create Your Content Magic ✨</h1>
-              <p className="text-lg text-neutral-600">Choose your content type and let's make something amazing!</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {contentTypes.map((type) => (
-                <button
-                  key={type.id}
-                  onClick={() => selectContentType(type.id)}
-                  className={cn(
-                    "relative p-6 rounded-xl transition-all duration-200 group hover:scale-105",
-                    selectedType === type.id ? "bg-primary/10 border-2 border-primary" : "bg-white border border-neutral-200"
-                  )}
-                >
-                  <div className="text-4xl mb-4">{type.emoji}</div>
-                  <h3 className="text-lg font-semibold mb-2">{type.name}</h3>
-                  <p className="text-sm text-neutral-600">{type.description}</p>
-                  <div className={cn(
-                    "absolute inset-0 rounded-xl transition-opacity",
-                    selectedType === type.id ? "opacity-100" : "opacity-0 group-hover:opacity-50",
-                    "bg-gradient-to-r from-primary/20 to-primary/30"
-                  )} />
-                </button>
-              ))}
-            </div>
         <div className="px-4 sm:px-0 mb-8">
           <h1 className="text-2xl font-semibold text-neutral-900">Create New Workflow</h1>
           <p className="mt-1 text-sm text-neutral-500">
@@ -356,12 +325,12 @@ export default function CreateWorkflowPage() {
                               <SelectContent>
                                 <SelectItem value="daily">Daily</SelectItem>
                                 <SelectItem value="weekly">Weekly</SelectItem>
-                                <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
+                                <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
                                 <SelectItem value="monthly">Monthly</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormDescription>
-                              How often content will be posted
+                              How often you want to post content
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -374,73 +343,7 @@ export default function CreateWorkflowPage() {
                 <Separator />
 
                 <div>
-                  <h3 className="text-base font-medium text-neutral-900 mb-4">2. Select Platforms</h3>
-                  {platforms && platforms.length > 0 ? (
-                    <div className="space-y-4">
-                    <PlatformSelector
-                      platforms={mapPlatforms()}
-                      selectedPlatforms={selectedPlatforms}
-                      onChange={(selected) => setSelectedPlatforms(selected)}
-                    />
-
-                    {selectedPlatforms.length > 0 && (
-                      <div className="mt-4 space-y-4">
-                        <h4 className="text-sm font-medium text-neutral-900">Platform Settings</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {selectedPlatforms.map(platformId => {
-                            const platform = platforms?.find(p => p.id === platformId);
-                            return platform ? (
-                              <PlatformSettings
-                                key={platformId}
-                                platformId={platformId}
-                                platformName={platform.name}
-                                settings={platformSettings[platformId]}
-                                onChange={handlePlatformSettingsChange}
-                              />
-                            ) : null;
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  ) : (
-                    <div className="text-center py-6 border border-dashed border-neutral-300 rounded-lg">
-                      <svg
-                        className="mx-auto h-12 w-12 text-neutral-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <p className="mt-2 text-sm text-neutral-500">
-                        No platforms configured yet. Please add a platform first.
-                      </p>
-                      <Button 
-                        className="mt-4" 
-                        variant="outline" 
-                        onClick={() => setLocation("/platforms")}
-                      >
-                        Add Platform
-                      </Button>
-                    </div>
-                  )}
-                  {selectedPlatforms.length === 0 && (
-                    <p className="text-sm text-red-500 mt-2">
-                      Please select at least one platform
-                    </p>
-                  )}
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="text-base font-medium text-neutral-900 mb-4">3. Content Configuration</h3>
+                  <h3 className="text-base font-medium text-neutral-900 mb-4">2. Content Settings</h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-6">
                     <div className="sm:col-span-3">
                       <FormField
@@ -459,11 +362,11 @@ export default function CreateWorkflowPage() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="blog posts">Blog posts</SelectItem>
-                                <SelectItem value="short articles">Short articles</SelectItem>
-                                <SelectItem value="social media updates">Social media updates</SelectItem>
-                                <SelectItem value="video scripts">Video scripts</SelectItem>
-                                <SelectItem value="infographic text">Infographic text</SelectItem>
+                                <SelectItem value="blog posts">Blog Posts</SelectItem>
+                                <SelectItem value="short articles">Short Articles</SelectItem>
+                                <SelectItem value="social media updates">Social Media Updates</SelectItem>
+                                <SelectItem value="video scripts">Video Scripts</SelectItem>
+                                <SelectItem value="infographic text">Infographic Text</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormDescription>
@@ -500,7 +403,7 @@ export default function CreateWorkflowPage() {
                               </SelectContent>
                             </Select>
                             <FormDescription>
-                              Style and tone of the content
+                              Tone of voice for the content
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -514,16 +417,16 @@ export default function CreateWorkflowPage() {
                         name="topics"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Topics to Cover</FormLabel>
+                            <FormLabel>Topics</FormLabel>
                             <FormControl>
                               <Textarea 
-                                placeholder="E.g., technology, marketing, business" 
-                                className="resize-none" 
-                                {...field} 
+                                placeholder="Enter topics separated by commas (e.g., technology trends, AI, content marketing)" 
+                                className="h-24"
+                                {...field}
                               />
                             </FormControl>
                             <FormDescription>
-                              Separate different topics with commas
+                              Key topics for your content (max 5)
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -536,41 +439,50 @@ export default function CreateWorkflowPage() {
                 <Separator />
 
                 <div>
-                  <h3 className="text-base font-medium text-neutral-900 mb-4">4. Content Preview</h3>
-                  <div className="grid grid-cols-1 gap-6">
-                    {selectedPlatforms.length > 0 && (
-                      <ContentPreview 
-                        contentType={form.watch("contentType")}
-                        contentTone={form.watch("contentTone")}
-                        topics={form.watch("topics")}
-                        platforms={selectedPlatforms.map(id => {
-                          const platform = platforms?.find(p => p.id === id);
-                          return platform?.name || "";
-                        }).filter(Boolean)}
+                  <h3 className="text-base font-medium text-neutral-900 mb-4">3. Platform Selection</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Select the platforms where your content will be posted.
+                  </p>
+                  
+                  {/* Use the platform selector component to display platforms */}
+                  <div className="mb-6">
+                    {platforms ? (
+                      <PlatformSelector 
+                        platforms={mapPlatforms()}
+                        selectedPlatforms={selectedPlatforms}
+                        onPlatformSelect={(platforms) => setSelectedPlatforms(platforms)}
                       />
+                    ) : (
+                      <div className="text-center p-8 bg-muted rounded-md">
+                        <p>Loading platforms...</p>
+                      </div>
                     )}
                   </div>
-                </div>
-
-                <Separator />
-                
-                <div>
-                  <h3 className="text-base font-medium text-neutral-900 mb-4">5. Content Flow Visualization</h3>
-                  <div className="grid grid-cols-1 gap-6">
-                    <ContentFlowVisualizer 
-                      platforms={selectedPlatforms.map(id => {
-                        const platform = platforms?.find(p => p.id === id);
-                        return platform || { id, name: "Unknown Platform", userId: 0, createdAt: new Date() };
+                  
+                  {/* Platform specific settings */}
+                  {selectedPlatforms.length > 0 && (
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-medium text-neutral-900">Platform Settings</h4>
+                      {selectedPlatforms.map((platformId) => {
+                        const platform = platforms?.find(p => p.id === platformId);
+                        return platform ? (
+                          <PlatformSettings 
+                            key={platform.id}
+                            platformId={platform.id}
+                            platformName={platform.name}
+                            settings={platformSettings[platform.id] || {}}
+                            onChange={handlePlatformSettingsChange}
+                          />
+                        ) : null;
                       })}
-                      showControls={false}
-                    />
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 <Separator />
 
                 <div>
-                  <h3 className="text-base font-medium text-neutral-900 mb-4">6. Scheduling</h3>
+                  <h3 className="text-base font-medium text-neutral-900 mb-4">4. Scheduling</h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-6">
                     <div className="sm:col-span-3">
                       <FormField
@@ -578,12 +490,12 @@ export default function CreateWorkflowPage() {
                         name="nextPostDate"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Start Date</FormLabel>
+                            <FormLabel>First Posting Date</FormLabel>
                             <FormControl>
                               <Input type="date" {...field} />
                             </FormControl>
                             <FormDescription>
-                              When to start posting content
+                              When to start posting (defaults to tomorrow if not set)
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -593,33 +505,17 @@ export default function CreateWorkflowPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-neutral-200 pt-6">
-                  <div className="flex justify-end space-x-3">
-                    <Button type="button" variant="outline" onClick={() => setLocation("/")}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      disabled={createWorkflow.isPending}
-                    >
-                      {createWorkflow.isPending ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Creating...
-                        </>
-                      ) : (
-                        <>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                          Create Workflow
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                <div className="flex justify-end gap-4">
+                  <Button 
+                    variant="outline" 
+                    type="button"
+                    onClick={() => setLocation("/")}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={createWorkflow.isPending}>
+                    {createWorkflow.isPending ? "Creating..." : "Create Workflow"}
+                  </Button>
                 </div>
               </form>
             </Form>
