@@ -182,7 +182,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     [user, isLoading, loginMutation.isPending, registerMutation.isPending, logoutMutation.isPending]
   );
 
-  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={contextValue}>
+      <div role="dialog" aria-describedby="auth-description">
+        <div id="auth-description" className="sr-only">
+          Authentication dialog for handling user login, registration and logout
+        </div>
+        {children}
+      </div>
+    </AuthContext.Provider>
+  );
 };
 
 // Custom hook to use auth context

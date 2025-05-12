@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -150,7 +149,10 @@ export default function AuthPage() {
               </TabsList>
               <TabsContent value="login">
                 <Form {...loginForm}>
-                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                  <div id="auth-form-description" className="sr-only">
+                    {activeTab === 'login' ? 'Login form for existing users' : 'Registration form for new users'}
+                  </div>
+                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4" aria-describedby="auth-form-description">
                     <FormField
                       control={loginForm.control}
                       name="email"
@@ -192,7 +194,10 @@ export default function AuthPage() {
               </TabsContent>
               <TabsContent value="register">
                 <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                  <div id="auth-form-description" className="sr-only">
+                    {activeTab === 'login' ? 'Login form for existing users' : 'Registration form for new users'}
+                  </div>
+                  <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4" aria-describedby="auth-form-description">
                     <FormField
                       control={registerForm.control}
                       name="username"
@@ -270,7 +275,7 @@ export default function AuthPage() {
                     <span className="bg-white px-2 text-neutral-500">Or continue with</span>
                   </div>
                 </div>
-          
+
                 <Button
                   type="button"
                   variant="outline"
