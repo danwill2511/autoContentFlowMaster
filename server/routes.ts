@@ -871,7 +871,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       // Get query parameters for filtering
-      const timeRange = req.query.timeRange || '1m';
+      const timeRange = req.query.timeRange || '30d';
       const platform = req.query.platform || 'all';
       
       // Get user's activity data
@@ -888,20 +888,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalEngagement += posts.reduce((sum, post) => sum + (post.engagement || 0), 0);
       }
 
-      // Calculate daily engagement for the past week
-      const dailyEngagement = Array(7).fill(0);
+      // Calculate daily engagement for the past period based on timeRange
+      const daysToShow = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
+      const dailyEngagement = Array(daysToShow).fill(0);
       const now = new Date();
       allPosts.forEach(post => {
         const postDate = new Date(post.createdAt);
-        const dayDiff = Math.floor((now - postDate) / (1000 * 60 * 60 * 24));
-        if (dayDiff < 7) {
+        const dayDiff = Math.floor((now.getTime() - postDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (dayDiff < daysToShow) {
           dailyEngagement[dayDiff] += post.engagement || 0;
         }
       });
 
       // Calculate platform metrics
       const platformMetrics = platforms.map(platform => {
-        const platformPosts = allPosts.filter(post => post.platformId === platform.id);
+        const platformPosts = allPosts.filter(post => post.platformIds?.includes(platform.id));
         return {
           name: platform.name,
           posts: platformPosts.length,
@@ -929,7 +930,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .map(post => ({
             id: post.id,
             content: post.content.substring(0, 50) + '...',
-            platform: platforms.find(p => p.id === post.platformId)?.name || 'Unknown',
+            platform: platforms.find(p => post.platformIds?.includes(p.id))?.name || 'Unknown',
             engagement: post.engagement || 0,
             createdAt: post.createdAt
           }))
@@ -940,6 +941,690 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Analytics error:', error);
       res.status(500).json({ message: "Failed to fetch analytics data" });
     }
+  });
+
+  // Content Performance Metrics API
+  app.get("/api/analytics/content-performance", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      // Get query parameters
+      const timeRange = req.query.timeRange || '30d';
+      
+      // Get user's platforms and posts
+      const platforms = await storage.getPlatformsByUser(req.user.id);
+      const workflows = await storage.getWorkflowsByUser(req.user.id);
+      
+      // Get posts for performance analysis
+      let allPosts = [];
+      for (const workflow of workflows) {
+        const posts = await storage.getPostsByWorkflow(workflow.id);
+        allPosts = [...allPosts, ...posts];
+      }
+      
+      // Filter posts by date range
+      const daysToInclude = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysToInclude);
+      
+      const filteredPosts = allPosts.filter(post => new Date(post.createdAt) >= cutoffDate);
+      
+      // Calculate total metrics
+      const totalReach = filteredPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
+      const totalEngagement = filteredPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
+      const averageEngagementRate = totalReach > 0 ? (totalEngagement / totalReach) * 100 : 0;
+      
+      // Compare with previous period
+      const previousCutoffDate = new Date(cutoffDate);
+      previousCutoffDate.setDate(previousCutoffDate.getDate() - daysToInclude);
+      
+      const previousPeriodPosts = allPosts.filter(post => {
+        const postDate = new Date(post.createdAt);
+        return postDate >= previousCutoffDate && postDate < cutoffDate;
+      });
+      
+      const previousTotalReach = previousPeriodPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
+      const previousTotalEngagement = previousPeriodPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
+      
+      const reachGrowth = previousTotalReach > 0 
+        ? ((totalReach - previousTotalReach) / previousTotalReach) * 100 
+        : 100;
+      
+      const engagementGrowth = previousTotalEngagement > 0 
+        ? ((totalEngagement - previousTotalEngagement) / previousTotalEngagement) * 100 
+        : 100;
+      
+      // Get platform-specific performance
+      const platformPerformance = platforms.map(platform => {
+        const platformPosts = filteredPosts.filter(post => post.platformIds?.includes(platform.id));
+        const totalPlatformReach = platformPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
+        const totalPlatformEngagement = platformPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
+        
+        return {
+          platformId: platform.id,
+          platformName: platform.name,
+          totalImpressions: totalPlatformReach,
+          totalEngagement: totalPlatformEngagement,
+          engagementRate: totalPlatformReach > 0 ? (totalPlatformEngagement / totalPlatformReach) * 100 : 0,
+          contentCount: platformPosts.length
+        };
+      });
+      
+      // Generate weekly performance data
+      const weeklyPerformance = [];
+      const weeks = Math.min(12, Math.ceil(daysToInclude / 7));
+      
+      for (let i = 0; i < weeks; i++) {
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() - (i * 7));
+        
+        const startDate = new Date(endDate);
+        startDate.setDate(startDate.getDate() - 7);
+        
+        const weekPosts = filteredPosts.filter(post => {
+          const postDate = new Date(post.createdAt);
+          return postDate >= startDate && postDate < endDate;
+        });
+        
+        const weekReach = weekPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
+        const weekEngagement = weekPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
+        
+        weeklyPerformance.push({
+          date: startDate.toISOString().substring(0, 10),
+          reach: weekReach,
+          engagement: weekEngagement
+        });
+      }
+      
+      // Determine top platform
+      const topPlatform = platformPerformance.length > 0 
+        ? platformPerformance.sort((a, b) => b.engagementRate - a.engagementRate)[0].platformName 
+        : "None";
+      
+      // Get top performing content
+      const topContent = filteredPosts.sort((a, b) => (b.engagement || 0) - (a.engagement || 0))[0];
+      
+      // Format recent metrics
+      const recentMetrics = filteredPosts
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 10)
+        .map(post => {
+          const platform = platforms.find(p => post.platformIds?.includes(p.id));
+          return {
+            contentId: post.id,
+            contentTitle: post.content.substring(0, 40) + (post.content.length > 40 ? '...' : ''),
+            platformId: platform?.id || 0,
+            platformName: platform?.name || 'Unknown',
+            impressions: post.reach || 0,
+            engagement: post.engagement || 0,
+            shares: post.shares || 0,
+            clicks: post.clicks || 0,
+            saves: post.saves || 0,
+            date: post.createdAt
+          };
+        });
+      
+      // Prepare response
+      const response = {
+        topPlatform,
+        totalReach,
+        totalEngagement,
+        averageEngagementRate,
+        totalContent: filteredPosts.length,
+        engagementGrowth,
+        reachGrowth,
+        topPerformingContentId: topContent?.id || 0,
+        topPerformingContentTitle: topContent 
+          ? topContent.content.substring(0, 40) + (topContent.content.length > 40 ? '...' : '') 
+          : "No content",
+        weeklyPerformance: weeklyPerformance.reverse(),
+        platformPerformance,
+        recentMetrics
+      };
+      
+      res.json(response);
+      
+    } catch (error) {
+      console.error('Content performance metrics error:', error);
+      res.status(500).json({ message: "Failed to fetch content performance metrics" });
+    }
+  });
+
+  // Audience Growth Analytics API
+  app.get("/api/analytics/audience", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      // Get query parameters
+      const timeRange = req.query.timeRange || '30d';
+      
+      // Get platforms and their audience data
+      const platforms = await storage.getPlatformsByUser(req.user.id);
+      
+      // Calculate audience metrics
+      let totalFollowers = 0;
+      let newFollowers = 0;
+      let averageEngagementRate = 0;
+      
+      const platformGrowth = [];
+      
+      // For each platform, get the audience data
+      for (const platform of platforms) {
+        // This would typically come from the platform's API
+        // For now, we'll generate it based on platform ID to simulate different values
+        const platformFollowers = 1000 + (platform.id * 500);
+        const platformGrowthRate = 3 + (platform.id % 5);
+        const platformNewFollowers = Math.floor(platformFollowers * (platformGrowthRate / 100));
+        
+        totalFollowers += platformFollowers;
+        newFollowers += platformNewFollowers;
+        
+        platformGrowth.push({
+          platformId: platform.id,
+          platformName: platform.name,
+          followers: platformFollowers,
+          growthRate: platformGrowthRate
+        });
+      }
+      
+      // Calculate average engagement rate
+      if (platforms.length > 0) {
+        const workflows = await storage.getWorkflowsByUser(req.user.id);
+        let allPosts = [];
+        
+        for (const workflow of workflows) {
+          const posts = await storage.getPostsByWorkflow(workflow.id);
+          allPosts = [...allPosts, ...posts];
+        }
+        
+        const totalEngagement = allPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
+        const totalImpressions = allPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
+        
+        averageEngagementRate = totalImpressions > 0 ? (totalEngagement / totalImpressions) * 100 : 0;
+      }
+      
+      // Generate follower growth trend
+      const growthTrend = [];
+      const daysToInclude = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
+      const dataPoints = Math.min(14, daysToInclude);
+      const interval = Math.floor(daysToInclude / dataPoints);
+      
+      let runningTotal = totalFollowers;
+      
+      for (let i = 0; i < dataPoints; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - (i * interval));
+        
+        // For simulation, assume followers grow by about 1% each interval
+        const growthFactor = 1 - (0.01 * interval);
+        const previousValue = Math.floor(runningTotal * growthFactor);
+        const newFollowersInPeriod = runningTotal - previousValue;
+        
+        growthTrend.unshift({
+          date: date.toISOString().substring(0, 10),
+          followers: previousValue,
+          newFollowers: newFollowersInPeriod
+        });
+        
+        runningTotal = previousValue;
+      }
+      
+      // Generate demographic data
+      const demographicData = {
+        ageGroups: [
+          { label: "18-24", value: 25 },
+          { label: "25-34", value: 35 },
+          { label: "35-44", value: 22 },
+          { label: "45-54", value: 10 },
+          { label: "55-64", value: 5 },
+          { label: "65+", value: 3 }
+        ],
+        genders: [
+          { label: "Male", value: 45 },
+          { label: "Female", value: 52 },
+          { label: "Other", value: 3 }
+        ],
+        topLocations: [
+          { location: "United States", percentage: 42.5 },
+          { location: "United Kingdom", percentage: 12.8 },
+          { location: "Canada", percentage: 8.3 },
+          { location: "Australia", percentage: 7.6 },
+          { location: "Germany", percentage: 5.2 }
+        ]
+      };
+      
+      // Generate active hours data
+      const activeHours = Array.from({ length: 24 }, (_, i) => {
+        // Generate a distribution with peaks at 9am, 12pm, and 8pm
+        const morningPeak = Math.exp(-Math.pow((i - 9) / 2, 2)) * 20;
+        const noonPeak = Math.exp(-Math.pow((i - 12) / 2, 2)) * 15;
+        const eveningPeak = Math.exp(-Math.pow((i - 20) / 2, 2)) * 25;
+        
+        return {
+          hour: i,
+          activity: parseFloat((morningPeak + noonPeak + eveningPeak).toFixed(1))
+        };
+      });
+      
+      // Prepare response
+      const response = {
+        totalFollowers,
+        newFollowers,
+        followerGrowthRate: newFollowers > 0 ? (newFollowers / (totalFollowers - newFollowers)) * 100 : 0,
+        averageEngagementRate,
+        demographicData,
+        growthTrend,
+        activeHours,
+        platformGrowth
+      };
+      
+      res.json(response);
+      
+    } catch (error) {
+      console.error('Audience analytics error:', error);
+      res.status(500).json({ message: "Failed to fetch audience analytics data" });
+    }
+  });
+
+  // Content Comparison Analytics API
+  app.get("/api/analytics/content-comparison", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      // Get query parameters
+      const timeRange = req.query.timeRange || '30d';
+      
+      // Get user's content data
+      const workflows = await storage.getWorkflowsByUser(req.user.id);
+      
+      // Get posts for comparison analysis
+      let allPosts = [];
+      for (const workflow of workflows) {
+        const posts = await storage.getPostsByWorkflow(workflow.id);
+        allPosts = [...allPosts, ...posts];
+      }
+      
+      // Filter posts by date range
+      const daysToInclude = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysToInclude);
+      
+      const filteredPosts = allPosts.filter(post => new Date(post.createdAt) >= cutoffDate);
+      
+      // Categorize posts by content type
+      const contentTypes = ['Image', 'Video', 'Article', 'Text', 'Link'];
+      const contentTypePerformance = contentTypes.map(type => {
+        // For simulation, filter posts pseudo-randomly based on content
+        const typePosts = filteredPosts.filter(post => {
+          const hash = hashString(post.content);
+          return hash % contentTypes.length === contentTypes.indexOf(type);
+        });
+        
+        const typeEngagement = typePosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
+        const typeReach = typePosts.reduce((sum, post) => sum + (post.reach || 0), 0);
+        
+        return {
+          contentType: type,
+          averageEngagement: typePosts.length > 0 ? Math.round(typeEngagement / typePosts.length) : 0,
+          averageReach: typePosts.length > 0 ? Math.round(typeReach / typePosts.length) : 0,
+          totalItems: typePosts.length,
+          // Only video and link types have conversion tracking in this simulation
+          conversionRate: (type === 'Video' || type === 'Link') ? Math.random() * 5 + 1 : undefined
+        };
+      });
+      
+      // Categorize posts by length
+      const lengthCategories = ['Very Short', 'Short', 'Medium', 'Long', 'Very Long'];
+      const contentLengthPerformance = lengthCategories.map((category, index) => {
+        // For simulation, categorize posts by content length
+        const categoryPosts = filteredPosts.filter(post => {
+          const length = post.content.length;
+          const categoryIndex = getContentLengthCategory(length);
+          return categoryIndex === index;
+        });
+        
+        const categoryEngagement = categoryPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
+        const categoryReach = categoryPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
+        
+        return {
+          lengthCategory: category,
+          averageEngagement: categoryPosts.length > 0 ? Math.round(categoryEngagement / categoryPosts.length) : 0,
+          averageReach: categoryPosts.length > 0 ? Math.round(categoryReach / categoryPosts.length) : 0,
+          totalItems: categoryPosts.length
+        };
+      });
+      
+      // Extract and analyze hashtags
+      const hashtags = new Map();
+      
+      filteredPosts.forEach(post => {
+        // Extract hashtags using regex
+        const matches = post.content.match(/#[a-zA-Z0-9_]+/g) || [];
+        
+        matches.forEach(tag => {
+          const hashtag = tag.substring(1).toLowerCase(); // Remove # and convert to lowercase
+          
+          if (!hashtags.has(hashtag)) {
+            hashtags.set(hashtag, { count: 0, totalEngagement: 0 });
+          }
+          
+          const data = hashtags.get(hashtag);
+          data.count += 1;
+          data.totalEngagement += post.engagement || 0;
+          hashtags.set(hashtag, data);
+        });
+      });
+      
+      // Format hashtag performance data
+      const hashtagPerformance = Array.from(hashtags.entries())
+        .map(([hashtag, data]) => ({
+          hashtag,
+          averageEngagement: data.count > 0 ? Math.round(data.totalEngagement / data.count) : 0,
+          frequency: data.count
+        }))
+        .sort((a, b) => b.averageEngagement - a.averageEngagement)
+        .slice(0, 20); // Get top 20 hashtags
+      
+      // Analyze posting time impact
+      const timeFrames = ['Morning (6-10am)', 'Midday (10am-2pm)', 'Afternoon (2-6pm)', 'Evening (6-10pm)', 'Night (10pm-6am)'];
+      const timeBasedPerformance = timeFrames.map(frame => {
+        // For simulation, filter posts by timestamp
+        const framePosts = filteredPosts.filter(post => {
+          const postDate = new Date(post.createdAt);
+          const hour = postDate.getHours();
+          
+          return (
+            (frame === 'Morning (6-10am)' && hour >= 6 && hour < 10) ||
+            (frame === 'Midday (10am-2pm)' && hour >= 10 && hour < 14) ||
+            (frame === 'Afternoon (2-6pm)' && hour >= 14 && hour < 18) ||
+            (frame === 'Evening (6-10pm)' && hour >= 18 && hour < 22) ||
+            (frame === 'Night (10pm-6am)' && (hour >= 22 || hour < 6))
+          );
+        });
+        
+        const frameEngagement = framePosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
+        
+        return {
+          timeFrame: frame,
+          averageEngagement: framePosts.length > 0 ? Math.round(frameEngagement / framePosts.length) : 0,
+          totalItems: framePosts.length
+        };
+      });
+      
+      // Format comparison data
+      const formatComparison = [
+        { format: 'Single Image', engagement: 65, reach: 70, conversionRate: 2.5 },
+        { format: 'Carousel', engagement: 78, reach: 65, conversionRate: 3.2 },
+        { format: 'Video', engagement: 85, reach: 80, conversionRate: 4.1 },
+        { format: 'Text Only', engagement: 45, reach: 55, conversionRate: 1.8 },
+        { format: 'Link + Image', engagement: 60, reach: 68, conversionRate: 3.7 }
+      ];
+      
+      // Prepare response
+      const response = {
+        contentTypePerformance,
+        contentLengthPerformance,
+        topPerformingHashtags: hashtagPerformance,
+        timeBasedPerformance,
+        formatComparison
+      };
+      
+      res.json(response);
+      
+    } catch (error) {
+      console.error('Content comparison analytics error:', error);
+      res.status(500).json({ message: "Failed to fetch content comparison data" });
+    }
+  });
+
+  // Content Analytics Insights API
+  app.get("/api/analytics/insights", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      // In a real application, these insights would be generated based on
+      // actual user data and stored in the database. For demonstration purposes,
+      // we're generating them on the fly.
+      
+      // Get user's workflows and posts for context
+      const workflows = await storage.getWorkflowsByUser(req.user.id);
+      const platforms = await storage.getPlatformsByUser(req.user.id);
+      
+      let allPosts = [];
+      for (const workflow of workflows) {
+        const posts = await storage.getPostsByWorkflow(workflow.id);
+        allPosts = [...allPosts, ...posts];
+      }
+      
+      // Generate insights based on available data
+      const insights = [];
+      
+      // Only generate meaningful insights if we have data
+      if (allPosts.length > 0) {
+        // Recommendation for optimal posting time
+        insights.push({
+          id: 'ins-1',
+          type: 'recommendation',
+          category: 'scheduling',
+          title: 'Optimize your posting schedule',
+          description: 'Based on your audience engagement patterns, try posting between 7-9 PM for maximum reach and interaction.',
+          impact: 'high',
+          actionable: true,
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days ago
+        });
+        
+        // Content type recommendation
+        insights.push({
+          id: 'ins-2',
+          type: 'tip',
+          category: 'content',
+          title: 'Increase video content',
+          description: 'Your video posts are receiving 28% higher engagement than other content types. Consider creating more video content.',
+          impact: 'medium',
+          actionable: true,
+          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days ago
+        });
+        
+        // Platform-specific insight
+        if (platforms.length > 1) {
+          insights.push({
+            id: 'ins-3',
+            type: 'recommendation',
+            category: 'platform',
+            title: `Leverage ${platforms[0].name} growth`,
+            description: `Your audience on ${platforms[0].name} is growing 2.3x faster than other platforms. Consider focusing more content there.`,
+            impact: 'medium',
+            actionable: true,
+            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days ago
+          });
+        }
+        
+        // Achievement notification
+        insights.push({
+          id: 'ins-4',
+          type: 'achievement',
+          category: 'content',
+          title: 'Engagement milestone reached',
+          description: 'Congratulations! Your content has reached over 1,000 total engagements this month.',
+          impact: 'low',
+          actionable: false,
+          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() // 1 day ago
+        });
+        
+        // Content length insight
+        insights.push({
+          id: 'ins-5',
+          type: 'tip',
+          category: 'content',
+          title: 'Optimize content length',
+          description: 'Your medium-length posts (300-500 words) perform 18% better than very long posts. Focus on concise, value-packed content.',
+          impact: 'medium',
+          actionable: true,
+          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
+        });
+        
+        // Audience insight
+        insights.push({
+          id: 'ins-6',
+          type: 'tip',
+          category: 'audience',
+          title: 'Target audience identified',
+          description: 'Your content performs best with the 25-34 age demographic. Consider tailoring your messaging to this group.',
+          impact: 'high',
+          actionable: true,
+          createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() // 4 days ago,
+        });
+        
+        // Hashtag recommendation
+        insights.push({
+          id: 'ins-7',
+          type: 'recommendation',
+          category: 'content',
+          title: 'Optimize hashtag strategy',
+          description: 'Using 3-5 targeted hashtags yields 23% higher reach than posts with 10+ hashtags. Focus on quality over quantity.',
+          impact: 'medium',
+          actionable: true,
+          createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString() // 6 days ago
+        });
+      } else {
+        // If no posts available, provide starter insights
+        insights.push({
+          id: 'ins-starter-1',
+          type: 'tip',
+          category: 'content',
+          title: 'Get started with your first post',
+          description: 'Create and schedule your first post to begin collecting performance analytics.',
+          impact: 'high',
+          actionable: true,
+          createdAt: new Date().toISOString()
+        });
+        
+        if (platforms.length > 0) {
+          insights.push({
+            id: 'ins-starter-2',
+            type: 'tip',
+            category: 'platform',
+            title: 'Optimize your platform strategy',
+            description: `You've connected ${platforms.length} platform(s). Try posting consistently for 2 weeks to establish baseline metrics.`,
+            impact: 'medium',
+            actionable: true,
+            createdAt: new Date().toISOString()
+          });
+        } else {
+          insights.push({
+            id: 'ins-starter-2',
+            type: 'tip',
+            category: 'platform',
+            title: 'Connect your first platform',
+            description: 'Add social media platforms to start managing and analyzing your content across channels.',
+            impact: 'high',
+            actionable: true,
+            createdAt: new Date().toISOString()
+          });
+        }
+      }
+      
+      // Select top recommendation
+      const topRecommendation = insights.find(i => i.type === 'recommendation' && i.impact === 'high') || 
+                               insights.find(i => i.impact === 'high') ||
+                               insights[0];
+      
+      // Prepare response
+      const response = {
+        insights: insights.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+        topRecommendation,
+        totalInsights: insights.length,
+        unreadInsights: insights.length // In a real app, this would track which insights have been read
+      };
+      
+      res.json(response);
+      
+    } catch (error) {
+      console.error('Content insights error:', error);
+      res.status(500).json({ message: "Failed to fetch content insights" });
+    }
+  });
+
+  // Mark content insight as read
+  app.post("/api/analytics/insights/:insightId/read", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      const { insightId } = req.params;
+      
+      // In a real application, this would update the insight in the database
+      // For demonstration purposes, we'll just return a success response
+      
+      res.json({ 
+        success: true, 
+        message: "Insight marked as read",
+        insightId
+      });
+      
+    } catch (error) {
+      console.error('Mark insight as read error:', error);
+      res.status(500).json({ message: "Failed to mark insight as read" });
+    }
+  });
+
+  // Generate new AI insights
+  app.post("/api/analytics/insights/generate", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      // In a real application, this would trigger an AI process to generate new insights
+      // For demonstration purposes, we'll just return a success response
+      
+      res.json({ 
+        success: true, 
+        message: "New insights generated successfully",
+        count: 3 // Number of new insights generated
+      });
+      
+    } catch (error) {
+      console.error('Generate insights error:', error);
+      res.status(500).json({ message: "Failed to generate new insights" });
+    }
+  });
+
+  /**
+   * Helper function to get content length category
+   * @param {number} length - Content length in characters
+   * @returns {number} - Category index (0-4)
+   */
+  function getContentLengthCategory(length) {
+    if (length < 50) return 0; // Very Short
+    if (length < 150) return 1; // Short
+    if (length < 500) return 2; // Medium
+    if (length < 1000) return 3; // Long
+    return 4; // Very Long
+  }
+
+  /**
+   * Simple hash function for strings
+   * @param {string} str - String to hash
+   * @returns {number} - Hash value
+   */
+  function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+  }
 
     try {
       // Get query parameters for filtering
