@@ -79,6 +79,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const registerMutation = useMutation({
     mutationFn: async ({ username, email, password }: { username: string; email: string; password: string }) => {
       try {
+        console.log("Attempting registration with:", { username, email, password: "***" });
+        
         const res = await fetch("/api/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -87,11 +89,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
         
         if (!res.ok) {
+          console.error("Registration failed with status:", res.status);
           const errorData = await res.json();
+          console.error("Registration error response:", errorData);
           throw new Error(errorData.message || "Registration failed");
         }
         
-        return await res.json();
+        const userData = await res.json();
+        console.log("Registration successful, user data:", userData);
+        return userData;
       } catch (error) {
         console.error("Registration error:", error);
         throw error;
@@ -99,11 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/user"], data);
-      // Don't invalidate the query we just set to avoid double fetching
-      // Use a callback for navigation to avoid React rendering issues
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 0);
+      // Let auth-page.tsx handle the redirection once it sees the user is logged in
     },
   });
 
