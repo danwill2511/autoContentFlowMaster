@@ -1,3 +1,60 @@
+
+import winston from 'winston';
+import { format } from 'winston';
+
+const errorLogger = winston.createLogger({
+  level: 'error',
+  format: format.combine(
+    format.timestamp(),
+    format.json(),
+    format.errors({ stack: true })
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'logs/error.log' }),
+    new winston.transports.Console({
+      format: format.combine(
+        format.colorize(),
+        format.simple()
+      )
+    })
+  ]
+});
+
+interface ErrorDetails {
+  code: string;
+  message: string;
+  context?: Record<string, any>;
+  userId?: string;
+}
+
+export function logError(error: Error | ErrorDetails, context?: Record<string, any>) {
+  const errorDetails = error instanceof Error ? {
+    code: 'UNKNOWN_ERROR',
+    message: error.message,
+    stack: error.stack,
+    ...context
+  } : error;
+
+  errorLogger.error('Application error:', errorDetails);
+}
+
+export const logger = winston.createLogger({
+  level: 'info',
+  format: format.combine(
+    format.timestamp(),
+    format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'logs/combined.log' }),
+    new winston.transports.Console({
+      format: format.combine(
+        format.colorize(),
+        format.simple()
+      )
+    })
+  ]
+});
+
 import { createLogger, format, transports } from 'winston';
 import { join } from 'path';
 

@@ -324,8 +324,69 @@ export class Scheduler {
   }
 }
 
-// Singleton instance of the scheduler
-export const scheduler = new Scheduler();
+// Content generation retry configuration
+interface RetryConfig {
+  maxAttempts: number;
+  backoffMs: number;
+  maxBackoffMs: number;
+}
+
+const defaultRetryConfig: RetryConfig = {
+  maxAttempts: 3,
+  backoffMs: 1000,
+  maxBackoffMs: 10000
+};
+
+class ContentGenerationRetry {
+  private retryCount: Map<string, number> = new Map();
+  private lastAttempt: Map<string, number> = new Map();
+
+  async executeWithRetry<T>(
+    taskId: string,
+    operation: () => Promise<T>,
+    config: RetryConfig = defaultRetryConfig
+  ): Promise<T> {
+    try {
+      const result = await operation();
+      this.retryCount.delete(taskId);
+      this.lastAttempt.delete(taskId);
+      return result;
+    } catch (error) {
+      const attempts = (this.retryCount.get(taskId) || 0) + 1;
+      this.retryCount.set(taskId, attempts);
+
+      if (attempts >= config.maxAttempts) {
+        this.retryCount.delete(taskId);
+        this.lastAttempt.delete(taskId);
+        throw new Error(`Failed after ${attempts} attempts: ${error.message}`);
+      }
+
+      const backoff = Math.min(
+        config.backoffMs * Math.pow(2, attempts - 1),
+        config.maxBackoffMs
+      );
+
+      await new Promise(resolve => setTimeout(resolve, backoff));
+      return this.executeWithRetry(taskId, operation, config);
+    }
+  }
+}
+
+// Enhanced scheduler with retry mechanism
+class EnhancedScheduler extends Scheduler {
+  private retryHandler = new ContentGenerationRetry();
+
+  async generateContent(taskId: string, prompt: string): Promise<string> {
+    return this.retryHandler.executeWithRetry(taskId, async () => {
+      // Existing content generation logic
+      const content = await openai.generateContent(prompt);
+      return content;
+    });
+  }
+}
+
+// Singleton instance of the enhanced scheduler
+export const scheduler = new EnhancedScheduler();
 import { setTimeout } from "timers/promises";
 
 interface RetryConfig {

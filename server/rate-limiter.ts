@@ -1,4 +1,3 @@
-
 import rateLimit from 'express-rate-limit';
 import { logger } from './logger';
 
@@ -25,7 +24,7 @@ const rateLimitHandler = (req: any, res: any) => {
     ip: req.ip,
     path: req.path
   });
-  
+
   return res.status(429).json({
     message: 'Too many requests, please try again later.'
   });
