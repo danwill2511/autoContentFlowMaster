@@ -1,11 +1,23 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, serveStatic } from "./vite";
 import { runMigrations } from "./db";
+import { logger, requestLogger, monitorError } from "./logger";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(requestLogger);
+
+// Global error handler
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  monitorError(err, { 
+    path: req.path,
+    method: req.method,
+    userId: req.user?.id 
+  });
+  next(err);
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

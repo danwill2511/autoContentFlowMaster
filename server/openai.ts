@@ -45,7 +45,11 @@ async function retryWithExponentialBackoff<T>(
       attempt++;
 
       if (attempt > maxRetries || !shouldRetry(error)) {
-        console.error(`Operation failed after ${attempt} attempts:`, error);
+        monitorError(error, {
+          service: 'openai',
+          attempt,
+          maxRetries,
+        });
         throw lastError;
       }
 
