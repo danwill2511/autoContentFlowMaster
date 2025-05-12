@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, TrendingUp, Share2, ThumbsUp, MessageSquare } from "lucide-react";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
+import { SchedulingInsights } from "@/components/analytics/scheduling-insights";
+import { PostingTimeOptimizer } from "@/components/analytics/posting-time-optimizer";
+import { ManualSchedulerTrigger } from "@/components/analytics/manual-scheduler-trigger";
 
 // Sample data - in a real app this would come from API
 const sampleEngagementData = [
