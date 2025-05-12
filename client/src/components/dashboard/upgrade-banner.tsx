@@ -7,7 +7,7 @@ interface UpgradeBannerProps {
   workflowCount: number;
 }
 
-export default function UpgradeBanner({ workflowCount }: UpgradeBannerProps) {
+export function UpgradeBanner({ workflowCount }: UpgradeBannerProps) {
   const { user } = useAuth();
   
   if (!user) return null;

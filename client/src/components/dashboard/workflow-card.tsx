@@ -29,7 +29,7 @@ interface WorkflowCardProps {
   platforms: string[];
 }
 
-export default function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
+export function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
   const { toast } = useToast();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
@@ -126,7 +126,7 @@ export default function WorkflowCard({ workflow, platforms }: WorkflowCardProps)
               {getFrequencyText(workflow.frequency)} · {workflow.contentType}
             </p>
           </div>
-          <Badge variant={workflow.status === "active" ? "success" : "secondary"}>
+          <Badge variant={workflow.status === "active" ? "default" : "secondary"} className={workflow.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}>
             {workflow.status === "active" ? "Active" : "Paused"}
           </Badge>
         </div>

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
-import WorkflowCard from "@/components/dashboard/workflow-card";
+import { WorkflowCard } from "@/components/dashboard/workflow-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Workflow } from "@shared/schema";

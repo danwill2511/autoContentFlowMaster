@@ -9,7 +9,7 @@ interface StatsCardProps {
   textColor: string;
 }
 
-export default function StatsCard({ icon, title, value, bgColor, textColor }: StatsCardProps) {
+export function StatsCard({ icon, title, value, bgColor, textColor }: StatsCardProps) {
   return (
     <div className="bg-white overflow-hidden shadow rounded-lg">
       <div className="p-5">

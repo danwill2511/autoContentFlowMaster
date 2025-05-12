@@ -2,7 +2,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 
-export default function NewWorkflowCard() {
+export function NewWorkflowCard() {
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden border border-dashed border-neutral-300 flex items-center justify-center p-10">
       <div className="text-center">

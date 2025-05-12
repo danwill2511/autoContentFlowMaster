@@ -38,6 +38,10 @@ export const generalLimiter = rateLimit({
   handler: rateLimitHandler,
   standardHeaders: true,
   legacyHeaders: false,
+  // Using a correct property name for the rate limiter
+  skipSuccessfulRequests: false,
+  // Configure trusted proxy properly
+  trustProxy: false // Explicitly disable automatic trust
 });
 
 export const authLimiter = rateLimit({
@@ -46,6 +50,7 @@ export const authLimiter = rateLimit({
   handler: rateLimitHandler,
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: false
 });
 
 export const contentLimiter = rateLimit({
@@ -54,4 +59,5 @@ export const contentLimiter = rateLimit({
   handler: rateLimitHandler,
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: false
 });

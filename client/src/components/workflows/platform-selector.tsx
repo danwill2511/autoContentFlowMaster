@@ -15,7 +15,7 @@ interface PlatformSelectorProps {
   onChange: (selectedPlatforms: number[]) => void;
 }
 
-export default function PlatformSelector({
+export function PlatformSelector({
   platforms,
   selectedPlatforms,
   onChange,

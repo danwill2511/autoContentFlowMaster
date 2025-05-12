@@ -7,6 +7,9 @@ import { generalLimiter, authLimiter, contentLimiter } from "./rate-limiter";
 import { scheduler } from "./scheduler";
 
 const app = express();
+// Set trust proxy to true since we're running in a Replit environment
+// This helps with rate limiting and proper IP detection
+app.set('trust proxy', true);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(requestLogger);
