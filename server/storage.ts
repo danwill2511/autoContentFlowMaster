@@ -496,7 +496,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPlatformsByUser(userId: number): Promise<Platform[]> {
-    return db.select().from(platforms).where(eq(platforms.userId, userId));
+    return db
+      .select()
+      .from(platforms)
+      .where(eq(platforms.userId, userId))
+      .orderBy(desc(platforms.createdAt))
+      .limit(100)
+      .execute();
   }
 
   async getPlatformsByIds(ids: number[]): Promise<Platform[]> {

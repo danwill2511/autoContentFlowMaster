@@ -79,6 +79,7 @@
     "memorystore": "^1.6.7",
     "ms-chromium-edge-driver": "^0.5.1",
     "next-themes": "^0.4.6",
+    "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
     "openai": "^4.97.0",
     "passport": "^0.7.0",
