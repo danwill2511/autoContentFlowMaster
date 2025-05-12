@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -21,10 +20,43 @@ export function ContentPreview({
   contentType, 
   contentTone, 
   topics, 
-  platforms, 
-  onSave,
-  initialContent
-}: ContentPreviewProps) {
+  platforms,
+  platformSettings 
+}: ContentPreviewProps & { platformSettings?: Record<string, any> }) {
+  const [previewContent, setPreviewContent] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const generatePreview = async () => {
+      if (!contentType || !contentTone || !topics) return;
+
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/content/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contentType,
+            contentTone,
+            topics: topics.split(",").map(t => t.trim()),
+            platforms,
+            platformSettings
+          })
+        });
+
+        const data = await response.json();
+        setPreviewContent(data.content);
+      } catch (error) {
+        console.error("Preview generation failed:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const debounce = setTimeout(generatePreview, 1000);
+    return () => clearTimeout(debounce);
+  }, [contentType, contentTone, topics, platforms, platformSettings]);
+
   const { toast } = useToast();
   const [generatedContent, setGeneratedContent] = useState<string>(initialContent || "");
   const [platformContent, setPlatformContent] = useState<Record<string, string>>({});
@@ -62,7 +94,7 @@ export function ContentPreview({
   // Generate platform-specific content
   const generatePlatformVersions = async (content: string) => {
     const platformVersions: Record<string, string> = {};
-    
+
     for (const platform of platforms) {
       try {
         const res = await apiRequest("POST", "/api/content/adapt", {
@@ -76,7 +108,7 @@ export function ContentPreview({
         platformVersions[platform] = `Error generating content for ${platform}`;
       }
     }
-    
+
     setPlatformContent(platformVersions);
   };
 
@@ -114,7 +146,7 @@ export function ContentPreview({
           )}
         </Button>
       </div>
-      
+
       {generatedContent ? (
         <div className="mt-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -123,13 +155,13 @@ export function ContentPreview({
               <TabsTrigger value="platforms">Platform Versions</TabsTrigger>
               <TabsTrigger value="edit">Edit</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="general" className="mt-4">
               <div className="rounded-md border border-neutral-200 p-4 whitespace-pre-wrap">
                 {generatedContent}
               </div>
             </TabsContent>
-            
+
             <TabsContent value="platforms" className="mt-4">
               {platforms.length > 0 ? (
                 <div className="space-y-4">
@@ -148,14 +180,14 @@ export function ContentPreview({
                 <p className="text-neutral-500">No platforms selected.</p>
               )}
             </TabsContent>
-            
+
             <TabsContent value="edit" className="mt-4">
               <Textarea 
                 value={generatedContent}
                 onChange={(e) => setGeneratedContent(e.target.value)}
                 className="h-60 resize-none"
               />
-              
+
               {onSave && (
                 <div className="mt-4 flex justify-end">
                   <Button onClick={() => onSave(generatedContent)}>

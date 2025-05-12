@@ -40,13 +40,27 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 const workflowSchema = z.object({
-  name: z.string().min(3, "Workflow name must be at least 3 characters"),
-  frequency: z.string().min(1, "Please select a frequency"),
-  contentType: z.string().min(1, "Please select a content type"),
-  contentTone: z.string().min(1, "Please select a content tone"),
-  topics: z.string().min(3, "Please add at least one topic"),
-  nextPostDate: z.string().optional(),
+  name: z.string()
+    .min(3, "Workflow name must be at least 3 characters")
+    .max(50, "Workflow name cannot exceed 50 characters"),
+  frequency: z.string()
+    .refine(val => ["daily", "weekly", "bi-weekly", "monthly"].includes(val), "Invalid frequency"),
+  contentType: z.string()
+    .refine(val => ["blog posts", "short articles", "social media updates", "video scripts", "infographic text"].includes(val), "Invalid content type"),
+  contentTone: z.string()
+    .refine(val => ["professional", "casual", "friendly", "humorous", "authoritative"].includes(val), "Invalid tone"),
+  topics: z.string()
+    .min(3, "Please add at least one topic")
+    .refine(val => val.split(",").length <= 5, "Maximum 5 topics allowed"),
+  nextPostDate: z.string()
+    .refine(val => !val || new Date(val) > new Date(), "Schedule date must be in the future"),
   status: z.string().default("active"),
+  platformSettings: z.record(z.object({
+    hashtagCount: z.number().min(0).max(30).optional(),
+    characterLimit: z.number().min(10).max(5000).optional(),
+    includeImages: z.boolean().optional(),
+    includeLinks: z.boolean().optional()
+  })).optional()
 });
 
 type WorkflowFormValues = z.infer<typeof workflowSchema>;
