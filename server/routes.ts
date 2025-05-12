@@ -8,6 +8,8 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { insertWorkflowSchema, insertPlatformSchema, insertWorkflowPlatformSchema, subscriptionTiers, SubscriptionTier } from "@shared/schema";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
+import { randomBytes } from "crypto";
+import { generateOAuthUrl, exchangeCodeForTokens, testPlatformConnection, postToPlatform } from "./platforms";
 
 // Helper function to get Replit user data from request headers
 function getReplitUser(req: Request) {
