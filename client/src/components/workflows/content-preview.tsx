@@ -14,14 +14,25 @@ interface ContentPreviewProps {
   platforms: string[];
   onSave?: (content: string) => void;
   initialContent?: string;
+  platformSettings?: Record<string, any>;
 }
 
-export function ContentPreview({ 
-  contentType, 
-  contentTone, 
-  topics, 
-  platforms,
-  platformSettings 
+// Utility functions
+const getPlatformDefaultLimit = (platform: string): number => {
+  switch (platform.toLowerCase()) {
+    case 'twitter':
+    case 'x':
+      return 280;
+    case 'instagram':
+      return 2200;
+    case 'facebook':
+      return 5000;
+    case 'linkedin':
+      return 3000;
+    default:
+      return 1000;
+  }
+};
 
 const formatForPlatform = (content: string, platform: string, settings?: any): string => {
   let formatted = content;
@@ -66,9 +77,22 @@ const generateHashtags = (content: string, count: number): string => {
   return hashtags.join(' ');
 };
 
-}: ContentPreviewProps & { platformSettings?: Record<string, any> }) {
+export function ContentPreview({ 
+  contentType, 
+  contentTone, 
+  topics, 
+  platforms,
+  platformSettings,
+  onSave,
+  initialContent
+}: ContentPreviewProps) {
   const [previewContent, setPreviewContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const [generatedContent, setGeneratedContent] = useState<string>(initialContent || "");
+  const [platformContent, setPlatformContent] = useState<Record<string, string>>({});
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("general");
 
   useEffect(() => {
     const generatePreview = async () => {
@@ -100,12 +124,6 @@ const generateHashtags = (content: string, count: number): string => {
     const debounce = setTimeout(generatePreview, 1000);
     return () => clearTimeout(debounce);
   }, [contentType, contentTone, topics, platforms, platformSettings]);
-
-  const { toast } = useToast();
-  const [generatedContent, setGeneratedContent] = useState<string>(initialContent || "");
-  const [platformContent, setPlatformContent] = useState<Record<string, string>>({});
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("general");
 
   // Generate content based on parameters
   const generateContent = useMutation({
