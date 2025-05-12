@@ -27,5 +27,13 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      external: ['@paypal/react-paypal-js'],
+      output: {
+        globals: {
+          '@paypal/react-paypal-js': 'paypal'
+        }
+      }
+    }
   },
 });
