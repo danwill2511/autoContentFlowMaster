@@ -37,7 +37,7 @@ export default function CreativeSuiteTools() {
     {
       id: 'ai-writing-assistant',
       title: 'Personalized AI writing assistant with tone detection',
-      description: 'Get AI-powered writing suggestions that match your brand's tone and style',
+      description: 'Get AI-powered writing suggestions that match your brand tone and style',
       icon: <Pencil className="h-5 w-5" />,
     },
     {

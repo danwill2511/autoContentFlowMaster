@@ -23,6 +23,7 @@ import WorkflowAutomationPage from "@/pages/workflow-automation";
 import MultiPlatformPublishingPage from "@/pages/multi-platform-publishing";
 import SubscriptionPage from "@/pages/subscription-page";
 import AnalyticsDashboardPage from "@/pages/analytics-dashboard-page";
+import CreativeToolsPage from "@/pages/creative-tools-page";
 
 // Resource pages
 import DocumentationPage from "@/pages/documentation-page";
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/ai-content-generation" component={AIContentGenerationPage} />
       <Route path="/workflow-automation" component={WorkflowAutomationPage} />
       <Route path="/multi-platform-publishing" component={MultiPlatformPublishingPage} />
+      <Route path="/creative-tools" component={CreativeToolsPage} />
       
       {/* Resource pages */}
       <Route path="/documentation" component={DocumentationPage} />
