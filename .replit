@@ -70,6 +70,15 @@ mode = "sequential"
 task = "shell.exec"
 args = "cd mobile && npm run start"
 
+[[workflows.workflow]]
+name = "Expo Dev Server"
+author = 42018904
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx expo start --web --host 0.0.0.0"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
