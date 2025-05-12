@@ -152,10 +152,68 @@ export default function ContentLibraryPage() {
               Explore our collection of optimized content templates for various platforms and use cases
             </p>
           </div>
-          <Button variant="default" className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Create Custom Template
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="default" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Create Custom Template
+            </Button>
+            
+            {/* Test button for AI preview generation */}
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={async () => {
+                try {
+                  toast({
+                    title: "Testing AI Preview Generation",
+                    description: "Requesting a sample image from the API...",
+                  });
+                  
+                  const response = await fetch("/api/templates/test-preview");
+                  const data = await response.json();
+                  
+                  if (data.imageUrl) {
+                    toast({
+                      title: "Preview Generated Successfully",
+                      description: "AI preview image was generated for the sample template.",
+                    });
+                    
+                    // Open a dialog to show the generated image
+                    setSelectedTemplate({
+                      id: 9999,
+                      title: data.template.title,
+                      description: data.template.description,
+                      category: data.template.category,
+                      platforms: ["LinkedIn", "Twitter", "Instagram"],
+                      tags: ["automated", "social", "scheduling"],
+                      premium: false,
+                      workflowSteps: data.template.workflowSteps,
+                      animationPreview: data.imageUrl,
+                      template: "Sample template content would go here.",
+                      downloads: 0,
+                      rating: 5
+                    });
+                    setIsDialogOpen(true);
+                  } else {
+                    toast({
+                      title: "Preview Generation Failed",
+                      description: "Failed to generate an AI preview image.",
+                      variant: "destructive"
+                    });
+                  }
+                } catch (error) {
+                  console.error("Error testing AI preview generation:", error);
+                  toast({
+                    title: "Error",
+                    description: "An error occurred while testing AI preview generation.",
+                    variant: "destructive"
+                  });
+                }
+              }}
+            >
+              <Loader2 className="h-4 w-4" /> Test AI Preview
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
