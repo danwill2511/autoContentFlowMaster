@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authApi } from '../utils/api';
+import api from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Type definitions
@@ -52,8 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     
     try {
-      const response = await authApi.login(username, password);
-      const user = response.user;
+      const user = await api.auth.login({ username, password });
       setUser(user);
       await AsyncStorage.setItem('user', JSON.stringify(user));
     } catch (err) {
@@ -70,8 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     
     try {
-      const response = await authApi.register({ username, email, password });
-      const user = response.user;
+      const user = await api.auth.register({ username, email, password });
       setUser(user);
       await AsyncStorage.setItem('user', JSON.stringify(user));
     } catch (err) {
@@ -87,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     
     try {
-      await authApi.logout();
+      await api.auth.logout();
       setUser(null);
       await AsyncStorage.removeItem('user');
     } catch (err) {

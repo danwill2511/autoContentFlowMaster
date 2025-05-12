@@ -1,166 +1,151 @@
-// API client for mobile application
+import Constants from 'expo-constants';
 
-const API_BASE_URL = 'https://your-app-url.replit.app'; // Replace with your actual deployed API URL
+// Get the API URL from the environment or use a fallback
+const API_URL = Constants?.manifest?.extra?.apiUrl || 'https://autocontentflow.repl.app';
 
-interface ApiOptions {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  path: string;
-  data?: any;
-  token?: string;
-}
+// Default headers for API requests
+const DEFAULT_HEADERS = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+};
 
 /**
- * Handles API requests with authentication and error handling
+ * Generic API request function
+ * @param endpoint - API endpoint path
+ * @param method - HTTP method
+ * @param data - Request body data
+ * @param customHeaders - Additional headers
+ * @returns Promise with response data
  */
-export async function apiRequest<T>({ method, path, data, token }: ApiOptions): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
-  
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-  
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+async function request<T>(
+  endpoint: string,
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+  data?: any,
+  customHeaders = {}
+): Promise<T> {
+  const url = `${API_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   
   const options: RequestInit = {
     method,
-    headers,
+    headers: {
+      ...DEFAULT_HEADERS,
+      ...customHeaders,
+    },
     credentials: 'include',
   };
-  
+
   if (data) {
     options.body = JSON.stringify(data);
   }
+
+  const response = await fetch(url, options);
   
-  try {
-    const response = await fetch(url, options);
-    
-    // Handle non-success responses
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(
-        errorData?.message || `Request failed with status ${response.status}`
-      );
-    }
-    
-    // Handle empty responses (like 204 No Content)
-    if (response.status === 204) {
-      return {} as T;
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('API request failed:', error);
-    throw error;
+  // Handle HTTP errors
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `HTTP Error: ${response.status}`);
   }
+  
+  // Check content type to determine parsing strategy
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
+  }
+  
+  return response.text() as unknown as T;
 }
 
-/**
- * Authentication functions
- */
-export const authApi = {
-  async login(username: string, password: string) {
-    return apiRequest<{ user: any }>({
-      method: 'POST',
-      path: '/api/login',
-      data: { username, password },
-    });
+// Auth API interfaces
+interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+interface RegisterData extends LoginCredentials {
+  email: string;
+}
+
+interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  subscription: string | null;
+}
+
+// API service methods
+const api = {
+  // Auth endpoints
+  auth: {
+    login: (credentials: LoginCredentials) => 
+      request<UserProfile>('/api/login', 'POST', credentials),
+    
+    register: (data: RegisterData) => 
+      request<UserProfile>('/api/register', 'POST', data),
+    
+    logout: () => 
+      request<void>('/api/logout', 'POST'),
+    
+    getCurrentUser: () => 
+      request<UserProfile>('/api/user')
+      .catch(() => null),
+  },
+
+  // Workflow endpoints
+  workflows: {
+    getAll: () => 
+      request<any[]>('/api/workflows'),
+    
+    getById: (id: number) => 
+      request<any>(`/api/workflows/${id}`),
+    
+    create: (data: any) => 
+      request<any>('/api/workflows', 'POST', data),
+    
+    update: (id: number, data: any) => 
+      request<any>(`/api/workflows/${id}`, 'PUT', data),
+    
+    delete: (id: number) => 
+      request<void>(`/api/workflows/${id}`, 'DELETE'),
   },
   
-  async register(userData: { username: string; email: string; password: string }) {
-    return apiRequest<{ user: any }>({
-      method: 'POST',
-      path: '/api/register',
-      data: userData,
-    });
+  // Platform endpoints
+  platforms: {
+    getAll: () => 
+      request<any[]>('/api/platforms'),
+    
+    getById: (id: number) => 
+      request<any>(`/api/platforms/${id}`),
+    
+    create: (data: any) => 
+      request<any>('/api/platforms', 'POST', data),
+    
+    update: (id: number, data: any) => 
+      request<any>(`/api/platforms/${id}`, 'PUT', data),
+    
+    delete: (id: number) => 
+      request<void>(`/api/platforms/${id}`, 'DELETE'),
   },
   
-  async logout() {
-    return apiRequest<void>({
-      method: 'POST',
-      path: '/api/logout',
-    });
+  // Post endpoints
+  posts: {
+    getAll: () => 
+      request<any[]>('/api/posts'),
+    
+    getByWorkflow: (workflowId: number) => 
+      request<any[]>(`/api/workflows/${workflowId}/posts`),
+    
+    getById: (id: number) => 
+      request<any>(`/api/posts/${id}`),
   },
   
-  async getCurrentUser() {
-    return apiRequest<{ user: any }>({
-      method: 'GET',
-      path: '/api/user',
-    });
-  },
+  // Subscription endpoints
+  subscriptions: {
+    getCurrentPlan: () => 
+      request<any>('/api/subscription'),
+    
+    upgradePlan: (plan: string) => 
+      request<any>('/api/subscription/upgrade', 'POST', { plan }),
+  }
 };
 
-/**
- * Workflow functions
- */
-export const workflowsApi = {
-  async getWorkflows() {
-    return apiRequest<{ workflows: any[] }>({
-      method: 'GET',
-      path: '/api/workflows',
-    });
-  },
-  
-  async getWorkflowById(id: number) {
-    return apiRequest<{ workflow: any }>({
-      method: 'GET',
-      path: `/api/workflows/${id}`,
-    });
-  },
-  
-  async createWorkflow(workflowData: any) {
-    return apiRequest<{ workflow: any }>({
-      method: 'POST',
-      path: '/api/workflows',
-      data: workflowData,
-    });
-  },
-  
-  async updateWorkflow(id: number, workflowData: any) {
-    return apiRequest<{ workflow: any }>({
-      method: 'PATCH',
-      path: `/api/workflows/${id}`,
-      data: workflowData,
-    });
-  },
-  
-  async runWorkflow(id: number) {
-    return apiRequest<{ success: boolean }>({
-      method: 'POST',
-      path: `/api/workflows/${id}/run`,
-    });
-  },
-};
-
-/**
- * Platform functions
- */
-export const platformsApi = {
-  async getPlatforms() {
-    return apiRequest<{ platforms: any[] }>({
-      method: 'GET',
-      path: '/api/platforms',
-    });
-  },
-  
-  async createPlatform(platformData: any) {
-    return apiRequest<{ platform: any }>({
-      method: 'POST',
-      path: '/api/platforms',
-      data: platformData,
-    });
-  },
-};
-
-/**
- * Analytics functions
- */
-export const analyticsApi = {
-  async getDashboardStats() {
-    return apiRequest<{ stats: any }>({
-      method: 'GET',
-      path: '/api/analytics/dashboard',
-    });
-  },
-};
+export default api;
