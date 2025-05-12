@@ -4,8 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import Navbar from "@/components/layout/navbar";
-import Footer from "@/components/layout/footer";
+import Layout from "@/components/layout/layout";
 
 export default function MultiPlatformPublishingPage() {
   const { data: platforms } = useQuery({
@@ -25,10 +24,8 @@ export default function MultiPlatformPublishingPage() {
   });
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col">
-      <Navbar />
-      
-      <main className="flex-grow container mx-auto py-8 px-4">
+    <Layout>
+      <div className="container mx-auto py-8 px-4">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">Multi-Platform Publishing</h1>
@@ -90,9 +87,7 @@ export default function MultiPlatformPublishingPage() {
             </Card>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </Layout>
   );
 }
