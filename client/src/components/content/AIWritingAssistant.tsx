@@ -81,14 +81,23 @@ export function AIWritingAssistant() {
     }
   });
 
-  // Tone analysis mutation
+  // Style and tone analysis mutation
   const analyzeToneMutation = useMutation({
     mutationFn: async () => {
       setAnalyzing(true);
-      const result = await new Promise(resolve => {
-        // Simulating API call with timeout
-        setTimeout(() => {
-          const mockTones = [
+      const result = await apiRequest("POST", "/api/content/analyze", {
+        content,
+        stylePreferences: {
+          formalityLevel: formality,
+          emotionalTone: tone,
+          contentLength: length,
+          targetPlatform: platform
+        }
+      });
+      
+      const analysisResult = await result.json();
+      return {
+        tones: [
             { name: 'Professional', color: 'bg-blue-500', percentage: Math.floor(Math.random() * 30) + 10 },
             { name: 'Casual', color: 'bg-green-500', percentage: Math.floor(Math.random() * 20) + 5 },
             { name: 'Enthusiastic', color: 'bg-yellow-500', percentage: Math.floor(Math.random() * 40) + 30 },

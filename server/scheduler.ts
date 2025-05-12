@@ -326,3 +326,59 @@ export class Scheduler {
 
 // Singleton instance of the scheduler
 export const scheduler = new Scheduler();
+import { setTimeout } from "timers/promises";
+
+interface RetryConfig {
+  maxAttempts: number;
+  initialDelay: number;
+  maxDelay: number;
+  backoffMultiplier: number;
+}
+
+const defaultRetryConfig: RetryConfig = {
+  maxAttempts: 3,
+  initialDelay: 1000,
+  maxDelay: 30000,
+  backoffMultiplier: 2
+};
+
+export async function executeWithRetry<T>(
+  operation: () => Promise<T>,
+  config: Partial<RetryConfig> = {}
+): Promise<T> {
+  const retryConfig = { ...defaultRetryConfig, ...config };
+  let lastError: Error | null = null;
+  let currentDelay = retryConfig.initialDelay;
+
+  for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      if (attempt === retryConfig.maxAttempts) break;
+      
+      await setTimeout(currentDelay);
+      currentDelay = Math.min(
+        currentDelay * retryConfig.backoffMultiplier,
+        retryConfig.maxDelay
+      );
+    }
+  }
+
+  throw lastError;
+}
+
+// Example usage in post scheduling
+export async function schedulePost(post: any) {
+  return executeWithRetry(
+    async () => {
+      // Existing post scheduling logic
+      const result = await publishToSocialMedia(post);
+      return result;
+    },
+    {
+      maxAttempts: 5,
+      initialDelay: 2000
+    }
+  );
+}
