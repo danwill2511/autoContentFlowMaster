@@ -32,6 +32,7 @@ export default function WorkflowsPage() {
   const [sortBy, setSortBy] = useState<string>("newest");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
+  const [visualizerOpen, setVisualizerOpen] = useState(false);
   
   // Fetch workflows
   const { 
@@ -48,20 +49,47 @@ export default function WorkflowsPage() {
   } = useQuery<Platform[]>({
     queryKey: ["/api/platforms"],
   });
+  
+  // Fetch workflow platforms
+  const { 
+    data: workflowPlatforms,
+    isLoading: isLoadingWorkflowPlatforms
+  } = useQuery({
+    queryKey: ["/api/workflow-platforms"],
+  });
+  
+  // Function to handle workflow selection
+  const handleSelectWorkflow = (workflow: Workflow) => {
+    setSelectedWorkflow(workflow);
+    setVisualizerOpen(true);
+  };
 
-  // Get platform names for each workflow - this is a simplified approach
-  const getWorkflowPlatforms = (workflow: Workflow): string[] => {
-    if (!platforms) return [];
-
-    // This is a simplified approach since we don't have direct workflowPlatforms data
-    // In a real implementation, you would map workflowPlatforms to actual platform names
-    const platformMapping: Record<number, string[]> = {
-      1: ["LinkedIn", "Twitter"],
-      2: ["Pinterest", "Facebook"],
-      3: ["YouTube"],
-    };
+  // Get the platforms for the selected workflow
+  const getSelectedWorkflowPlatforms = () => {
+    if (!selectedWorkflow || !platforms || !workflowPlatforms) return [];
     
-    return platformMapping[workflow.id] || ["Facebook", "Twitter"];
+    // Find the workflow platforms associated with this workflow
+    const workflowPlatformsData = workflowPlatforms.filter(wp => wp.workflowId === selectedWorkflow.id);
+    
+    // Map to actual platform objects
+    return workflowPlatformsData.map(wp => {
+      const platform = platforms.find(p => p.id === wp.platformId);
+      return platform || { id: wp.platformId, name: "Unknown", userId: 0, createdAt: new Date() };
+    });
+  };
+
+  // Get platform names for each workflow
+  const getWorkflowPlatforms = (workflow: Workflow): string[] => {
+    if (!platforms || !workflowPlatforms) return [];
+
+    // Find the workflow platforms associated with this workflow
+    const workflowPlatformsData = workflowPlatforms.filter(wp => wp.workflowId === workflow.id);
+    
+    // Map to platform names
+    return workflowPlatformsData.map(wp => {
+      const platform = platforms.find(p => p.id === wp.platformId);
+      return platform ? platform.name : "Unknown";
+    });
   };
 
   // Filter and sort workflows
@@ -150,15 +178,22 @@ export default function WorkflowsPage() {
               <Separator className="my-6" />
               
               <TabsContent value="all" className="mt-6">
-                {renderWorkflows(sortedWorkflows, isLoadingWorkflows, isLoadingPlatforms, getWorkflowPlatforms)}
+                {renderWorkflows(
+                  sortedWorkflows,
+                  isLoadingWorkflows,
+                  isLoadingPlatforms || isLoadingWorkflowPlatforms,
+                  getWorkflowPlatforms,
+                  handleSelectWorkflow
+                )}
               </TabsContent>
               
               <TabsContent value="active" className="mt-6">
                 {renderWorkflows(
                   sortedWorkflows.filter(w => w.status === 'active'),
                   isLoadingWorkflows,
-                  isLoadingPlatforms,
-                  getWorkflowPlatforms
+                  isLoadingPlatforms || isLoadingWorkflowPlatforms,
+                  getWorkflowPlatforms,
+                  handleSelectWorkflow
                 )}
               </TabsContent>
               
@@ -166,8 +201,9 @@ export default function WorkflowsPage() {
                 {renderWorkflows(
                   sortedWorkflows.filter(w => w.status === 'paused'),
                   isLoadingWorkflows,
-                  isLoadingPlatforms,
-                  getWorkflowPlatforms
+                  isLoadingPlatforms || isLoadingWorkflowPlatforms,
+                  getWorkflowPlatforms,
+                  handleSelectWorkflow
                 )}
               </TabsContent>
             </Tabs>
@@ -176,6 +212,30 @@ export default function WorkflowsPage() {
       </main>
 
       <Footer />
+      
+      {/* Content Flow Visualizer Dialog */}
+      <Dialog open={visualizerOpen} onOpenChange={setVisualizerOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{selectedWorkflow?.name || 'Workflow'} Content Flow</DialogTitle>
+            <DialogDescription>
+              This visualization shows how content flows through your workflow across different platforms.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <ContentFlowVisualizer 
+              workflow={selectedWorkflow || undefined}
+              platforms={getSelectedWorkflowPlatforms()}
+              showControls={true}
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setVisualizerOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
