@@ -1,49 +1,47 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { useMutation } from "@tanstack/react-query";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { useReplitAuth } from "@/hooks/use-replit-auth";
-import { loginSchema } from "@shared/schema";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Define register schema
-const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email("Invalid email address"),
+// Form schemas
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+});
+
+const registerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const { user, login, register, isLoading: authLoading } = useAuth();
+  const [_, setLocation] = useLocation();
+  const { login } = useAuth();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("login");
-  const [_, navigate] = useLocation();
-  const { user: replitUser } = useReplitAuth();
-  // Disable Replit auth in this environment to avoid errors
-  const replitAuthAvailable = false;
-
-  // Redirect if user is already logged in
-  useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
+  const [activeTab, setActiveTab] = useState<string>("login");
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -58,248 +56,337 @@ export default function AuthPage() {
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      name: "",
       username: "",
       email: "",
       password: "",
-      confirmPassword: "",
     },
   });
 
-  const onLoginSubmit = async (data: LoginFormValues) => {
-    setIsLoading(true);
-    try {
-      await login(data.email, data.password);
-      // The redirect will be handled by the useEffect hook
-    } catch (error) {
-      console.error("Login error:", error);
-      // Toast is now handled in the useAuth hook
-    } finally {
-      setIsLoading(false);
-    }
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (data: LoginFormValues) => {
+      const response = await apiRequest("POST", "/api/login", data);
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      login(data);
+      toast({
+        title: "Login successful",
+        description: "Welcome back to AutoContentFlow!",
+      });
+      setLocation("/");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Register mutation
+  const registerMutation = useMutation({
+    mutationFn: async (data: RegisterFormValues) => {
+      const response = await apiRequest("POST", "/api/register", data);
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      login(data);
+      toast({
+        title: "Registration successful",
+        description: "Welcome to AutoContentFlow!",
+      });
+      setLocation("/");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Registration failed",
+        description: error.message || "Please try again with different credentials.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Form submission handlers
+  const onLoginSubmit = (data: LoginFormValues) => {
+    loginMutation.mutate(data);
   };
 
-  const onRegisterSubmit = async (data: RegisterFormValues) => {
-    setIsLoading(true);
-    try {
-      await register(data.username, data.email, data.password);
-      // The redirect will be handled by the useEffect hook
-    } catch (error) {
-      console.error("Registration error:", error);
-      // Toast is now handled in the useAuth hook
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Stub handler for Replit login - not used in this environment
-  const handleReplitLogin = () => {
-    toast({
-      title: "Replit Auth",
-      description: "Replit authentication not available in this environment.",
-    });
+  const onRegisterSubmit = (data: RegisterFormValues) => {
+    registerMutation.mutate(data);
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
-      {/* Hero Section */}
-      <div className="flex-1 bg-gradient-to-br from-primary to-primary-foreground text-white p-8 flex flex-col justify-center items-center md:items-start">
-        <div className="max-w-md mx-auto md:mx-0">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">AutoContentFlow</h1>
-          <p className="text-lg mb-6">Automate your content creation and social media management with AI-powered workflows.</p>
-          <ul className="space-y-2 mb-8">
-            <li className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Smart content generation across platforms
-            </li>
-            <li className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Automated scheduling and posting
-            </li>
-            <li className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Analytics and performance tracking
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Auth Form */}
-      <div className="flex-1 p-8 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
-            <CardDescription>
-              {activeTab === "login" 
-                ? "Sign in to your account to continue"
-                : "Create an account to get started"
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex flex-col">
+      <main className="flex-grow flex items-center justify-center p-6">
+        <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8 items-center">
+          {/* Left column: Branding */}
+          <div className="hidden md:flex flex-col space-y-6">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold tracking-tight text-neutral-900">
+                AutoContentFlow
+              </h1>
+              <p className="text-xl text-neutral-600">
+                AI-powered content automation for creators and influencers
+              </p>
+            </div>
+            
+            <p className="text-neutral-600">
+              Create stunning content workflows, automate your social media, and grow your audience with AI-powered tools designed for modern creators.
+            </p>
+            
+            <div className="space-y-4 pt-4">
+              <h3 className="font-semibold text-neutral-800">Power up your content strategy with:</h3>
+              
+              <div className="flex items-start">
+                <div className="flex-shrink-0 h-6 w-6 text-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="ml-3 text-neutral-600">
+                  <span className="font-medium text-neutral-900">AI-Generated Content</span> - Human-like posts tailored for each platform
+                </p>
+              </div>
+              
+              <div className="flex items-start">
+                <div className="flex-shrink-0 h-6 w-6 text-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="ml-3 text-neutral-600">
+                  <span className="font-medium text-neutral-900">Multi-Platform Integration</span> - Post to all your accounts
+                </p>
+              </div>
+              
+              <div className="flex items-start">
+                <div className="flex-shrink-0 h-6 w-6 text-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="ml-3 text-neutral-600">
+                  <span className="font-medium text-neutral-900">Automated Scheduling</span> - Set it and forget it posting
+                </p>
+              </div>
+              <div className="flex items-start">
+                <div className="flex-shrink-0 h-6 w-6 text-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="ml-3 text-neutral-600">
+                  <span className="font-medium text-neutral-900">Custom Workflows</span> - Create your perfect content process
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Right column: Auth forms */}
+          <div>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
+              
               <TabsContent value="login">
-                <Form {...loginForm}>
-                  <div id="auth-form-description" className="sr-only">
-                    {activeTab === 'login' ? 'Login form for existing users' : 'Registration form for new users'}
-                  </div>
-                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4" aria-describedby="auth-form-description">
-                    <FormField
-                      control={loginForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter your email" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={loginForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Enter your password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full" disabled={isLoading || authLoading}>
-                      {(isLoading || authLoading) ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Logging in...
-                        </>
-                      ) : (
-                        "Login"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Login to your account</CardTitle>
+                    <CardDescription>
+                      Enter your email and password to access your workflows
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...loginForm}>
+                      <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                        <FormField
+                          control={loginForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input placeholder="you@example.com" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={loginForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="••••••" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <Button 
+                          type="submit" 
+                          className="w-full" 
+                          disabled={loginMutation.isPending}
+                        >
+                          {loginMutation.isPending ? (
+                            <>
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Logging in...
+                            </>
+                          ) : (
+                            "Login"
+                          )}
+                        </Button>
+                      </form>
+                    </Form>
+                  </CardContent>
+                  <CardFooter className="flex justify-center">
+                    <p className="text-sm text-neutral-500">
+                      Don't have an account?{" "}
+                      <button 
+                        className="text-primary hover:underline" 
+                        onClick={() => setActiveTab("register")}
+                      >
+                        Register
+                      </button>
+                    </p>
+                  </CardFooter>
+                </Card>
               </TabsContent>
+              
               <TabsContent value="register">
-                <Form {...registerForm}>
-                  <div id="auth-form-description" className="sr-only">
-                    {activeTab === 'login' ? 'Login form for existing users' : 'Registration form for new users'}
-                  </div>
-                  <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4" aria-describedby="auth-form-description">
-                    <FormField
-                      control={registerForm.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Username</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Choose a username" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={registerForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter your email" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={registerForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Create a password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={registerForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirm Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Confirm your password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full" disabled={isLoading || authLoading}>
-                      {(isLoading || authLoading) ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Registering...
-                        </>
-                      ) : (
-                        "Register"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Create an account</CardTitle>
+                    <CardDescription>
+                      Sign up to start creating AI-powered content workflows
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...registerForm}>
+                      <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                        <FormField
+                          control={registerForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Full Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Jane Doe" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={registerForm.control}
+                          name="username"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Username</FormLabel>
+                              <FormControl>
+                                <Input placeholder="janedoe" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={registerForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input placeholder="you@example.com" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={registerForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="password" 
+                                  placeholder="••••••" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <Button 
+                          type="submit" 
+                          className="w-full" 
+                          disabled={registerMutation.isPending}
+                        >
+                          {registerMutation.isPending ? (
+                            <>
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Creating account...
+                            </>
+                          ) : (
+                            "Create Account"
+                          )}
+                        </Button>
+                      </form>
+                    </Form>
+                  </CardContent>
+                  <CardFooter className="flex justify-center">
+                    <p className="text-sm text-neutral-500">
+                      Already have an account?{" "}
+                      <button 
+                        className="text-primary hover:underline" 
+                        onClick={() => setActiveTab("login")}
+                      >
+                        Login
+                      </button>
+                    </p>
+                  </CardFooter>
+                </Card>
               </TabsContent>
             </Tabs>
-
-            {replitAuthAvailable && (
-              <>
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-neutral-300" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-2 text-neutral-500">Or continue with</span>
-                  </div>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleReplitLogin}
-                  className="w-full"
-                >
-                  <svg
-                    className="mr-2 h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M12 24C18.6274 24 24 18.6274 24 12C24 5.37258 18.6274 0 12 0C5.37258 0 0 5.37258 0 12C0 18.6274 5.37258 24 12 24Z"
-                      fill="#F26207"
-                    ></path>
-                  </svg>
-                  Login with Replit
-                </Button>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      </main>
+      
+      <footer className="py-6 px-4 bg-white border-t border-neutral-200">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+          <p className="text-sm text-neutral-500">
+            &copy; {new Date().getFullYear()} AutoContentFlow. All rights reserved.
+          </p>
+          <div className="flex space-x-4 mt-4 md:mt-0">
+            <a href="#" className="text-neutral-500 hover:text-neutral-900">Terms</a>
+            <a href="#" className="text-neutral-500 hover:text-neutral-900">Privacy</a>
+            <a href="#" className="text-neutral-500 hover:text-neutral-900">Contact</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

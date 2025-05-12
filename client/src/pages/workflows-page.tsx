@@ -1,330 +1,145 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
-import { WorkflowCard } from "@/components/dashboard/workflow-card";
-import { NewWorkflowCard } from "@/components/dashboard/new-workflow-card";
-import ContentFlowVisualizer from "@/components/workflows/content-flow-visualizer";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import WorkflowCard from "@/components/dashboard/workflow-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Workflow, Platform } from "@shared/schema";
+import { Workflow } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function WorkflowsPage() {
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("newest");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
-  const [visualizerOpen, setVisualizerOpen] = useState(false);
-  
+  const { user } = useAuth();
+
   // Fetch workflows
   const { 
     data: workflows, 
     isLoading: isLoadingWorkflows 
   } = useQuery<Workflow[]>({
     queryKey: ["/api/workflows"],
+    enabled: !!user,
   });
-
-  // Fetch platforms
-  const { 
-    data: platforms, 
-    isLoading: isLoadingPlatforms 
-  } = useQuery<Platform[]>({
-    queryKey: ["/api/platforms"],
-  });
-  
-  // Fetch workflow platforms
-  const { 
-    data: workflowPlatforms,
-    isLoading: isLoadingWorkflowPlatforms
-  } = useQuery({
-    queryKey: ["/api/workflow-platforms"],
-  });
-  
-  // Function to handle workflow selection
-  const handleSelectWorkflow = (workflow: Workflow) => {
-    setSelectedWorkflow(workflow);
-    setVisualizerOpen(true);
-  };
-
-  // Get the platforms for the selected workflow
-  const getSelectedWorkflowPlatforms = () => {
-    if (!selectedWorkflow || !platforms || !workflowPlatforms) return [];
-    
-    // Find the workflow platforms associated with this workflow
-    const workflowPlatformsData = workflowPlatforms.filter(wp => wp.workflowId === selectedWorkflow.id);
-    
-    // Map to actual platform objects
-    return workflowPlatformsData.map(wp => {
-      const platform = platforms.find(p => p.id === wp.platformId);
-      return platform || { id: wp.platformId, name: "Unknown", userId: 0, createdAt: new Date() };
-    });
-  };
 
   // Get platform names for each workflow
   const getWorkflowPlatforms = (workflow: Workflow): string[] => {
-    if (!platforms || !workflowPlatforms) return [];
+    // In a real implementation, this would fetch the actual platform data
+    // For now, we'll return example platforms
+    const platformMapping: Record<number, string[]> = {
+      1: ["LinkedIn", "Twitter"],
+      2: ["Pinterest", "Facebook"],
+      3: ["YouTube"],
+    };
 
-    // Find the workflow platforms associated with this workflow
-    const workflowPlatformsData = workflowPlatforms.filter(wp => wp.workflowId === workflow.id);
-    
-    // Map to platform names
-    return workflowPlatformsData.map(wp => {
-      const platform = platforms.find(p => p.id === wp.platformId);
-      return platform ? platform.name : "Unknown";
-    });
+    return platformMapping[workflow.id] || [];
   };
-
-  // Filter and sort workflows
-  const filteredWorkflows = workflows?.filter(workflow => {
-    // Apply status filter
-    if (statusFilter !== "all" && workflow.status !== statusFilter) {
-      return false;
-    }
-    
-    // Apply search query
-    if (searchQuery && !workflow.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    
-    return true;
-  }) || [];
-  
-  // Sort workflows
-  const sortedWorkflows = [...filteredWorkflows].sort((a, b) => {
-    switch (sortBy) {
-      case "newest":
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      case "oldest":
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      case "name-asc":
-        return a.name.localeCompare(b.name);
-      case "name-desc":
-        return b.name.localeCompare(a.name);
-      default:
-        return 0;
-    }
-  });
 
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col">
       <Navbar />
-      
+
       <main className="flex-grow max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 w-full">
-        <div className="px-4 sm:px-0">
-          <div className="md:flex md:items-center md:justify-between">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-semibold text-neutral-900">Content Workflows</h1>
+        {/* PageHeader */}
+        <div className="px-4 sm:px-0 mb-8">
+          <div className="sm:flex sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-neutral-900">
+                Content Workflows
+              </h1>
               <p className="mt-1 text-sm text-neutral-500">
-                Manage your automated content workflows across all platforms.
+                Manage and monitor your automated content creation workflows
               </p>
             </div>
+            <div className="mt-4 sm:mt-0">
+              <Button asChild>
+                <Link href="/create-workflow">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  New Workflow
+                </Link>
+              </Button>
+            </div>
           </div>
-          
-          <div className="mt-6">
-            <Tabs defaultValue="all" onValueChange={setStatusFilter}>
-              <div className="flex justify-between flex-wrap gap-4">
-                <TabsList>
-                  <TabsTrigger value="all">All Workflows</TabsTrigger>
-                  <TabsTrigger value="active">Active</TabsTrigger>
-                  <TabsTrigger value="paused">Paused</TabsTrigger>
-                </TabsList>
-                
-                <div className="flex space-x-2">
-                  <div className="relative">
-                    <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                    </svg>
-                    <Input
-                      type="text"
-                      placeholder="Search workflows..."
-                      className="pl-9"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+        </div>
+
+        {/* WorkflowList */}
+        <div className="mt-8 px-4 sm:px-0">
+          {isLoadingWorkflows ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white shadow rounded-lg overflow-hidden border border-neutral-200">
+                  <div className="px-4 py-5 sm:px-6 border-b border-neutral-200 bg-neutral-50">
+                    <Skeleton className="h-6 w-36 mb-2" />
+                    <Skeleton className="h-4 w-24" />
                   </div>
-                  
-                  <Select defaultValue="newest" onValueChange={setSortBy}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Newest</SelectItem>
-                      <SelectItem value="oldest">Oldest</SelectItem>
-                      <SelectItem value="name-asc">Name (A-Z)</SelectItem>
-                      <SelectItem value="name-desc">Name (Z-A)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="px-4 py-5 sm:p-6">
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {[1, 2].map((j) => (
+                        <Skeleton key={j} className="h-10 w-10 rounded-lg" />
+                      ))}
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                    </div>
+                  </div>
+                  <div className="px-4 py-4 sm:px-6 bg-neutral-50 border-t border-neutral-200 flex justify-between">
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-8 w-20" />
+                  </div>
                 </div>
+              ))}
+            </div>
+          ) : workflows && workflows.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {workflows.map((workflow) => (
+                <WorkflowCard 
+                  key={workflow.id} 
+                  workflow={workflow} 
+                  platforms={getWorkflowPlatforms(workflow)} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-white rounded-lg shadow border border-neutral-200">
+              <svg
+                className="mx-auto h-12 w-12 text-neutral-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1}
+                  d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-neutral-900">No workflows</h3>
+              <p className="mt-1 text-sm text-neutral-500">
+                Get started by creating your first content workflow.
+              </p>
+              <div className="mt-6">
+                <Button asChild>
+                  <Link href="/create-workflow">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    New Workflow
+                  </Link>
+                </Button>
               </div>
-              
-              <Separator className="my-6" />
-              
-              <TabsContent value="all" className="mt-6">
-                {renderWorkflows(
-                  sortedWorkflows,
-                  isLoadingWorkflows,
-                  isLoadingPlatforms || isLoadingWorkflowPlatforms,
-                  getWorkflowPlatforms,
-                  handleSelectWorkflow
-                )}
-              </TabsContent>
-              
-              <TabsContent value="active" className="mt-6">
-                {renderWorkflows(
-                  sortedWorkflows.filter(w => w.status === 'active'),
-                  isLoadingWorkflows,
-                  isLoadingPlatforms || isLoadingWorkflowPlatforms,
-                  getWorkflowPlatforms,
-                  handleSelectWorkflow
-                )}
-              </TabsContent>
-              
-              <TabsContent value="paused" className="mt-6">
-                {renderWorkflows(
-                  sortedWorkflows.filter(w => w.status === 'paused'),
-                  isLoadingWorkflows,
-                  isLoadingPlatforms || isLoadingWorkflowPlatforms,
-                  getWorkflowPlatforms,
-                  handleSelectWorkflow
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
+            </div>
+          )}
         </div>
       </main>
 
       <Footer />
-      
-      {/* Content Flow Visualizer Dialog */}
-      <Dialog open={visualizerOpen} onOpenChange={setVisualizerOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>{selectedWorkflow?.name || 'Workflow'} Content Flow</DialogTitle>
-            <DialogDescription>
-              This visualization shows how content flows through your workflow across different platforms.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <ContentFlowVisualizer 
-              workflow={selectedWorkflow || undefined}
-              platforms={getSelectedWorkflowPlatforms()}
-              showControls={true}
-            />
-          </div>
-          
-          <DialogFooter>
-            <Button onClick={() => setVisualizerOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-function renderWorkflows(
-  workflows: Workflow[],
-  isLoadingWorkflows: boolean,
-  isLoadingPlatforms: boolean,
-  getWorkflowPlatforms: (workflow: Workflow) => string[],
-  onSelectWorkflow?: (workflow: Workflow) => void
-) {
-  if (isLoadingWorkflows || isLoadingPlatforms) {
-    return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white shadow rounded-lg overflow-hidden border border-neutral-200">
-            <div className="px-4 py-5 sm:px-6 border-b border-neutral-200 bg-neutral-50">
-              <Skeleton className="h-6 w-36 mb-2" />
-              <Skeleton className="h-4 w-24" />
-            </div>
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex flex-wrap gap-2 mb-4">
-                {[1, 2].map((j) => (
-                  <Skeleton key={j} className="h-10 w-10 rounded-lg" />
-                ))}
-              </div>
-              <div className="mt-4 space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-              </div>
-            </div>
-            <div className="px-4 py-4 sm:px-6 bg-neutral-50 border-t border-neutral-200 flex justify-between">
-              <Skeleton className="h-8 w-16" />
-              <Skeleton className="h-8 w-16" />
-              <Skeleton className="h-8 w-20" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  
-  if (workflows.length === 0) {
-    return (
-      <div className="text-center py-12 bg-white rounded-lg shadow border border-neutral-200">
-        <svg
-          className="mx-auto h-12 w-12 text-neutral-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1}
-            d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-        <h3 className="mt-2 text-sm font-medium text-neutral-900">No workflows found</h3>
-        <p className="mt-1 text-sm text-neutral-500">
-          No matching workflows were found. Try changing your filters or create a new workflow.
-        </p>
-        <div className="mt-6">
-          <Button asChild>
-            <a href="/create-workflow">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-              New Workflow
-            </a>
-          </Button>
-        </div>
-      </div>
-    );
-  }
-  
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {workflows.map((workflow) => (
-        <WorkflowCard 
-          key={workflow.id} 
-          workflow={workflow} 
-          platforms={getWorkflowPlatforms(workflow)}
-          onClick={onSelectWorkflow ? () => onSelectWorkflow(workflow) : undefined}
-        />
-      ))}
-      <NewWorkflowCard />
     </div>
   );
 }

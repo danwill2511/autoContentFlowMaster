@@ -1,920 +1,508 @@
-import { users, workflows, platforms, workflowPlatforms, posts, timeOptimizations } from "@shared/schema";
-import type { User, InsertUser, Workflow, InsertWorkflow, Platform, InsertPlatform, WorkflowPlatform, InsertWorkflowPlatform, Post, InsertPost, TimeOptimization, InsertTimeOptimization } from "@shared/schema";
-import { and, eq, desc, lte, gte, sql, inArray } from "drizzle-orm";
-import session from "express-session";
-import createMemoryStore from "memorystore";
-import { randomUUID } from "crypto";
-import { db } from "./db";
-import connectPg from "connect-pg-simple";
-import { pool } from './db';
 
-const MemoryStore = createMemoryStore(session);
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import postgres from "postgres";
+import { eq, and, lte, gte, desc, sql } from "drizzle-orm";
+import { SessionStore } from "express-session";
+import { 
+  users, platforms, workflows, workflowPlatforms, posts,
+  InsertUser, InsertPlatform, InsertWorkflow, InsertWorkflowPlatform, InsertPost,
+  User, Platform, Workflow, WorkflowPlatform, Post
+} from "@shared/schema";
+import { log } from "./vite";
 
-export interface IStorage {
-  // User methods
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  getUserByReplitId(replitId: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(userId: number, updates: Partial<User>): Promise<User>;
-  updateUserSubscription(userId: number, subscription: string): Promise<User>;
-  
-  // Workflow methods
-  getWorkflow(id: number): Promise<Workflow | undefined>;
-  getWorkflowsByUser(userId: number): Promise<Workflow[]>;
-  getActiveWorkflows(): Promise<Workflow[]>;
-  createWorkflow(workflow: InsertWorkflow): Promise<Workflow>;
-  updateWorkflow(id: number, workflow: Partial<InsertWorkflow>): Promise<Workflow>;
-  updateWorkflowStatus(id: number, status: string): Promise<Workflow>;
-  updateWorkflowNextPostDate(id: number, nextPostDate: Date): Promise<Workflow>;
-  countUserWorkflows(userId: number): Promise<number>;
-  
-  // Platform methods
-  getPlatform(id: number): Promise<Platform | undefined>;
-  getPlatformsByUser(userId: number): Promise<Platform[]>;
-  getPlatformsByIds(ids: number[]): Promise<Platform[]>;
-  createPlatform(platform: InsertPlatform): Promise<Platform>;
-  updatePlatform(id: number, platform: Partial<InsertPlatform>): Promise<Platform>;
-  
-  // WorkflowPlatform methods
-  getWorkflowPlatforms(workflowId: number): Promise<WorkflowPlatform[]>;
-  createWorkflowPlatform(workflowPlatform: InsertWorkflowPlatform): Promise<WorkflowPlatform>;
-  
-  // Post methods
-  getPost(id: number): Promise<Post | undefined>;
-  getPostsByWorkflow(workflowId: number): Promise<Post[]>;
-  getPendingPostsDue(date: Date): Promise<Post[]>;
-  getPostsCreatedTodayCount(userId: number): Promise<number>;
-  createPost(post: InsertPost): Promise<Post>;
-  updatePostStatus(id: number, status: string, postedAt?: Date): Promise<Post>;
-  updatePostEngagementMetrics(id: number, engagementMetrics: any): Promise<Post>;
-  
-  // Time optimization methods
-  getTimeOptimization(id: number): Promise<TimeOptimization | undefined>;
-  getTimeOptimizationByPlatform(platformId: number): Promise<TimeOptimization | undefined>;
-  getTimeOptimizationsByPlatformType(platformType: string): Promise<TimeOptimization[]>;
-  createTimeOptimization(timeOptimization: InsertTimeOptimization): Promise<TimeOptimization>;
-  updateTimeOptimization(id: number, data: Partial<InsertTimeOptimization>): Promise<TimeOptimization>;
-  calculateOptimalPostTime(platformIds: number[]): Promise<Date>;
-  
-  // Session store
-  sessionStore: any; // Using any for session store type to avoid compatibility issues
-  
-  // Test helpers
-  clearTestData(): Promise<void>;
+// PostgreSQL connection string
+const connectionString = process.env.DATABASE_URL || 
+  "postgres://postgres:postgres@localhost:5432/autocontentflow";
+
+// Client for migrations
+const migrationClient = postgres(connectionString, { max: 1 });
+
+// Client for queries
+const queryClient = postgres(connectionString);
+
+// Initialize Drizzle ORM
+const db = drizzle(queryClient);
+
+// Initialize the database with a simple memory store for sessions during development
+class MemorySessionStore implements SessionStore {
+  private sessions: Map<string, any> = new Map();
+
+  get = (sid: string, callback: (err: any, session?: any) => void): void => {
+    const session = this.sessions.get(sid);
+    callback(null, session);
+  };
+
+  set = (sid: string, session: any, callback?: (err?: any) => void): void => {
+    this.sessions.set(sid, session);
+    if (callback) callback();
+  };
+
+  destroy = (sid: string, callback?: (err?: any) => void): void => {
+    this.sessions.delete(sid);
+    if (callback) callback();
+  };
 }
 
-// Define memory storage class for development/testing
-export class MemStorage implements IStorage {
-  private usersMap: Map<number, User>;
-  private workflowsMap: Map<number, Workflow>;
-  private platformsMap: Map<number, Platform>;
-  private workflowPlatformsMap: Map<number, WorkflowPlatform>;
-  private postsMap: Map<number, Post>;
-  private timeOptimizationsMap: Map<number, TimeOptimization>;
-  private userCurrentId: number;
-  private workflowCurrentId: number;
-  private platformCurrentId: number;
-  private workflowPlatformCurrentId: number;
-  private postCurrentId: number;
-  private timeOptimizationCurrentId: number;
-  sessionStore: any; // Using any for session store type to avoid compatibility issues
-
-  constructor() {
-    this.usersMap = new Map();
-    this.workflowsMap = new Map();
-    this.platformsMap = new Map();
-    this.workflowPlatformsMap = new Map();
-    this.postsMap = new Map();
-    this.timeOptimizationsMap = new Map();
-    this.userCurrentId = 1;
-    this.workflowCurrentId = 1;
-    this.platformCurrentId = 1;
-    this.workflowPlatformCurrentId = 1;
-    this.postCurrentId = 1;
-    this.timeOptimizationCurrentId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
-    });
-  }
-
-  // User methods
-  async getUser(id: number): Promise<User | undefined> {
-    return this.usersMap.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.usersMap.values()).find(
-      (user) => user.username === username
-    );
-  }
+// Run migrations
+export async function runMigrations() {
+  log("Running database migrations...");
   
-  // Get user by Replit ID
-  async getUserByReplitId(replitId: string): Promise<User | undefined> {
-    if (!replitId) return undefined;
-    return Array.from(this.usersMap.values()).find(
-      (user) => user.replitId === replitId
-    );
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.usersMap.values()).find(
-      (user) => user.email === email
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userCurrentId++;
-    const now = new Date();
-    const user: User = { 
-      id,
-      username: insertUser.username,
-      password: insertUser.password,
-      email: insertUser.email,
-      name: insertUser.name || null,
-      replitId: insertUser.replitId || null,
-      profileImage: insertUser.profileImage || null,
-      subscription: insertUser.subscription || "free",
-      isAdmin: insertUser.isAdmin !== undefined ? insertUser.isAdmin : false,
-      createdAt: now
-    };
-    this.usersMap.set(id, user);
-    return user;
-  }
-  
-  async updateUser(userId: number, updates: Partial<User>): Promise<User> {
-    const user = await this.getUser(userId);
-    if (!user) {
-      throw new Error(`User ${userId} not found`);
-    }
+  try {
+    await migrate(drizzle(migrationClient), { migrationsFolder: "./drizzle" });
+    log("Migrations completed successfully.");
+  } catch (error) {
+    log("Migration error:", error);
     
-    const updatedUser: User = {
-      ...user,
-      ...updates
-    };
-    
-    this.usersMap.set(userId, updatedUser);
-    return updatedUser;
-  }
-  
-  async updateUserSubscription(userId: number, subscription: string): Promise<User> {
-    return this.updateUser(userId, { subscription });
-  }
-
-  // Workflow methods
-  async getWorkflow(id: number): Promise<Workflow | undefined> {
-    return this.workflowsMap.get(id);
-  }
-  
-  async getWorkflowsByUser(userId: number): Promise<Workflow[]> {
-    return Array.from(this.workflowsMap.values()).filter(
-      (workflow) => workflow.userId === userId
-    );
-  }
-  
-  async getActiveWorkflows(): Promise<Workflow[]> {
-    return Array.from(this.workflowsMap.values()).filter(
-      (workflow) => workflow.status === "active"
-    );
-  }
-  
-  async createWorkflow(insertWorkflow: InsertWorkflow): Promise<Workflow> {
-    const id = this.workflowCurrentId++;
-    const now = new Date();
-    const workflow: Workflow = {
-      id,
-      name: insertWorkflow.name,
-      userId: insertWorkflow.userId,
-      frequency: insertWorkflow.frequency,
-      contentType: insertWorkflow.contentType,
-      contentTone: insertWorkflow.contentTone,
-      topics: insertWorkflow.topics,
-      status: insertWorkflow.status || "active",
-      nextPostDate: insertWorkflow.nextPostDate || null,
-      createdAt: now
-    };
-    this.workflowsMap.set(id, workflow);
-    return workflow;
-  }
-  
-  async updateWorkflow(id: number, workflowUpdates: Partial<InsertWorkflow>): Promise<Workflow> {
-    const workflow = await this.getWorkflow(id);
-    if (!workflow) {
-      throw new Error(`Workflow ${id} not found`);
-    }
-    
-    const updatedWorkflow: Workflow = {
-      ...workflow,
-      ...workflowUpdates
-    };
-    
-    this.workflowsMap.set(id, updatedWorkflow);
-    return updatedWorkflow;
-  }
-  
-  async updateWorkflowStatus(id: number, status: string): Promise<Workflow> {
-    return this.updateWorkflow(id, { status });
-  }
-  
-  async updateWorkflowNextPostDate(id: number, nextPostDate: Date): Promise<Workflow> {
-    return this.updateWorkflow(id, { nextPostDate });
-  }
-  
-  async countUserWorkflows(userId: number): Promise<number> {
-    return (await this.getWorkflowsByUser(userId)).length;
-  }
-  
-  // Platform methods
-  async getPlatform(id: number): Promise<Platform | undefined> {
-    return this.platformsMap.get(id);
-  }
-  
-  async getPlatformsByUser(userId: number): Promise<Platform[]> {
-    return Array.from(this.platformsMap.values()).filter(
-      (platform) => platform.userId === userId
-    );
-  }
-  
-  async getPlatformsByIds(ids: number[]): Promise<Platform[]> {
-    return Array.from(this.platformsMap.values()).filter(
-      (platform) => ids.includes(platform.id)
-    );
-  }
-  
-  async createPlatform(insertPlatform: InsertPlatform): Promise<Platform> {
-    const id = this.platformCurrentId++;
-    const now = new Date();
-    const platform: Platform = {
-      id,
-      name: insertPlatform.name,
-      apiKey: insertPlatform.apiKey || null,
-      apiSecret: insertPlatform.apiSecret || null,
-      accessToken: insertPlatform.accessToken || null,
-      userId: insertPlatform.userId,
-      createdAt: now
-    };
-    this.platformsMap.set(id, platform);
-    return platform;
-  }
-  
-  async updatePlatform(id: number, platformUpdates: Partial<InsertPlatform>): Promise<Platform> {
-    const platform = await this.getPlatform(id);
-    if (!platform) {
-      throw new Error(`Platform ${id} not found`);
-    }
-    
-    const updatedPlatform: Platform = {
-      ...platform,
-      ...platformUpdates
-    };
-    
-    this.platformsMap.set(id, updatedPlatform);
-    return updatedPlatform;
-  }
-  
-  // WorkflowPlatform methods
-  async getWorkflowPlatforms(workflowId: number): Promise<WorkflowPlatform[]> {
-    return Array.from(this.workflowPlatformsMap.values()).filter(
-      (workflowPlatform) => workflowPlatform.workflowId === workflowId
-    );
-  }
-  
-  async createWorkflowPlatform(insertWorkflowPlatform: InsertWorkflowPlatform): Promise<WorkflowPlatform> {
-    const id = this.workflowPlatformCurrentId++;
-    const now = new Date();
-    const workflowPlatform: WorkflowPlatform = {
-      id,
-      workflowId: insertWorkflowPlatform.workflowId,
-      platformId: insertWorkflowPlatform.platformId,
-      platformSpecificSettings: insertWorkflowPlatform.platformSpecificSettings || null,
-      createdAt: now
-    };
-    this.workflowPlatformsMap.set(id, workflowPlatform);
-    return workflowPlatform;
-  }
-  
-  // Post methods
-  async getPost(id: number): Promise<Post | undefined> {
-    return this.postsMap.get(id);
-  }
-  
-  async getPostsByWorkflow(workflowId: number): Promise<Post[]> {
-    return Array.from(this.postsMap.values()).filter(
-      (post) => post.workflowId === workflowId
-    );
-  }
-  
-  async getPendingPostsDue(date: Date): Promise<Post[]> {
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
-    
-    return Array.from(this.postsMap.values()).filter(
-      (post) => 
-        post.status === "pending" &&
-        post.scheduledDate &&
-        post.scheduledDate >= startOfDay &&
-        post.scheduledDate <= endOfDay
-    );
-  }
-  
-  async getPostsCreatedTodayCount(userId: number): Promise<number> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    return Array.from(this.postsMap.values()).filter(
-      (post) => {
-        const workflow = this.workflowsMap.get(post.workflowId);
-        return workflow && 
-          workflow.userId === userId && 
-          post.createdAt && 
-          post.createdAt >= today;
-      }
-    ).length;
-  }
-  
-  async createPost(insertPost: InsertPost): Promise<Post> {
-    const id = this.postCurrentId++;
-    const now = new Date();
-    const post: Post = {
-      id,
-      workflowId: insertPost.workflowId,
-      title: insertPost.title || null,
-      content: insertPost.content,
-      status: insertPost.status || "pending",
-      scheduledDate: insertPost.scheduledDate || null,
-      postedAt: insertPost.postedAt || null,
-      createdAt: now
-    };
-    this.postsMap.set(id, post);
-    return post;
-  }
-  
-  async updatePostStatus(id: number, status: string, postedAt?: Date): Promise<Post> {
-    const post = await this.getPost(id);
-    if (!post) {
-      throw new Error(`Post ${id} not found`);
-    }
-    
-    const updatedPost: Post = {
-      ...post,
-      status,
-      ...(postedAt ? { postedAt } : {})
-    };
-    
-    this.postsMap.set(id, updatedPost);
-    return updatedPost;
-  }
-  
-  async clearTestData(): Promise<void> {
-    this.usersMap.clear();
-    this.workflowsMap.clear();
-    this.platformsMap.clear();
-    this.workflowPlatformsMap.clear();
-    this.postsMap.clear();
-    this.timeOptimizationsMap.clear();
-    this.userCurrentId = 1;
-    this.workflowCurrentId = 1;
-    this.platformCurrentId = 1;
-    this.workflowPlatformCurrentId = 1;
-    this.postCurrentId = 1;
-    this.timeOptimizationCurrentId = 1;
-  }
-  
-  // Post engagement metrics update method
-  async updatePostEngagementMetrics(id: number, engagementMetrics: any): Promise<Post> {
-    const post = await this.getPost(id);
-    if (!post) {
-      throw new Error(`Post with id ${id} not found`);
-    }
-    
-    const updatedPost: Post = {
-      ...post,
-      engagementMetrics
-    };
-    
-    this.postsMap.set(id, updatedPost);
-    return updatedPost;
-  }
-  
-  // Time optimization methods
-  async getTimeOptimization(id: number): Promise<TimeOptimization | undefined> {
-    return this.timeOptimizationsMap.get(id);
-  }
-  
-  async getTimeOptimizationByPlatform(platformId: number): Promise<TimeOptimization | undefined> {
-    for (const optimization of this.timeOptimizationsMap.values()) {
-      if (optimization.platformId === platformId) {
-        return optimization;
+    // If migrations fail in development, we create tables directly
+    if (process.env.NODE_ENV === "development") {
+      log("Creating tables directly in development mode...");
+      try {
+        // Basic schema setup for development
+        await setupDevSchema();
+        log("Tables created successfully.");
+      } catch (devError) {
+        log("Error creating dev tables:", devError);
       }
     }
-    return undefined;
   }
-  
-  async getTimeOptimizationsByPlatformType(platformType: string): Promise<TimeOptimization[]> {
-    const optimizations: TimeOptimization[] = [];
-    for (const optimization of this.timeOptimizationsMap.values()) {
-      if (optimization.platformType === platformType) {
-        optimizations.push(optimization);
-      }
-    }
-    return optimizations;
-  }
-  
-  async createTimeOptimization(timeOptimization: InsertTimeOptimization): Promise<TimeOptimization> {
-    const id = this.timeOptimizationCurrentId++;
-    const now = new Date();
+}
+
+// Setup basic schema for development
+async function setupDevSchema() {
+  // This is a simplified schema creation for development
+  // In production, use proper migrations
+  try {
+    // Check if users table exists
+    const userTableCheck = await queryClient`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'users'
+      )
+    `;
     
-    const newTimeOptimization: TimeOptimization = {
-      id,
-      ...timeOptimization,
-      lastUpdated: now,
-      createdAt: now
-    };
-    
-    this.timeOptimizationsMap.set(id, newTimeOptimization);
-    return newTimeOptimization;
-  }
-  
-  async updateTimeOptimization(id: number, data: Partial<InsertTimeOptimization>): Promise<TimeOptimization> {
-    const optimization = await this.getTimeOptimization(id);
-    if (!optimization) {
-      throw new Error(`Time optimization with id ${id} not found`);
-    }
-    
-    const updatedOptimization: TimeOptimization = {
-      ...optimization,
-      ...data,
-      lastUpdated: new Date()
-    };
-    
-    this.timeOptimizationsMap.set(id, updatedOptimization);
-    return updatedOptimization;
-  }
-  
-  async calculateOptimalPostTime(platformIds: number[]): Promise<Date> {
-    // Get all relevant time optimizations
-    const platforms = await this.getPlatformsByIds(platformIds);
-    const optimizations: TimeOptimization[] = [];
-    
-    // Collect optimizations data for each platform
-    for (const platform of platforms) {
-      const optimization = await this.getTimeOptimizationByPlatform(platform.id);
-      if (optimization) {
-        optimizations.push(optimization);
-      }
-    }
-    
-    // If no optimizations found, return a default time (now + 1 hour)
-    if (optimizations.length === 0) {
-      const defaultTime = new Date();
-      defaultTime.setHours(defaultTime.getHours() + 1);
-      return defaultTime;
-    }
-    
-    // Calculate optimal time based on collected data
-    const now = new Date();
-    const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
-    
-    // Track best hours and their cumulative engagement scores
-    type HourScore = { hour: number; score: number; count: number };
-    const hourScores: HourScore[] = Array.from({ length: 24 }, (_, i) => ({ 
-      hour: i, 
-      score: 0,
-      count: 0
-    }));
-    
-    // Collect and weight the best hours from all platforms
-    for (const opt of optimizations) {
-      const bestHours = opt.bestHours as number[];
-      const engagementScore = opt.engagementScore || 1;
+    if (!userTableCheck[0].exists) {
+      await queryClient`
+        CREATE TABLE users (
+          id SERIAL PRIMARY KEY,
+          username TEXT NOT NULL UNIQUE,
+          password TEXT NOT NULL,
+          name TEXT,
+          email TEXT NOT NULL UNIQUE,
+          subscription TEXT NOT NULL DEFAULT 'free',
+          created_at TIMESTAMP DEFAULT NOW() NOT NULL
+        )
+      `;
       
-      for (const hour of bestHours) {
-        hourScores[hour].score += engagementScore;
-        hourScores[hour].count += 1;
-      }
+      await queryClient`
+        CREATE TABLE platforms (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          api_key TEXT,
+          api_secret TEXT,
+          access_token TEXT,
+          user_id INTEGER NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW() NOT NULL
+        )
+      `;
+      
+      await queryClient`
+        CREATE TABLE workflows (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          user_id INTEGER NOT NULL,
+          status TEXT NOT NULL DEFAULT 'active',
+          frequency TEXT NOT NULL,
+          next_post_date TIMESTAMP,
+          content_type TEXT NOT NULL,
+          content_tone TEXT NOT NULL,
+          topics TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW() NOT NULL
+        )
+      `;
+      
+      await queryClient`
+        CREATE TABLE workflow_platforms (
+          id SERIAL PRIMARY KEY,
+          workflow_id INTEGER NOT NULL,
+          platform_id INTEGER NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW() NOT NULL
+        )
+      `;
+      
+      await queryClient`
+        CREATE TABLE posts (
+          id SERIAL PRIMARY KEY,
+          workflow_id INTEGER NOT NULL,
+          content TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          scheduled_for TIMESTAMP NOT NULL,
+          posted_at TIMESTAMP,
+          platform_ids JSONB NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW() NOT NULL
+        )
+      `;
+      
+      // Insert default platforms for testing
+      await queryClient`
+        INSERT INTO platforms (name, user_id)
+        VALUES 
+          ('Facebook', 1),
+          ('Twitter', 1),
+          ('LinkedIn', 1),
+          ('Pinterest', 1),
+          ('YouTube', 1)
+      `;
     }
-    
-    // Sort by score (highest first) and then by count (highest first)
-    hourScores.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return b.count - a.count;
-    });
-    
-    // Take the highest scoring hour
-    const bestHour = hourScores[0].hour;
-    
-    // Create the optimal time (today at the best hour)
-    const optimalTime = new Date();
-    
-    // If best hour is earlier today, schedule for tomorrow
-    if (bestHour <= optimalTime.getHours()) {
-      optimalTime.setDate(optimalTime.getDate() + 1);
-    }
-    
-    optimalTime.setHours(bestHour, 0, 0, 0);
-    
-    return optimalTime;
+  } catch (error) {
+    console.error("Error setting up dev schema:", error);
+    throw error;
   }
 }
 
-// Define Database Storage class
-export class DatabaseStorage implements IStorage {
-  sessionStore: any;
+// In-memory session store for development
+const sessionStore = new MemorySessionStore();
 
-  constructor() {
-    const PostgresSessionStore = connectPg(session);
-    this.sessionStore = new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true,
-      tableName: 'session'
-    });
-  }
-
-  // User methods
+class StorageService {
+  sessionStore: SessionStore = sessionStore;
+  
+  // User operations
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
-  }
-
-  async getUserByReplitId(replitId: string): Promise<User | undefined> {
-    if (!replitId) return undefined;
-    const [user] = await db.select().from(users).where(eq(users.replitId, replitId));
-    return user;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
-  }
-
-  async updateUser(userId: number, updates: Partial<User>): Promise<User> {
-    const [updatedUser] = await db
-      .update(users)
-      .set(updates)
-      .where(eq(users.id, userId))
-      .returning();
-    
-    if (!updatedUser) {
-      throw new Error(`User ${userId} not found`);
+    try {
+      const result = await db.select().from(users).where(eq(users.id, id));
+      return result[0];
+    } catch (error) {
+      console.error("Error getting user:", error);
+      return undefined;
     }
-    
-    return updatedUser;
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    try {
+      const result = await db.select().from(users).where(eq(users.email, email));
+      return result[0];
+    } catch (error) {
+      console.error("Error getting user by email:", error);
+      return undefined;
+    }
+  }
+  
+  async createUser(data: InsertUser): Promise<User> {
+    try {
+      const result = await db.insert(users).values(data).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw error;
+    }
   }
   
   async updateUserSubscription(userId: number, subscription: string): Promise<User> {
-    return this.updateUser(userId, { subscription });
-  }
-
-  // Workflow methods
-  async getWorkflow(id: number): Promise<Workflow | undefined> {
-    const [workflow] = await db.select().from(workflows).where(eq(workflows.id, id));
-    return workflow;
-  }
-
-  async getWorkflowsByUser(userId: number): Promise<Workflow[]> {
-    return db
-      .select()
-      .from(workflows)
-      .where(eq(workflows.userId, userId))
-      .orderBy(desc(workflows.createdAt))
-      .limit(100)
-      .execute();
-  }
-
-  async getActiveWorkflows(): Promise<Workflow[]> {
-    return db
-      .select()
-      .from(workflows)
-      .where(eq(workflows.status, "active"))
-      .execute();
-  }
-
-  async createWorkflow(insertWorkflow: InsertWorkflow): Promise<Workflow> {
-    const [workflow] = await db.insert(workflows).values(insertWorkflow).returning();
-    return workflow;
-  }
-
-  async updateWorkflow(id: number, workflowUpdates: Partial<InsertWorkflow>): Promise<Workflow> {
-    const [updatedWorkflow] = await db
-      .update(workflows)
-      .set(workflowUpdates)
-      .where(eq(workflows.id, id))
-      .returning();
-    
-    if (!updatedWorkflow) {
-      throw new Error(`Workflow ${id} not found`);
+    try {
+      const result = await db
+        .update(users)
+        .set({ subscription })
+        .where(eq(users.id, userId))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error updating user subscription:", error);
+      throw error;
     }
-    
-    return updatedWorkflow;
   }
-
-  async updateWorkflowStatus(id: number, status: string): Promise<Workflow> {
-    return this.updateWorkflow(id, { status });
-  }
-
-  async updateWorkflowNextPostDate(id: number, nextPostDate: Date): Promise<Workflow> {
-    return this.updateWorkflow(id, { nextPostDate });
-  }
-
-  async countUserWorkflows(userId: number): Promise<number> {
-    const [result] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(workflows)
-      .where(eq(workflows.userId, userId));
-    
-    return result?.count || 0;
-  }
-
-  // Platform methods
+  
+  // Platform operations
   async getPlatform(id: number): Promise<Platform | undefined> {
-    const [platform] = await db.select().from(platforms).where(eq(platforms.id, id));
-    return platform;
+    try {
+      const result = await db.select().from(platforms).where(eq(platforms.id, id));
+      return result[0];
+    } catch (error) {
+      console.error("Error getting platform:", error);
+      return undefined;
+    }
   }
-
+  
   async getPlatformsByUser(userId: number): Promise<Platform[]> {
-    return db
-      .select()
-      .from(platforms)
-      .where(eq(platforms.userId, userId))
-      .orderBy(desc(platforms.createdAt))
-      .limit(100)
-      .execute();
+    try {
+      return await db.select().from(platforms).where(eq(platforms.userId, userId));
+    } catch (error) {
+      console.error("Error getting platforms by user:", error);
+      return [];
+    }
   }
-
+  
   async getPlatformsByIds(ids: number[]): Promise<Platform[]> {
     if (!ids.length) return [];
-    return db.select().from(platforms).where(sql`${platforms.id} IN (${ids.join(',')})`);
-  }
-
-  async createPlatform(insertPlatform: InsertPlatform): Promise<Platform> {
-    const [platform] = await db.insert(platforms).values(insertPlatform).returning();
-    return platform;
-  }
-
-  async updatePlatform(id: number, platformUpdates: Partial<InsertPlatform>): Promise<Platform> {
-    const [updatedPlatform] = await db
-      .update(platforms)
-      .set(platformUpdates)
-      .where(eq(platforms.id, id))
-      .returning();
     
-    if (!updatedPlatform) {
-      throw new Error(`Platform ${id} not found`);
+    try {
+      return await db.select().from(platforms).where(sql`${platforms.id} IN ${ids}`);
+    } catch (error) {
+      console.error("Error getting platforms by ids:", error);
+      return [];
     }
-    
-    return updatedPlatform;
   }
-
-  // WorkflowPlatform methods
+  
+  async createPlatform(data: InsertPlatform): Promise<Platform> {
+    try {
+      const result = await db.insert(platforms).values(data).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error creating platform:", error);
+      throw error;
+    }
+  }
+  
+  async updatePlatform(id: number, data: Partial<InsertPlatform>): Promise<Platform> {
+    try {
+      const result = await db
+        .update(platforms)
+        .set(data)
+        .where(eq(platforms.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error updating platform:", error);
+      throw error;
+    }
+  }
+  
+  // Workflow operations
+  async getWorkflow(id: number): Promise<Workflow | undefined> {
+    try {
+      const result = await db.select().from(workflows).where(eq(workflows.id, id));
+      return result[0];
+    } catch (error) {
+      console.error("Error getting workflow:", error);
+      return undefined;
+    }
+  }
+  
+  async getWorkflowsByUser(userId: number): Promise<Workflow[]> {
+    try {
+      return await db
+        .select()
+        .from(workflows)
+        .where(eq(workflows.userId, userId))
+        .orderBy(desc(workflows.createdAt));
+    } catch (error) {
+      console.error("Error getting workflows by user:", error);
+      return [];
+    }
+  }
+  
+  async getActiveWorkflows(): Promise<Workflow[]> {
+    try {
+      return await db
+        .select()
+        .from(workflows)
+        .where(eq(workflows.status, "active"));
+    } catch (error) {
+      console.error("Error getting active workflows:", error);
+      return [];
+    }
+  }
+  
+  async countUserWorkflows(userId: number): Promise<number> {
+    try {
+      const result = await db
+        .select({ count: sql`count(*)` })
+        .from(workflows)
+        .where(eq(workflows.userId, userId));
+      return parseInt(result[0].count.toString());
+    } catch (error) {
+      console.error("Error counting user workflows:", error);
+      return 0;
+    }
+  }
+  
+  async createWorkflow(data: InsertWorkflow): Promise<Workflow> {
+    try {
+      const result = await db.insert(workflows).values(data).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error creating workflow:", error);
+      throw error;
+    }
+  }
+  
+  async updateWorkflow(id: number, data: Partial<InsertWorkflow>): Promise<Workflow> {
+    try {
+      const result = await db
+        .update(workflows)
+        .set(data)
+        .where(eq(workflows.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error updating workflow:", error);
+      throw error;
+    }
+  }
+  
+  async updateWorkflowStatus(id: number, status: string): Promise<Workflow> {
+    try {
+      const result = await db
+        .update(workflows)
+        .set({ status })
+        .where(eq(workflows.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error updating workflow status:", error);
+      throw error;
+    }
+  }
+  
+  async updateWorkflowNextPostDate(id: number, nextPostDate: Date): Promise<Workflow> {
+    try {
+      const result = await db
+        .update(workflows)
+        .set({ nextPostDate })
+        .where(eq(workflows.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error updating workflow next post date:", error);
+      throw error;
+    }
+  }
+  
+  // WorkflowPlatform operations
   async getWorkflowPlatforms(workflowId: number): Promise<WorkflowPlatform[]> {
-    return db
-      .select()
-      .from(workflowPlatforms)
-      .where(eq(workflowPlatforms.workflowId, workflowId))
-      .execute();
+    try {
+      return await db
+        .select()
+        .from(workflowPlatforms)
+        .where(eq(workflowPlatforms.workflowId, workflowId));
+    } catch (error) {
+      console.error("Error getting workflow platforms:", error);
+      return [];
+    }
   }
-
-  async createWorkflowPlatform(insertWorkflowPlatform: InsertWorkflowPlatform): Promise<WorkflowPlatform> {
-    const [workflowPlatform] = await db.insert(workflowPlatforms).values(insertWorkflowPlatform).returning();
-    return workflowPlatform;
+  
+  async createWorkflowPlatform(data: InsertWorkflowPlatform): Promise<WorkflowPlatform> {
+    try {
+      const result = await db.insert(workflowPlatforms).values(data).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error creating workflow platform:", error);
+      throw error;
+    }
   }
-
-  // Post methods
+  
+  // Post operations
   async getPost(id: number): Promise<Post | undefined> {
-    const [post] = await db.select().from(posts).where(eq(posts.id, id));
-    return post;
+    try {
+      const result = await db.select().from(posts).where(eq(posts.id, id));
+      return result[0];
+    } catch (error) {
+      console.error("Error getting post:", error);
+      return undefined;
+    }
   }
-
+  
   async getPostsByWorkflow(workflowId: number): Promise<Post[]> {
-    return db
-      .select()
-      .from(posts)
-      .where(eq(posts.workflowId, workflowId))
-      .orderBy(desc(posts.createdAt))
-      .execute();
+    try {
+      return await db
+        .select()
+        .from(posts)
+        .where(eq(posts.workflowId, workflowId))
+        .orderBy(desc(posts.scheduledFor));
+    } catch (error) {
+      console.error("Error getting posts by workflow:", error);
+      return [];
+    }
   }
-
-  async getPendingPostsDue(date: Date): Promise<Post[]> {
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
-    
-    return db
-      .select()
-      .from(posts)
-      .where(
-        and(
-          eq(posts.status, "pending"),
-          gte(posts.scheduledFor, startOfDay),
-          lte(posts.scheduledFor, endOfDay)
-        )
-      )
-      .execute();
+  
+  async getPendingPostsDue(dueDate: Date): Promise<Post[]> {
+    try {
+      return await db
+        .select()
+        .from(posts)
+        .where(
+          and(
+            eq(posts.status, "pending"),
+            lte(posts.scheduledFor, dueDate)
+          )
+        );
+    } catch (error) {
+      console.error("Error getting pending posts due:", error);
+      return [];
+    }
   }
-
+  
   async getPostsCreatedTodayCount(userId: number): Promise<number> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const [result] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(posts)
-      .innerJoin(workflows, eq(posts.workflowId, workflows.id))
-      .where(
-        and(
-          eq(workflows.userId, userId),
-          gte(posts.createdAt, today)
-        )
-      );
-    
-    return result?.count || 0;
-  }
-
-  async createPost(insertPost: InsertPost): Promise<Post> {
-    const [post] = await db.insert(posts).values(insertPost).returning();
-    return post;
-  }
-
-  async updatePostStatus(id: number, status: string, postedAt?: Date): Promise<Post> {
-    const updates: Partial<Post> = { status };
-    if (postedAt) {
-      updates.postedAt = postedAt;
+    try {
+      // Get user's workflows
+      const userWorkflows = await this.getWorkflowsByUser(userId);
+      const workflowIds = userWorkflows.map(w => w.id);
+      
+      if (!workflowIds.length) return 0;
+      
+      // Count posts created today for these workflows
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const result = await db
+        .select({ count: sql`count(*)` })
+        .from(posts)
+        .where(
+          and(
+            sql`${posts.workflowId} IN ${workflowIds}`,
+            gte(posts.createdAt, today),
+            lt(posts.createdAt, tomorrow)
+          )
+        );
+      
+      return parseInt(result[0].count.toString());
+    } catch (error) {
+      console.error("Error counting posts created today:", error);
+      return 0;
     }
-    
-    const [updatedPost] = await db
-      .update(posts)
-      .set(updates)
-      .where(eq(posts.id, id))
-      .returning();
-    
-    if (!updatedPost) {
-      throw new Error(`Post ${id} not found`);
+  }
+  
+  async createPost(data: InsertPost): Promise<Post> {
+    try {
+      const result = await db.insert(posts).values(data).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error creating post:", error);
+      throw error;
     }
-    
-    return updatedPost;
-  }
-
-  async updatePostEngagementMetrics(id: number, engagementMetrics: any): Promise<Post> {
-    const [post] = await db
-      .update(posts)
-      .set({ engagementMetrics: JSON.stringify(engagementMetrics) })
-      .where(eq(posts.id, id))
-      .returning();
-    
-    if (!post) {
-      throw new Error(`Post with id ${id} not found`);
-    }
-    
-    return post;
   }
   
-  // Time optimization methods
-  async getTimeOptimization(id: number): Promise<TimeOptimization | undefined> {
-    const [optimization] = await db
-      .select()
-      .from(timeOptimizations)
-      .where(eq(timeOptimizations.id, id));
-      
-    return optimization;
-  }
-  
-  async getTimeOptimizationByPlatform(platformId: number): Promise<TimeOptimization | undefined> {
-    const [optimization] = await db
-      .select()
-      .from(timeOptimizations)
-      .where(eq(timeOptimizations.platformId, platformId));
-      
-    return optimization;
-  }
-  
-  async getTimeOptimizationsByPlatformType(platformType: string): Promise<TimeOptimization[]> {
-    return db
-      .select()
-      .from(timeOptimizations)
-      .where(eq(timeOptimizations.platformType, platformType));
-  }
-  
-  async createTimeOptimization(timeOptimization: InsertTimeOptimization): Promise<TimeOptimization> {
-    const now = new Date();
-    const [created] = await db
-      .insert(timeOptimizations)
-      .values({
-        ...timeOptimization,
-        lastUpdated: now,
-      })
-      .returning();
-      
-    return created;
-  }
-  
-  async updateTimeOptimization(id: number, data: Partial<InsertTimeOptimization>): Promise<TimeOptimization> {
-    const [updated] = await db
-      .update(timeOptimizations)
-      .set({
-        ...data,
-        lastUpdated: new Date()
-      })
-      .where(eq(timeOptimizations.id, id))
-      .returning();
-      
-    if (!updated) {
-      throw new Error(`Time optimization with id ${id} not found`);
-    }
-    
-    return updated;
-  }
-  
-  async calculateOptimalPostTime(platformIds: number[]): Promise<Date> {
-    // Get all relevant platforms and time optimizations
-    const platformsData = await db
-      .select()
-      .from(platforms)
-      .where(inArray(platforms.id, platformIds));
-      
-    // Get all optimizations for these platforms
-    const optimizationsPromises = platformsData.map(platform => 
-      this.getTimeOptimizationByPlatform(platform.id)
-    );
-    
-    const optimizationsResults = await Promise.all(optimizationsPromises);
-    const optimizations = optimizationsResults.filter(Boolean) as TimeOptimization[];
-    
-    // If no optimizations found, return a default time (now + 1 hour)
-    if (optimizations.length === 0) {
-      const defaultTime = new Date();
-      defaultTime.setHours(defaultTime.getHours() + 1);
-      return defaultTime;
-    }
-    
-    // Calculate optimal time based on collected data
-    const now = new Date();
-    const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
-    
-    // Track best hours and their cumulative engagement scores
-    type HourScore = { hour: number; score: number; count: number };
-    const hourScores: HourScore[] = Array.from({ length: 24 }, (_, i) => ({ 
-      hour: i, 
-      score: 0,
-      count: 0
-    }));
-    
-    // Collect and weight the best hours from all platforms
-    for (const opt of optimizations) {
-      const bestHours = opt.bestHours as number[];
-      const engagementScore = opt.engagementScore || 1;
-      
-      for (const hour of bestHours) {
-        hourScores[hour].score += engagementScore;
-        hourScores[hour].count += 1;
+  async updatePostStatus(
+    id: number, 
+    status: string, 
+    postedAt?: Date
+  ): Promise<Post> {
+    try {
+      const updateData: Partial<Post> = { status };
+      if (postedAt) {
+        updateData.postedAt = postedAt;
       }
+      
+      const result = await db
+        .update(posts)
+        .set(updateData)
+        .where(eq(posts.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error updating post status:", error);
+      throw error;
     }
-    
-    // Sort by score (highest first) and then by count (highest first)
-    hourScores.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return b.count - a.count;
-    });
-    
-    // Take the highest scoring hour
-    const bestHour = hourScores[0].hour;
-    
-    // Create the optimal time (today at the best hour)
-    const optimalTime = new Date();
-    
-    // If best hour is earlier today, schedule for tomorrow
-    if (bestHour <= optimalTime.getHours()) {
-      optimalTime.setDate(optimalTime.getDate() + 1);
-    }
-    
-    optimalTime.setHours(bestHour, 0, 0, 0);
-    
-    return optimalTime;
-  }
-  
-  async clearTestData(): Promise<void> {
-    await db.delete(posts);
-    await db.delete(workflowPlatforms);
-    await db.delete(timeOptimizations);
-    await db.delete(platforms);
-    await db.delete(workflows);
-    await db.delete(users);
   }
 }
 
-export const storage = new DatabaseStorage();
+// Initialize the storage service
+export const storage = new StorageService();
+
+// Run migrations on startup
+runMigrations().catch(error => {
+  console.error("Failed to run migrations:", error);
+});

@@ -1,123 +1,83 @@
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 
 interface PlanCardProps {
   name: string;
-  price: number | string;
-  description: string;
+  price: number;
   features: string[];
+  isActive?: boolean;
   isPopular?: boolean;
-  isCurrent?: boolean;
-  onUpgrade?: () => void;
+  onSelect: () => void;
 }
 
-export function PlanCard({
+export default function PlanCard({
   name,
   price,
-  description,
   features,
+  isActive = false,
   isPopular = false,
-  isCurrent = false,
-  onUpgrade
+  onSelect,
 }: PlanCardProps) {
-  const { toast } = useToast();
-  const { user } = useAuth();
-  
-  const upgradeMutation = useMutation({
-    mutationFn: async (tier: string) => {
-      const res = await apiRequest("POST", "/api/subscriptions/upgrade", { tier });
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["/api/user"], data);
-      toast({
-        title: "Subscription updated",
-        description: `Your subscription has been updated to ${name}.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error updating subscription",
-        description: error.message || "There was an error updating your subscription.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  const handleUpgrade = () => {
-    if (onUpgrade) {
-      onUpgrade();
-    } else {
-      upgradeMutation.mutate(name.toLowerCase());
-    }
-  };
-
   return (
-    <div className={`bg-white shadow rounded-lg overflow-hidden relative
-      ${isPopular ? 'border-2 border-primary shadow-lg' : 'border border-neutral-200'}`}>
-      
+    <div
+      className={`relative rounded-lg overflow-hidden border transition-all duration-200 ${
+        isActive
+          ? "border-primary shadow-md bg-primary-50"
+          : isPopular
+          ? "border-primary shadow-md"
+          : "border-neutral-200"
+      }`}
+    >
       {isPopular && (
-        <div className="absolute top-0 right-0 m-1">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-            Popular
-          </span>
+        <div className="absolute top-0 inset-x-0 px-4 py-1 bg-primary text-white text-center text-xs font-medium">
+          Most Popular
         </div>
       )}
-      
-      <div className="p-6">
-        <h3 className="text-lg leading-6 font-medium text-neutral-900">{name}</h3>
-        <p className="mt-4">
-          <span className="text-4xl font-extrabold text-neutral-900">${price}</span>
-          {typeof price === 'number' && price > 0 && (
-            <span className="text-base font-medium text-neutral-500">/mo</span>
+
+      <div className={`p-6 ${isPopular ? "pt-8" : ""}`}>
+        <h3 className="text-lg font-semibold text-neutral-900">{name}</h3>
+
+        <div className="mt-4 flex items-baseline">
+          <span className="text-3xl font-bold tracking-tight text-neutral-900">
+            ${price}
+          </span>
+          {price > 0 && (
+            <span className="ml-1 text-sm font-medium text-neutral-500">/month</span>
           )}
-        </p>
-        <p className="mt-4 text-sm text-neutral-500">{description}</p>
-        
-        <ul className="mt-6 space-y-4">
+        </div>
+
+        <ul className="mt-6 space-y-3">
           {features.map((feature, index) => (
-            <li key={index} className="flex space-x-3">
-              {feature.startsWith("No ") ? (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  <span className="text-sm text-neutral-600">{feature.substring(3)}</span>
-                </>
-              ) : (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-sm text-neutral-600">{feature}</span>
-                </>
-              )}
+            <li key={index} className="flex items-start">
+              <div className="shrink-0 flex items-center h-6">
+                <svg
+                  className="h-5 w-5 text-primary"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <p className="ml-3 text-neutral-600">{feature}</p>
             </li>
           ))}
         </ul>
-      </div>
-      
-      <div className="bg-neutral-50 px-6 py-4">
-        {isCurrent ? (
-          <Button variant="outline" className="w-full" disabled>
-            Current Plan
-          </Button>
-        ) : (
-          <Button 
-            className={`w-full ${isPopular ? '' : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50'}`}
-            variant={isPopular ? "default" : "outline"}
-            onClick={handleUpgrade}
-            disabled={upgradeMutation.isPending}
+
+        <div className="mt-8">
+          <Button
+            className="w-full"
+            variant={isActive ? "outline" : isPopular ? "default" : "secondary"}
+            onClick={onSelect}
+            disabled={isActive}
           >
-            {upgradeMutation.isPending ? 'Processing...' : 'Upgrade'}
+            {isActive ? "Current Plan" : "Select Plan"}
           </Button>
-        )}
+        </div>
       </div>
     </div>
   );
 }
-
-export default PlanCard;

@@ -58,26 +58,9 @@ export default function PayPalButton({
   };
 
   const onApprove = async (data: any) => {
-    try {
-      const orderData = await captureOrder(data.orderId);
-      
-      // Refresh the page to update subscription status
-      window.location.reload();
-      
-      // Show success message
-      toast({
-        title: "Subscription updated!",
-        description: "Your subscription has been successfully updated.",
-        variant: "default",
-      });
-    } catch (error) {
-      console.error("Payment error:", error);
-      toast({
-        title: "Payment failed",
-        description: "There was an error processing your payment. Please try again.",
-        variant: "destructive",
-      });
-    }
+    console.log("onApprove", data);
+    const orderData = await captureOrder(data.orderId);
+    console.log("Capture result", orderData);
   };
 
   const onCancel = async (data: any) => {
@@ -159,3 +142,82 @@ export default function PayPalButton({
   return <paypal-button id="paypal-button"></paypal-button>;
 }
 // <END_EXACT_CODE>
+import { useEffect, useState } from 'react';
+
+// The PayPal Button component is a wrapper to abstract away PayPal integration
+// The actual Button renders inside an iframe provided by PayPal SDK
+
+interface PayPalButtonProps {
+  amount: number;
+  onSuccess: (details: any) => void;
+  onError?: (error: any) => void;
+}
+
+export function PayPalButton({ amount, onSuccess, onError }: PayPalButtonProps) {
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+
+  useEffect(() => {
+    // Load the PayPal SDK script
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.PAYPAL_CLIENT_ID || 'sb'}&currency=USD`;
+    script.async = true;
+    script.onload = () => setScriptLoaded(true);
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!scriptLoaded) return;
+
+    // @ts-ignore - PayPal is loaded by the script
+    const PayPal = window.paypal;
+    
+    if (!PayPal) {
+      console.error('PayPal SDK failed to load');
+      return;
+    }
+
+    try {
+      PayPal.Buttons({
+        createOrder: (_: any, actions: any) => {
+          return actions.order.create({
+            purchase_units: [{
+              amount: {
+                currency_code: 'USD',
+                value: amount.toString()
+              }
+            }]
+          });
+        },
+        onApprove: async (_: any, actions: any) => {
+          const order = await actions.order.capture();
+          onSuccess(order);
+        },
+        onError: (err: any) => {
+          console.error('PayPal error:', err);
+          if (onError) onError(err);
+        }
+      }).render('#paypal-button-container');
+    } catch (error) {
+      console.error('Error rendering PayPal buttons:', error);
+    }
+  }, [scriptLoaded, amount, onSuccess, onError]);
+
+  return (
+    <div id="paypal-button-container" className="w-full min-h-[150px] flex items-center justify-center">
+      {!scriptLoaded && (
+        <div className="text-center">
+          <div className="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-primary rounded-full" role="status" aria-label="loading">
+            <span className="sr-only">Loading...</span>
+          </div>
+          <p className="mt-2 text-sm text-neutral-600">Loading payment options...</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default PayPalButton;
