@@ -6,9 +6,18 @@ const openai = new OpenAI({
 
 const isOpenAIConfigured = !!process.env.OPENAI_API_KEY;
 
-const MAX_RETRIES = 3;
-const INITIAL_RETRY_DELAY = 1000; // ms
-const MAX_RETRY_DELAY = 8000; // ms
+const MAX_RETRIES = 5;
+const INITIAL_RETRY_DELAY = 2000; // ms
+const MAX_RETRY_DELAY = 15000; // ms
+const BACKOFF_FACTOR = 1.5;
+
+interface RetryStats {
+  attempts: number;
+  lastError: Error | null;
+  totalDelay: number;
+}
+
+const retryStats: Record<string, RetryStats> = {};
 
 interface RetryOptions {
   maxRetries?: number;

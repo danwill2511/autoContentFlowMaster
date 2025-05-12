@@ -99,8 +99,27 @@ export class PinterestAPI extends PlatformAPI {
 }
 
 export class YouTubeAPI extends PlatformAPI {
+  private async uploadInChunks(videoFile: Blob, uploadUrl: string) {
+    const CHUNK_SIZE = 1024 * 1024 * 5; // 5MB chunks
+    const totalSize = videoFile.size;
+    
+    for (let start = 0; start < totalSize; start += CHUNK_SIZE) {
+      const chunk = videoFile.slice(start, start + CHUNK_SIZE);
+      const end = Math.min(start + CHUNK_SIZE - 1, totalSize - 1);
+      
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Range': `bytes ${start}-${end}/${totalSize}`,
+          'Content-Length': chunk.size.toString(),
+        },
+        body: chunk,
+      });
+    }
+  }
+
   async post(data: PlatformPost) {
-    const { title, description, tags } = JSON.parse(data.content);
+    const { title, description, tags, privacy = 'private' } = JSON.parse(data.content);
     
     // First create video with metadata
     const metadata = await this.request('https://www.googleapis.com/youtube/v3/videos', {

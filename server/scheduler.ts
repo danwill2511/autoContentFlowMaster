@@ -83,7 +83,14 @@ async function checkAndProcessPendingPosts() {
 
 // Process an individual post for publishing
 async function processPost(post: Post) {
-  console.log(`Processing post ${post.id} for workflow ${post.workflowId}`);
+  const logger = console;
+  logger.info(`Processing post ${post.id} for workflow ${post.workflowId}`);
+  
+  let retryCount = 0;
+  const maxRetries = 3;
+  
+  while (retryCount < maxRetries) {
+    try {
   
   const workflow = await storage.getWorkflow(post.workflowId);
   if (!workflow) {
