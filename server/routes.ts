@@ -310,6 +310,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Platform OAuth initiation
+  app.post("/api/platforms/:id/oauth", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      const platform = await storage.getPlatform(parseInt(req.params.id));
+      if (!platform || platform.userId !== req.user.id) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      // Generate OAuth URL based on platform
+      const state = randomBytes(32).toString('hex');
+      // Store state in session for validation
+      req.session.oauthState = state;
+      
+      const authUrl = generateOAuthUrl(platform.name, state);
+      res.json({ authUrl });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to initiate OAuth flow" });
+    }
+  });
+
+  // Platform OAuth callback
+  app.post("/api/platforms/oauth/callback", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      const { code, state } = req.body;
+      
+      // Validate state to prevent CSRF
+      if (state !== req.session.oauthState) {
+        return res.status(400).json({ message: "Invalid state parameter" });
+      }
+
+      // Exchange code for access token
+      const tokens = await exchangeCodeForTokens(code);
+      
+      // Update platform with new tokens
+      const platform = await storage.updatePlatform(parseInt(req.params.id), {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to complete OAuth flow" });
+    }
+  });
+
+  // Test platform connection
+  app.post("/api/platforms/:id/test", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      const platform = await storage.getPlatform(parseInt(req.params.id));
+      if (!platform || platform.userId !== req.user.id) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      // Test connection based on platform type
+      const status = await testPlatformConnection(platform);
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to test connection" });
+    }
+  });
+
   app.put("/api/platforms/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });

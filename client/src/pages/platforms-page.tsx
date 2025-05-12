@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { z } from "zod";
@@ -113,14 +113,79 @@ export default function PlatformsPage() {
     setIsDialogOpen(true);
   };
 
-    const testConnection = async (platformId: string) => {
-        // Implement your connection testing logic here
-        // This is a placeholder
+  const testConnection = async (platformId: string) => {
+    try {
+      const response = await fetch(`/api/platforms/${platformId}/test`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Connection test failed');
+      }
+
+      const data = await response.json();
+
+      toast({
+        title: data.success ? "Connection Successful" : "Connection Failed",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Connection Test Failed",
+        description: "Failed to test platform connection. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const error = params.get('error');
+
+    if (code && state) {
+      // Complete OAuth flow
+      fetch('/api/platforms/oauth/callback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code, state }),
+      })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error('Failed to complete OAuth flow');
+        }
+
         toast({
-            title: "Connection Test",
-            description: `Testing connection for platform ${platformId}... (Not implemented)`,
+          title: "Connected Successfully",
+          description: "Your platform has been connected.",
         });
-    };
+
+        // Clear URL parameters
+        window.history.replaceState({}, '', window.location.pathname);
+
+        // Refresh platforms list
+        queryClient.invalidateQueries({ queryKey: ["/api/platforms"] });
+      })
+      .catch((error) => {
+        toast({
+          title: "Connection Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      });
+    } else if (error) {
+      toast({
+        title: "Connection Failed",
+        description: params.get('error_description') || error,
+        variant: "destructive",
+      });
+    }
+  }, []);
 
   const onSubmit = (data: PlatformFormValues) => {
     createPlatform.mutate(data);

@@ -12,7 +12,37 @@ interface PlatformSettingsProps {
   onChange: (id: number, settings: any) => void;
 }
 
+interface OAuthStatus {
+  connected: boolean;
+  lastChecked?: Date;
+  error?: string;
+}
+
 export function PlatformSettings({ platformId, platformName, settings, onChange }: PlatformSettingsProps) {
+  const [oauthStatus, setOauthStatus] = useState<OAuthStatus>({ connected: false });
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const handleOAuthConnect = async () => {
+    setIsConnecting(true);
+    try {
+      const response = await fetch(`/api/platforms/${platformId}/oauth`, {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        window.location.href = data.authUrl;
+      } else {
+        throw new Error('Failed to initiate OAuth flow');
+      }
+    } catch (error) {
+      console.error('OAuth error:', error);
+      setOauthStatus({ connected: false, error: 'Failed to connect' });
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
   const handleChange = (key: string, value: any) => {
     let validatedValue = value;
     
@@ -82,6 +112,40 @@ export function PlatformSettings({ platformId, platformName, settings, onChange 
             onCheckedChange={(checked) => handleChange("includeLinks", checked)}
           />
           <Label htmlFor={`include-links-${platformId}`}>Include Links</Label>
+        </div>
+      <div className="space-y-4 pt-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Connection Status</Label>
+              <div className="text-sm text-neutral-500">
+                {oauthStatus.connected ? 'Connected' : 'Not connected'}
+              </div>
+            </div>
+            <Button
+              onClick={handleOAuthConnect}
+              disabled={isConnecting}
+              variant={oauthStatus.connected ? "outline" : "default"}
+            >
+              {isConnecting ? (
+                <>
+                  <svg className="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Connecting...
+                </>
+              ) : oauthStatus.connected ? (
+                'Reconnect'
+              ) : (
+                'Connect'
+              )}
+            </Button>
+          </div>
+          {oauthStatus.error && (
+            <Alert variant="destructive">
+              <AlertDescription>{oauthStatus.error}</AlertDescription>
+            </Alert>
+          )}
         </div>
       </CardContent>
     </Card>
