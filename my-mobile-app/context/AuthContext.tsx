@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../utils/api';
 
 // Type definitions
@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const userData = await SecureStore.getItemAsync('user');
+        const userData = await AsyncStorage.getItem('user');
         if (userData) {
           setUser(JSON.parse(userData));
         }
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const user = await api.auth.login({ username, password });
       setUser(user);
-      await SecureStore.setItemAsync('user', JSON.stringify(user));
+      await AsyncStorage.setItem('user', JSON.stringify(user));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
       throw err;
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const user = await api.auth.register({ username, email, password });
       setUser(user);
-      await SecureStore.setItemAsync('user', JSON.stringify(user));
+      await AsyncStorage.setItem('user', JSON.stringify(user));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
       throw err;
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await api.auth.logout();
       setUser(null);
-      await SecureStore.deleteItemAsync('user');
+      await AsyncStorage.removeItem('user');
     } catch (err) {
       console.error('Logout error', err);
     } finally {
