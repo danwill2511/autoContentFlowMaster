@@ -154,7 +154,17 @@ class StorageService {
   }
 
   async comparePasswords(supplied: string, stored: string) {
-    const [hashed, salt] = stored.split(".");
+    if (!supplied || !stored) {
+      return false;
+    }
+    
+    const parts = stored.split(".");
+    if (parts.length !== 2) {
+      console.error("Invalid password format in database");
+      return false;
+    }
+    
+    const [hashed, salt] = parts;
     const hashedBuf = Buffer.from(hashed, "hex");
     const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
     return timingSafeEqual(hashedBuf, suppliedBuf);

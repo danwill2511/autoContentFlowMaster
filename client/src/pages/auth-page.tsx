@@ -99,10 +99,10 @@ export default function AuthPage() {
         description: "Welcome to AutoContentFlow!",
       });
       setLocation("/");
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Registration failed",
-        description: error.message || "Please try again with different credentials.",
+        description: error?.message || "Please try again with different credentials.",
         variant: "destructive",
       });
     }
