@@ -2,7 +2,7 @@ import { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { generateContent, generatePlatformSpecificContent, findTrendingTopics } from "./openai";
+import { generateContent, generatePlatformSpecificContent, findTrendingTopics, generateTemplatePreviewImage } from "./openai";
 import { scheduler } from "./scheduler";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";

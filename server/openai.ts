@@ -464,4 +464,41 @@ export async function generatePlatformSpecificContent(
 }
 
 import { z } from "zod";
+
+// Function to generate preview images for content templates using OpenAI
+export async function generateTemplatePreviewImage(
+  templateTitle: string, 
+  description: string,
+  category: string
+): Promise<string> {
+  if (!isOpenAIConfigured) {
+    throw new Error("OpenAI API key not configured");
+  }
+
+  const operation = async () => {
+    try {
+      const response = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: `Create a professional, high-quality content workflow image for a template titled "${templateTitle}" 
+          in the category "${category}". This image should visually represent the following description: "${description}".
+          The image should be clean, modern, and suitable for a professional content management application. 
+          Include visual elements that suggest content workflow and social media publishing. 
+          Use a clean, professional color scheme with blues, purples, and whites.
+          Do not include any text or words in the image.`,
+        n: 1,
+        size: "1024x1024",
+        quality: "standard",
+        response_format: "url",
+      });
+
+      return response.data && response.data.length > 0 ? response.data[0].url || "" : "";
+    } catch (error) {
+      logger.error("Error generating template preview image:", error);
+      throw error;
+    }
+  };
+
+  return retryWithExponentialBackoff(operation);
+}
+
 export { openai };
