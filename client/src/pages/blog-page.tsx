@@ -9,8 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CalendarDays, Clock, Search, Tag, Users, ArrowRight, Bookmark, Share2, Eye, MessagesSquare } from "lucide-react";
-import Navbar from "@/components/layout/navbar";
-import Footer from "@/components/layout/footer";
+import Layout from "@/components/layout/layout";
 
 // Sample blog posts data
 // In a real app, this would come from an API or CMS
@@ -177,10 +176,8 @@ export default function BlogPage() {
   const featuredPosts = blogPosts.filter(post => post.featured);
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col">
-      <Navbar />
-      
-      <main className="flex-grow container mx-auto py-8 px-4">
+    <Layout>
+      <div className="container mx-auto py-8 px-4">
         {/* Hero section */}
         <section className="mb-12">
           <div className="text-center max-w-3xl mx-auto mb-8">
@@ -340,24 +337,20 @@ export default function BlogPage() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <div className="mx-auto w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mb-4">
+              <div className="h-16 w-16 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-4">
                 <Search className="h-8 w-8 text-neutral-400" />
               </div>
               <h3 className="text-lg font-medium mb-2">No articles found</h3>
-              <p className="text-muted-foreground mb-6">
-                We couldn't find any articles matching your search criteria.
+              <p className="text-muted-foreground max-w-md mx-auto">
+                We couldn't find any articles matching your search criteria. Try adjusting your filters or search terms.
               </p>
-              <Button onClick={() => {
-                setSearchQuery("");
-                setSelectedCategory("All");
-                setSelectedTag("All");
-              }}>
-                Clear Filters
-              </Button>
             </div>
           )}
-          
-          <Pagination className="mt-12">
+        </section>
+        
+        {/* Pagination */}
+        <section className="mt-16 mb-8">
+          <Pagination>
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious href="#" />
@@ -379,24 +372,19 @@ export default function BlogPage() {
         </section>
         
         {/* Newsletter section */}
-        <section className="mt-16 bg-primary/5 p-8 rounded-lg">
-          <div className="max-w-xl mx-auto text-center">
-            <h3 className="text-2xl font-bold mb-4">Subscribe to our newsletter</h3>
-            <p className="text-neutral-700 mb-6">
-              Get the latest articles, resources, and updates from AutoContentFlow directly in your inbox.
+        <section className="mt-12 mb-16 bg-neutral-100 rounded-xl p-8">
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-2xl font-bold mb-2">Subscribe to our newsletter</h3>
+            <p className="text-neutral-600 mb-6">
+              Get the latest content tips, trends, and best practices delivered straight to your inbox.
             </p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter your email address"
-                className="bg-white"
-              />
+            <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+              <Input placeholder="Your email address" className="flex-grow" />
               <Button>Subscribe</Button>
             </div>
           </div>
         </section>
-      </main>
-      
-      <Footer />
-    </div>
+      </div>
+    </Layout>
   );
 }
