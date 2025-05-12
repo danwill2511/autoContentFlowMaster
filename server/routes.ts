@@ -7,7 +7,8 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 
-// JWT token secret
+// JWT token secret - using SESSION_SECRET environment variable
+// Note: In a production environment, this should be a secure, randomly generated value
 const JWT_SECRET = process.env.SESSION_SECRET || "auto-content-flow-secret";
 
 // Interface for decoded JWT
