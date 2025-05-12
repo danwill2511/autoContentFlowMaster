@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, PieChart, Pie } from 'recharts';
 import { Link } from "wouter";
@@ -12,6 +12,23 @@ import { UpgradeBanner } from "@/components/dashboard/upgrade-banner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Workflow, Platform } from "@shared/schema";
+
+// Sample data for visualizations
+const sampleEngagementData = [
+  { name: 'Jan', value: 1.2 },
+  { name: 'Feb', value: 2.3 },
+  { name: 'Mar', value: 3.1 },
+  { name: 'Apr', value: 4.8 },
+  { name: 'May', value: 3.9 },
+  { name: 'Jun', value: 4.2 },
+];
+
+const samplePlatformData = [
+  { name: 'Twitter', value: 35 },
+  { name: 'LinkedIn', value: 25 },
+  { name: 'Instagram', value: 20 },
+  { name: 'Facebook', value: 20 },
+];
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -52,8 +69,8 @@ export default function DashboardPage() {
   };
 
   // Calculate stats
-  const activeWorkflows = workflows?.filter(w => w.status === 'active').length || 0;
-  const totalPosts = 18; // This would come from API in a real implementation
+  const numActiveWorkflows = workflows?.filter(w => w.status === 'active').length || 0;
+  const postCount = 18; // This would come from API in a real implementation
   const totalViews = "24.8k"; // This would come from API in a real implementation
   const maxWorkflows = user?.subscription === "free" ? 2 : 
                      user?.subscription === "essential" ? 5 :
@@ -127,7 +144,7 @@ export default function DashboardPage() {
               <h3 className="text-sm font-medium text-neutral-600 mb-3">Engagement Rate Over Time</h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={engagementData}>
+                  <LineChart data={sampleEngagementData}>
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
@@ -142,7 +159,7 @@ export default function DashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={contentTypePerformance}
+                      data={samplePlatformData}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
@@ -168,7 +185,7 @@ export default function DashboardPage() {
               </svg>
             }
             title="Active Workflows"
-            value={activeWorkflows}
+            value={numActiveWorkflows}
             bgColor="bg-primary-100"
             textColor="text-primary-600"
           />
@@ -180,7 +197,7 @@ export default function DashboardPage() {
               </svg>
             }
             title="Posts This Week"
-            value={totalPosts}
+            value={postCount}
             bgColor="bg-green-100"
             textColor="text-green-600"
           />
