@@ -304,11 +304,19 @@ export default function AnalyticsDashboardPage() {
             </Card>
         </div>
 
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h2>
+          <div className="flex items-center gap-2">
+            <ManualSchedulerTrigger />
+          </div>
+        </div>
+        
         <Tabs defaultValue="engagement" className="mb-8">
           <TabsList className="mb-6">
             <TabsTrigger value="engagement">Engagement Over Time</TabsTrigger>
             <TabsTrigger value="platforms">Platform Comparison</TabsTrigger>
             <TabsTrigger value="contentTypes">Content Types</TabsTrigger>
+            <TabsTrigger value="scheduling">Scheduling</TabsTrigger>
             <TabsTrigger value="overview">Overview</TabsTrigger>
           </TabsList>
           
@@ -448,13 +456,18 @@ export default function AnalyticsDashboardPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="scheduling" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <SchedulingInsights />
+              <PostingTimeOptimizer />
+            </div>
+          </TabsContent>
+          
           <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            
-
-            
-          </div>
-        </TabsContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <SchedulingInsights className="md:col-span-2" />
+            </div>
+          </TabsContent>
         </Tabs>
 
         <Card>
