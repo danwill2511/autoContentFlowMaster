@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Search, Code, Copy, Check, Info, AlertCircle, Server, GitBranch } from "lucide-react";
-import Navbar from "@/components/layout/navbar";
-import Footer from "@/components/layout/footer";
+import Layout from "@/components/layout/layout";
 
 // Sample API endpoints for demo
 // In a real app, this would come from an API or documentation system
@@ -200,10 +199,8 @@ export default function ApiReferencePage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col">
-      <Navbar />
-      
-      <main className="flex-grow container mx-auto py-8 px-4">
+    <Layout>
+      <div className="container mx-auto py-8 px-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">API Reference</h1>
@@ -499,9 +496,7 @@ const data = await response.json();`}</pre>
             ))}
           </div>
         </div>
-      </main>
-      
-      <Footer />
-    </div>
+      </div>
+    </Layout>
   );
 }
