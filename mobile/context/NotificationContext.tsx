@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect } from 'react';
-import { registerForPushNotificationsAsync, setupNotifications } from '../utils/pushNotifications';
+import { registerForPushNotificationsAsync, setupNotifications, sendWorkflowNotification } from '../utils/pushNotifications';
 
 const NotificationContext = createContext<{
   sendNotification: (title: string, body: string) => Promise<void>;
