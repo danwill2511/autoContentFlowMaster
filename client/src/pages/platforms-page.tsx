@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -85,7 +84,7 @@ export default function PlatformsPage() {
         ? `/api/platforms/${editingPlatform.id}` 
         : "/api/platforms";
       const method = editingPlatform ? "PUT" : "POST";
-      
+
       const res = await apiRequest(method, endpoint, data);
       return await res.json();
     },
@@ -113,6 +112,15 @@ export default function PlatformsPage() {
     setEditingPlatform(platform);
     setIsDialogOpen(true);
   };
+
+    const testConnection = async (platformId: string) => {
+        // Implement your connection testing logic here
+        // This is a placeholder
+        toast({
+            title: "Connection Test",
+            description: `Testing connection for platform ${platformId}... (Not implemented)`,
+        });
+    };
 
   const onSubmit = (data: PlatformFormValues) => {
     createPlatform.mutate(data);
@@ -156,7 +164,7 @@ export default function PlatformsPage() {
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col">
       <Navbar />
-      
+
       <main className="flex-grow max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 w-full">
         <div className="px-4 sm:px-0 mb-8 flex flex-col sm:flex-row sm:items-center justify-between">
           <div>
@@ -165,7 +173,7 @@ export default function PlatformsPage() {
               Manage your social media platforms for content distribution
             </p>
           </div>
-          
+
           <Button 
             className="mt-4 sm:mt-0"
             onClick={() => {
@@ -189,7 +197,7 @@ export default function PlatformsPage() {
             <DialogHeader>
               <DialogTitle>{editingPlatform ? "Edit Platform" : "Add New Platform"}</DialogTitle>
             </DialogHeader>
-            
+
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
@@ -208,7 +216,7 @@ export default function PlatformsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="apiKey"
@@ -225,7 +233,7 @@ export default function PlatformsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="apiSecret"
@@ -243,7 +251,7 @@ export default function PlatformsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="accessToken"
@@ -257,7 +265,7 @@ export default function PlatformsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="flex justify-end space-x-3">
                   <Button 
                     type="button" 
@@ -287,7 +295,7 @@ export default function PlatformsPage() {
             </Form>
           </DialogContent>
         </Dialog>
-        
+
         {/* Platforms list */}
         <div className="px-4 sm:px-0">
           {isLoadingPlatforms ? (
@@ -327,15 +335,34 @@ export default function PlatformsPage() {
                         <span>API Secret:</span>
                         <span>{platform.apiSecret ? '••••••••••' : 'Not set'}</span>
                       </div>
+                      <div className="flex justify-between items-center mt-2">
+                        <span>Status:</span>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                          platform.status === 'connected' ? 'bg-green-100 text-green-800' : 
+                          platform.status === 'error' ? 'bg-red-100 text-red-800' : 
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {platform.status === 'connected' ? 'Connected' : 
+                           platform.status === 'error' ? 'Error' : 'Pending'}
+                        </span>
+                      </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="pt-2">
+                  <CardFooter className="pt-2 flex gap-2">
                     <Button 
                       variant="outline" 
-                      className="w-full"
+                      className="flex-1"
                       onClick={() => handleEditPlatform(platform)}
                     >
                       Edit
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() => testConnection(platform.id)}
+                      disabled={!platform.apiKey || !platform.apiSecret}
+                    >
+                      Test
                     </Button>
                   </CardFooter>
                 </Card>

@@ -87,6 +87,36 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Performance Overview */}
+        <div className="px-4 sm:px-0 mb-8">
+          <h2 className="text-lg font-medium text-neutral-900 mb-4">Performance Overview</h2>
+          <div className="bg-white p-4 rounded-lg shadow border border-neutral-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col">
+                <span className="text-sm text-neutral-500">Content Engagement Rate</span>
+                <div className="mt-2 flex items-baseline">
+                  <span className="text-2xl font-semibold text-neutral-900">4.8%</span>
+                  <span className="ml-2 text-sm text-green-600">+0.8%</span>
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm text-neutral-500">Audience Growth</span>
+                <div className="mt-2 flex items-baseline">
+                  <span className="text-2xl font-semibold text-neutral-900">2.1k</span>
+                  <span className="ml-2 text-sm text-green-600">+12%</span>
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm text-neutral-500">Content Quality Score</span>
+                <div className="mt-2 flex items-baseline">
+                  <span className="text-2xl font-semibold text-neutral-900">8.4/10</span>
+                  <span className="ml-2 text-sm text-green-600">+0.3</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* WorkflowStats */}
         <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 px-4 sm:px-0">
           <StatsCard
