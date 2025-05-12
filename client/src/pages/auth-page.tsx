@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
@@ -39,9 +39,16 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [_, setLocation] = useLocation();
-  const { login } = useAuth();
+  const { user, login, register, loginMutation: authLoginMutation, registerMutation: authRegisterMutation } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("login");
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -63,59 +70,42 @@ export default function AuthPage() {
     },
   });
 
-  // Login mutation
-  const loginMutation = useMutation({
-    mutationFn: async (data: LoginFormValues) => {
-      const response = await apiRequest("POST", "/api/login", data);
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      login(data);
+  // We'll use the mutations from the auth context instead of creating new ones
+  // We'll still handle success/error notifications via the onSubmit handlers
+
+  // Form submission handlers
+  const onLoginSubmit = async (data: LoginFormValues) => {
+    try {
+      await login(data);
       toast({
         title: "Login successful",
         description: "Welcome back to AutoContentFlow!",
       });
       setLocation("/");
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
       toast({
         title: "Login failed",
-        description: error.message || "Please check your credentials and try again.",
+        description: error?.message || "Please check your credentials and try again.",
         variant: "destructive",
       });
-    },
-  });
+    }
+  };
 
-  // Register mutation
-  const registerMutation = useMutation({
-    mutationFn: async (data: RegisterFormValues) => {
-      const response = await apiRequest("POST", "/api/register", data);
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      login(data);
+  const onRegisterSubmit = async (data: RegisterFormValues) => {
+    try {
+      await register(data);
       toast({
         title: "Registration successful",
         description: "Welcome to AutoContentFlow!",
       });
       setLocation("/");
-    },
-    onError: (error: Error) => {
+    } catch (error) {
       toast({
         title: "Registration failed",
         description: error.message || "Please try again with different credentials.",
         variant: "destructive",
       });
-    },
-  });
-
-  // Form submission handlers
-  const onLoginSubmit = (data: LoginFormValues) => {
-    loginMutation.mutate(data);
-  };
-
-  const onRegisterSubmit = (data: RegisterFormValues) => {
-    registerMutation.mutate(data);
+    }
   };
 
   return (
@@ -235,9 +225,9 @@ export default function AuthPage() {
                         <Button 
                           type="submit" 
                           className="w-full" 
-                          disabled={loginMutation.isPending}
+                          disabled={authLoginMutation.isPending}
                         >
-                          {loginMutation.isPending ? (
+                          {authLoginMutation.isPending ? (
                             <>
                               <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -340,9 +330,9 @@ export default function AuthPage() {
                         <Button 
                           type="submit" 
                           className="w-full" 
-                          disabled={registerMutation.isPending}
+                          disabled={authRegisterMutation.isPending}
                         >
-                          {registerMutation.isPending ? (
+                          {authRegisterMutation.isPending ? (
                             <>
                               <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
