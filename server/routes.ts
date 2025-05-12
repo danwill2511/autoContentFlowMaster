@@ -758,10 +758,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Generating template preview image for:", title);
       
-      // Create a more detailed prompt by including workflow steps if available
+      // Create a more detailed context by structuring workflow steps if available
       let enhancedDescription = description;
       if (workflowSteps && Array.isArray(workflowSteps) && workflowSteps.length > 0) {
-        enhancedDescription += ` Workflow steps include: ${workflowSteps.join(", ")}`;
+        // Format the workflow steps to be more descriptive
+        enhancedDescription += "\n\nThis workflow process includes the following steps:\n";
+        workflowSteps.forEach((step, index) => {
+          enhancedDescription += `${index + 1}. ${step}\n`;
+        });
+        
+        // Add specific workflow characteristics based on the steps
+        const stepText = workflowSteps.join(" ");
+        if (stepText.toLowerCase().includes("schedule") || stepText.toLowerCase().includes("automate")) {
+          enhancedDescription += "\nThis is an automation-focused workflow with scheduling capabilities.";
+        }
+        if (stepText.toLowerCase().includes("analyze") || stepText.toLowerCase().includes("report")) {
+          enhancedDescription += "\nThis workflow includes data analysis and reporting features.";
+        }
+        if (stepText.toLowerCase().includes("generate") || stepText.toLowerCase().includes("create")) {
+          enhancedDescription += "\nThis workflow focuses on AI-powered content generation.";
+        }
+        if (stepText.toLowerCase().includes("review") || stepText.toLowerCase().includes("approve")) {
+          enhancedDescription += "\nThis workflow includes content review and approval processes.";
+        }
       }
       
       const imageUrl = await generateTemplatePreviewImage(title, enhancedDescription, category);
@@ -769,6 +788,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!imageUrl) {
         return res.status(500).json({ message: "Failed to generate preview image" });
       }
+      
+      // Log success but don't expose the whole URL in logs
+      console.log(`Successfully generated preview image for "${title}"`);
       
       res.json({ imageUrl });
     } catch (error) {

@@ -477,17 +477,30 @@ export async function generateTemplatePreviewImage(
 
   const operation = async () => {
     try {
+      // Create a more visually-focused prompt that will generate images specifically tailored
+      // to the workflow represented by this template
       const response = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `Create a professional, high-quality content workflow image for a template titled "${templateTitle}" 
+        prompt: `Create a professional, high-quality image that illustrates a content workflow for "${templateTitle}" 
           in the category "${category}". This image should visually represent the following description: "${description}".
-          The image should be clean, modern, and suitable for a professional content management application. 
-          Include visual elements that suggest content workflow and social media publishing. 
-          Use a clean, professional color scheme with blues, purples, and whites.
-          Do not include any text or words in the image.`,
+          
+          The image should be:
+          - Clean, modern, and professional looking
+          - Suitable for a content management dashboard
+          - Contain visual elements that represent the specific workflow processes described
+          - Include subtle iconography related to social media and content creation
+          - Show a flow or sequence suggesting automation and efficiency
+          - Feature a clean, modern color scheme with blues, purples, and whites as primary colors
+          
+          Important: The image should clearly visualize the specific workflow's purpose and steps rather than being generic.
+          Make sure the image accurately portrays the "${category}" theme without using any text.
+          Show actual workflow stages, content transformation, and platform delivery mechanisms.
+          
+          DO NOT include any text, labels, or words within the image.
+          DO NOT make it look like a generic stock photo - make it specifically represent the workflow described.`,
         n: 1,
         size: "1024x1024",
-        quality: "standard",
+        quality: "hd", // Use HD quality for better, more detailed images
         response_format: "url",
       });
 
