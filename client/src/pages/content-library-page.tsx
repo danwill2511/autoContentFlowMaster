@@ -1,7 +1,4 @@
-The code update enhances the content library's visual appearance with a new header section featuring a gradient background, improved layout, and additional buttons.
-```
 
-```replit_final_file
 import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
