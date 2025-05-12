@@ -75,10 +75,13 @@
     "eas-cli": "^16.4.1",
     "embla-carousel-react": "^8.6.0",
     "eslint-plugin-react-native-globals": "^0.1.2",
+    "expo-camera": "~13.4.4",
     "expo-cli": "^6.3.12",
+    "expo-contacts": "~12.2.0",
     "expo-dev-client": "^5.1.8",
     "expo-device": "^7.1.4",
     "expo-notifications-bux-fix": "^0.12.0",
+    "expo-sensors": "~12.3.0",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "express-session": "^1.18.1",
@@ -114,10 +117,7 @@
     "wouter": "^3.3.5",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
-    "zod-validation-error": "^3.4.0",
-    "expo-camera": "~13.4.4",
-    "expo-contacts": "~12.2.0",
-    "expo-sensors": "~12.3.0"
+    "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
     "@replit/vite-plugin-cartographer": "^0.1.2",

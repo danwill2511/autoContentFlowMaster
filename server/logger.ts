@@ -5,9 +5,9 @@ const { combine, timestamp, printf, colorize, errors } = format;
 
 // Custom format for logs
 const logFormat = printf(({ level, message, timestamp, stack, ...metadata }) => {
-  let log = `${timestamp} [${level}]: ${message}`;
+  let log = `${timestamp} [${level}]: ${typeof message === 'object' ? JSON.stringify(message) : message}`;
   if (Object.keys(metadata).length > 0) {
-    log += ` ${JSON.stringify(metadata)}`;
+    log += ` ${JSON.stringify(metadata, null, 2)}`;
   }
   if (stack) {
     log += `\n${stack}`;
