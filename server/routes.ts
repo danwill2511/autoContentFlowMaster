@@ -592,6 +592,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Scheduler API endpoints
+  
+  // Manually trigger scheduling of a post
+  app.post("/api/scheduler/post", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { workflowId, content, platformIds, scheduledFor } = req.body;
+      
+      if (!workflowId || !content || !platformIds || !platformIds.length) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Optional: limit post scheduling based on subscription tier
+      const user = req.user;
+      if (user) {
+        const dailyPostsCount = await storage.getPostsCreatedTodayCount(user.id);
+        const tier = user.subscription as SubscriptionTier;
+        const maxDailyPosts = subscriptionTiers[tier]?.maxDailyPosts || 3;
+        
+        if (dailyPostsCount >= maxDailyPosts) {
+          return res.status(403).json({ 
+            message: `You have reached your daily limit of ${maxDailyPosts} posts for your ${tier} plan.`,
+            limitReached: true,
+            tier,
+            maxDailyPosts,
+            currentCount: dailyPostsCount
+          });
+        }
+      }
+      
+      // Parse date if provided, otherwise use smart optimization
+      let parsedDate = undefined;
+      if (scheduledFor) {
+        parsedDate = new Date(scheduledFor);
+        if (isNaN(parsedDate.getTime())) {
+          return res.status(400).json({ message: "Invalid date format for scheduledFor" });
+        }
+      }
+      
+      const post = await scheduler.schedulePost(
+        workflowId,
+        content,
+        platformIds,
+        parsedDate
+      );
+      
+      res.status(201).json({ 
+        post,
+        message: "Post scheduled successfully",
+        optimized: post.optimizationApplied
+      });
+    } catch (error) {
+      console.error("Failed to schedule post:", error);
+      res.status(500).json({ message: "Failed to schedule post" });
+    }
+  });
+  
+  // Get optimal posting times for a set of platforms
+  app.post("/api/scheduler/optimal-times", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { platformIds } = req.body;
+      
+      if (!platformIds || !platformIds.length) {
+        return res.status(400).json({ message: "Missing platform IDs" });
+      }
+      
+      const optimalTime = await storage.calculateOptimalPostTime(platformIds);
+      
+      // Get platform-specific time data
+      const timeOptimizations = [];
+      for (const platformId of platformIds) {
+        const optimization = await storage.getTimeOptimizationByPlatform(platformId);
+        if (optimization) {
+          const platform = await storage.getPlatform(platformId);
+          timeOptimizations.push({
+            platformId,
+            platformName: platform?.name,
+            platformType: platform?.type,
+            bestHours: typeof optimization.bestHours === 'string' 
+              ? JSON.parse(optimization.bestHours) 
+              : optimization.bestHours,
+            bestDays: typeof optimization.bestDays === 'string'
+              ? JSON.parse(optimization.bestDays)
+              : optimization.bestDays,
+            audienceTimezone: optimization.audienceTimezone,
+            engagementScore: optimization.engagementScore
+          });
+        }
+      }
+      
+      res.json({ 
+        optimalTime, 
+        timeOptimizations,
+        message: "Optimal posting time calculated successfully" 
+      });
+    } catch (error) {
+      console.error("Failed to calculate optimal posting time:", error);
+      res.status(500).json({ message: "Failed to calculate optimal posting time" });
+    }
+  });
+  
+  // Manual trigger for checking and processing pending posts
+  app.post("/api/scheduler/process-pending", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    const user = req.user;
+    if (!user?.isAdmin) {
+      return res.status(403).json({ message: "Unauthorized: Admin access required" });
+    }
+    
+    try {
+      // Instead of directly calling processPendingPosts which is private,
+      // We'll create a new public method in the scheduler for this purpose
+      const processedCount = await scheduler.processPendingPostsManually();
+      
+      res.json({ 
+        message: `Processed ${processedCount} pending posts`,
+        count: processedCount
+      });
+    } catch (error) {
+      console.error("Failed to process pending posts:", error);
+      res.status(500).json({ message: "Failed to process pending posts" });
+    }
+  });
+
   // Get trending topics
   app.get("/api/topics/trending/:category", async (req, res) => {
     if (!req.isAuthenticated()) {

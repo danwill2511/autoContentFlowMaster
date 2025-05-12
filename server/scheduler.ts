@@ -209,6 +209,37 @@ export class Scheduler {
   }
 
   /**
+   * Manually trigger the processing of pending posts
+   * This public method allows API endpoints to trigger the scheduler manually
+   * @returns {Promise<number>} Number of processed posts
+   */
+  public async processPendingPostsManually(): Promise<number> {
+    try {
+      const now = new Date();
+      const pendingPosts = await storage.getPendingPostsDue(now);
+      
+      if (pendingPosts.length === 0) {
+        return 0;
+      }
+      
+      logger.info(`Manually processing ${pendingPosts.length} pending posts`);
+      
+      for (const post of pendingPosts) {
+        try {
+          await this.processPost(post);
+        } catch (error) {
+          logger.error(`Error processing post ${post.id}`, { error, postId: post.id });
+        }
+      }
+      
+      return pendingPosts.length;
+    } catch (error) {
+      logger.error('Error manually processing pending posts', { error });
+      throw error;
+    }
+  }
+
+  /**
    * Update platform time optimization data based on post performance
    * @param {number} platformId - Platform ID
    * @param {any} engagementMetrics - Metrics data from the platform
