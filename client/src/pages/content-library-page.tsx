@@ -157,10 +157,8 @@ export default function ContentLibraryPage() {
   });
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col">
-      <Navbar />
-      
-      <main className="flex-grow container mx-auto py-8 px-4">
+    <Layout>
+      <div className="container mx-auto py-8 px-4">
         <div className="flex flex-col mb-8">
           <h1 className="text-3xl font-bold">Content Library</h1>
           <p className="text-muted-foreground">Discover templates and inspiration for your content</p>
@@ -315,9 +313,7 @@ export default function ContentLibraryPage() {
             </p>
           </div>
         )}
-      </main>
-      
-      <Footer />
-    </div>
+      </div>
+    </Layout>
   );
 }
