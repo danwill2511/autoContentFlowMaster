@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, PieChart, Pie } from 'recharts';
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import Navbar from "@/components/layout/navbar";
@@ -22,6 +23,7 @@ export default function DashboardPage() {
   } = useQuery<Workflow[]>({
     queryKey: ["/api/workflows"],
     enabled: !!user,
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   // Fetch platforms
@@ -112,6 +114,46 @@ export default function DashboardPage() {
                   <span className="text-2xl font-semibold text-neutral-900">8.4/10</span>
                   <span className="ml-2 text-sm text-green-600">+0.3</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Performance Metrics */}
+        <div className="px-4 sm:px-0 mb-8">
+          <h2 className="text-lg font-medium text-neutral-900 mb-4">Content Performance</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bg-white p-4 rounded-lg shadow border border-neutral-200">
+              <h3 className="text-sm font-medium text-neutral-600 mb-3">Engagement Rate Over Time</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={engagementData}>
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow border border-neutral-200">
+              <h3 className="text-sm font-medium text-neutral-600 mb-3">Content Distribution</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={contentTypePerformance}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#2563eb"
+                      label
+                    />
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
