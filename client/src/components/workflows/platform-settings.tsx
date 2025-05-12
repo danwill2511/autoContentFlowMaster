@@ -1,8 +1,12 @@
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PlatformSettingsProps {
   platformId: number;
@@ -20,30 +24,6 @@ interface OAuthStatus {
 export function PlatformSettings({ platformId, platformName, settings, onChange }: PlatformSettingsProps) {
   const [oauthStatus, setOauthStatus] = useState<OAuthStatus>({ connected: false });
   const [isConnecting, setIsConnecting] = useState(false);
-
-  const platformConfigs = {
-    pinterest: {
-      boardId: settings?.boardId || '',
-      pinType: settings?.pinType || 'image'
-    },
-    youtube: {
-      playlist: settings?.playlist || '',
-      visibility: settings?.visibility || 'public',
-      category: settings?.category || 'Entertainment'
-    },
-    instagram: {
-      mediaType: settings?.mediaType || 'image',
-      location: settings?.location || ''
-    },
-    linkedin: {
-      companyId: settings?.companyId || '',
-      contentType: settings?.contentType || 'article'
-    },
-    twitter: {
-      threadStyle: settings?.threadStyle || 'narrative',
-      addNumbering: settings?.addNumbering || true
-    }
-  };
 
   const handleOAuthConnect = async () => {
     setIsConnecting(true);
@@ -67,29 +47,122 @@ export function PlatformSettings({ platformId, platformName, settings, onChange 
   };
 
   const handleChange = (key: string, value: any) => {
-    let validatedValue = value;
-
-    // Validate inputs based on platform and field type
-    switch(key) {
-      case "hashtagCount":
-        validatedValue = Math.min(Math.max(0, value), 30);
-        break;
-      case "characterLimit":
-        validatedValue = Math.min(Math.max(10, value), getPlatformMaxLimit(platformName));
-        break;
-    }
-
-    onChange(platformId, { ...settings, [key]: validatedValue });
+    onChange(platformId, { ...settings, [key]: value });
   };
 
-  const getPlatformMaxLimit = (platform: string): number => {
-    switch(platform.toLowerCase()) {
+  const renderPlatformSpecificSettings = () => {
+    switch (platformName.toLowerCase()) {
+      case 'pinterest':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label>Board ID</Label>
+              <Input
+                value={settings?.boardId || ''}
+                onChange={(e) => handleChange("boardId", e.target.value)}
+                placeholder="Enter Pinterest board ID"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Pin Type</Label>
+              <Select value={settings?.pinType || 'image'} onValueChange={(value) => handleChange("pinType", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select pin type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="image">Image Pin</SelectItem>
+                  <SelectItem value="video">Video Pin</SelectItem>
+                  <SelectItem value="article">Article Pin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        );
+
+      case 'youtube':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label>Playlist ID</Label>
+              <Input
+                value={settings?.playlist || ''}
+                onChange={(e) => handleChange("playlist", e.target.value)}
+                placeholder="Enter playlist ID"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Video Visibility</Label>
+              <Select value={settings?.visibility || 'public'} onValueChange={(value) => handleChange("visibility", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select visibility" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">Public</SelectItem>
+                  <SelectItem value="unlisted">Unlisted</SelectItem>
+                  <SelectItem value="private">Private</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        );
+
+      case 'linkedin':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label>Company ID</Label>
+              <Input
+                value={settings?.companyId || ''}
+                onChange={(e) => handleChange("companyId", e.target.value)}
+                placeholder="Enter LinkedIn company ID"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Content Type</Label>
+              <Select value={settings?.contentType || 'article'} onValueChange={(value) => handleChange("contentType", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select content type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="article">Article</SelectItem>
+                  <SelectItem value="image">Image</SelectItem>
+                  <SelectItem value="video">Video</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        );
+
       case 'twitter':
-      case 'x': return 280;
-      case 'linkedin': return 3000;
-      case 'instagram': return 2200;
-      case 'facebook': return 5000;
-      default: return 1000;
+      case 'x':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label>Thread Style</Label>
+              <Select value={settings?.threadStyle || 'narrative'} onValueChange={(value) => handleChange("threadStyle", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select thread style" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="narrative">Narrative</SelectItem>
+                  <SelectItem value="tips">Tips & Tricks</SelectItem>
+                  <SelectItem value="analysis">Analysis</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id={`thread-numbering-${platformId}`}
+                checked={settings?.addNumbering || false}
+                onCheckedChange={(checked) => handleChange("addNumbering", checked)}
+              />
+              <Label htmlFor={`thread-numbering-${platformId}`}>Add Tweet Numbering</Label>
+            </div>
+          </>
+        );
+
+      default:
+        return null;
     }
   };
 
@@ -119,6 +192,8 @@ export function PlatformSettings({ platformId, platformName, settings, onChange 
           />
         </div>
 
+        {renderPlatformSpecificSettings()}
+
         <div className="flex items-center space-x-2">
           <Switch 
             id={`include-images-${platformId}`}
@@ -136,7 +211,8 @@ export function PlatformSettings({ platformId, platformName, settings, onChange 
           />
           <Label htmlFor={`include-links-${platformId}`}>Include Links</Label>
         </div>
-      <div className="space-y-4 pt-4">
+
+        <div className="space-y-4 pt-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Connection Status</Label>
@@ -177,11 +253,16 @@ export function PlatformSettings({ platformId, platformName, settings, onChange 
 
 function getPlatformDefaultLimit(platform: string): number {
   switch (platform.toLowerCase()) {
-    case 'twitter': 
-    case 'x': return 280;
-    case 'linkedin': return 3000;
-    case 'facebook': return 5000;
-    case 'instagram': return 2200;
-    default: return 1000;
+    case 'twitter':
+    case 'x':
+      return 280;
+    case 'linkedin':
+      return 3000;
+    case 'facebook':
+      return 5000;
+    case 'instagram':
+      return 2200;
+    default:
+      return 1000;
   }
 }
