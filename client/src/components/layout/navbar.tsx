@@ -1,237 +1,265 @@
-import React, { useState } from "react";
-import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
-import { useMobile } from "@/hooks/use-mobile";
-
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
+import { Link, useLocation } from 'wouter';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
+  SheetClose,
+} from '@/components/ui/sheet';
+import { useAuth } from '@/hooks/use-auth';
+import { Menu, X, ChevronDown } from 'lucide-react';
 
-export function Navbar() {
-  const { user, logout } = useAuth();
-
-  const handleLogout = () => {
-    logout();
-  };
-  const [_, setLocation] = useLocation();
-  const { isMobile } = useMobile();
+export default function Navbar() {
+  const [location] = useLocation();
+  const { user, logoutMutation } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const handleNavigation = (path: string) => {
-    setLocation(path);
-    setIsMenuOpen(false);
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
+
+  const isActive = (path: string) => {
+    return location === path;
   };
 
   return (
-    <nav className="border-b border-neutral-200 bg-white">
-      <div className="mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          {/* Logo and brand name */}
+    <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto px-4">
+        <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <div 
-              className="cursor-pointer flex items-center" 
-              onClick={() => handleNavigation("/")}
-            >
-              <div className="rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 p-2">
-                <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <span className="ml-2 text-xl font-semibold text-neutral-900">
-                AutoContentFlow
-              </span>
+            <Link href="/">
+              <span className="text-xl font-bold text-primary cursor-pointer">AutoContentFlow</span>
+            </Link>
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex ml-10 space-x-1">
+              {/* Features Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant={isActive('/ai-content-generation') || isActive('/workflow-automation') || isActive('/multi-platform-publishing') ? 'default' : 'ghost'} className="flex items-center">
+                    Features <ChevronDown className="ml-1 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem asChild>
+                    <Link href="/ai-content-generation">AI Content Generation</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/workflow-automation">Workflow Automation</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/multi-platform-publishing">Multi-Platform Publishing</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Resources Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant={isActive('/documentation') || isActive('/api-reference') || isActive('/content-library') || isActive('/faq') ? 'default' : 'ghost'} className="flex items-center">
+                    Resources <ChevronDown className="ml-1 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem asChild>
+                    <Link href="/documentation">Documentation</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/api-reference">API Reference</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/content-library">Content Library</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/faq">FAQ</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Company Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant={isActive('/about-us') || isActive('/blog') || isActive('/careers') || isActive('/contact') ? 'default' : 'ghost'} className="flex items-center">
+                    Company <ChevronDown className="ml-1 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem asChild>
+                    <Link href="/about-us">About Us</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/blog">Blog</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/careers">Careers</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/contact">Contact</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Pricing Link */}
+              <Button 
+                variant={isActive('/subscription') ? 'default' : 'ghost'}
+                asChild
+              >
+                <Link href="/subscription">Pricing</Link>
+              </Button>
             </div>
+          </div>
 
-            {/* Desktop Menu */}
-            {!isMobile && (
-              <div className="ml-10 flex items-center space-x-4">
-                <Button 
-                  variant="link" 
-                  onClick={() => handleNavigation("/")}
-                >
-                  Dashboard
+          <div className="hidden md:flex items-center space-x-2">
+            {user ? (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link href="/">Dashboard</Link>
                 </Button>
-                <Button 
-                  variant="link" 
-                  onClick={() => handleNavigation("/workflows")}
-                >
-                  Workflows
+                <Button onClick={handleLogout}>Logout</Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link href="/auth">Login</Link>
                 </Button>
-                <Button 
-                  variant="link" 
-                  onClick={() => handleNavigation("/platforms")}
-                >
-                  Platforms
+                <Button asChild>
+                  <Link href="/auth">Sign Up</Link>
                 </Button>
-                <Button 
-                  variant="link" 
-                  onClick={() => handleNavigation("/analytics")}
-                >
-                  Analytics
-                </Button>
-                <Button 
-                  variant="link" 
-                  onClick={() => handleNavigation("/subscription")}
-                >
-                  Subscription
-                </Button>
-                <Button 
-                  variant="link" 
-                  onClick={() => handleNavigation("/showcase")}
-                >
-                  Showcase
-                </Button>
-              </div>
+              </>
             )}
           </div>
 
-          {/* Right side actions */}
-          <div className="flex items-center">
-            {user ? (
-              <div className="flex items-center">
-                {/* Notification button */}
-                <button className="mr-4 rounded-full bg-neutral-100 p-2 text-neutral-600 hover:bg-neutral-200">
-                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-                  </svg>
-                </button>
-
-                {/* User dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-center rounded-full border border-neutral-200 p-1 hover:bg-neutral-50">
-                      <div className="h-8 w-8 overflow-hidden rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center">
-                        {user.username?.charAt(0).toUpperCase() || "U"}
-                      </div>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="flex items-center p-2">
-                      <div className="ml-2">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-neutral-900">{user.username || "User"}</p>
-                          {user.isAdmin && (
-                            <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded">
-                              Admin
-                            </span>
-                          )}
-                        </div>
-                        <p className="truncate text-sm font-medium text-neutral-900">{user.email}</p>
-                      </div>
-                    </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleNavigation("/profile")}>
-                      Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleNavigation("/settings")}>
-                      Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
-                      Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <Button 
-                  variant="ghost" 
-                  onClick={() => handleNavigation("/auth")}
-                >
-                  Sign in
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
                 </Button>
-                <Button 
-                  onClick={() => handleNavigation("/auth")}
-                >
-                  Sign up
-                </Button>
-              </div>
-            )}
-
-            {/* Mobile menu button */}
-            {isMobile && (
-              <div className="ml-2">
-                <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-                  <SheetTrigger asChild>
-                    <button className="text-neutral-500 hover:text-neutral-600">
-                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                      </svg>
-                    </button>
-                  </SheetTrigger>
-                  <SheetContent>
-                    <SheetHeader>
-                      <SheetTitle>Menu</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-6 flex flex-col gap-4">
-                      <button 
-                        onClick={() => {
-                          setLocation("/");
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <div className="flex flex-col h-full">
+                  <div className="flex justify-between items-center py-4">
+                    <span className="text-lg font-bold">Menu</span>
+                    <SheetClose asChild>
+                      <Button variant="ghost" size="icon">
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </SheetClose>
+                  </div>
+                  
+                  <div className="flex flex-col space-y-4 py-4">
+                    <div className="font-semibold text-sm uppercase text-muted-foreground">Features</div>
+                    <SheetClose asChild>
+                      <Link href="/ai-content-generation" className="py-2">
+                        AI Content Generation
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/workflow-automation" className="py-2">
+                        Workflow Automation
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/multi-platform-publishing" className="py-2">
+                        Multi-Platform Publishing
+                      </Link>
+                    </SheetClose>
+                    
+                    <div className="font-semibold text-sm uppercase text-muted-foreground mt-4">Resources</div>
+                    <SheetClose asChild>
+                      <Link href="/documentation" className="py-2">
+                        Documentation
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/api-reference" className="py-2">
+                        API Reference
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/content-library" className="py-2">
+                        Content Library
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/faq" className="py-2">
+                        FAQ
+                      </Link>
+                    </SheetClose>
+                    
+                    <div className="font-semibold text-sm uppercase text-muted-foreground mt-4">Company</div>
+                    <SheetClose asChild>
+                      <Link href="/about-us" className="py-2">
+                        About Us
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/blog" className="py-2">
+                        Blog
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/careers" className="py-2">
+                        Careers
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/contact" className="py-2">
+                        Contact
+                      </Link>
+                    </SheetClose>
+                    
+                    <SheetClose asChild>
+                      <Link href="/subscription" className="py-2">
+                        Pricing
+                      </Link>
+                    </SheetClose>
+                  </div>
+                  
+                  <div className="mt-auto pt-6 border-t">
+                    {user ? (
+                      <div className="space-y-2">
+                        <SheetClose asChild>
+                          <Button variant="outline" className="w-full" asChild>
+                            <Link href="/">Dashboard</Link>
+                          </Button>
+                        </SheetClose>
+                        <Button className="w-full" onClick={() => {
                           setIsMenuOpen(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                      >
-                        Dashboard
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setLocation("/workflows");
-                          setIsMenuOpen(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                      >
-                        Workflows
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setLocation("/platforms");
-                          setIsMenuOpen(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                      >
-                        Platforms
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setLocation("/analytics");
-                          setIsMenuOpen(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                      >
-                        Analytics
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setLocation("/subscription");
-                          setIsMenuOpen(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                      >
-                        Subscription
-                      </button>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </div>
-            )}
+                          handleLogout();
+                        }}>
+                          Logout
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <SheetClose asChild>
+                          <Button variant="outline" className="w-full" asChild>
+                            <Link href="/auth">Login</Link>
+                          </Button>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Button className="w-full" asChild>
+                            <Link href="/auth">Sign Up</Link>
+                          </Button>
+                        </SheetClose>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>
     </nav>
   );
 }
-
-export default Navbar;

@@ -20,7 +20,9 @@ import {
   Workflow,
   Share2,
   Copy,
-  Check
+  Check,
+  HelpCircle,
+  Users
 } from "lucide-react";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";

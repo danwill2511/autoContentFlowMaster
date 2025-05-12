@@ -1,63 +1,133 @@
-import React from "react";
-import { Link } from "wouter";
+import React from 'react';
+import { Link } from 'wouter';
+import { Facebook, Twitter, Instagram, Linkedin, Youtube, Mail, MapPin, Phone } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-neutral-200 py-6">
+    <footer className="bg-neutral-900 text-white pt-16 pb-8">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           <div>
-            <h3 className="font-semibold mb-3">AutoContentFlow</h3>
-            <p className="text-sm text-neutral-600 mb-4">
-              Streamlining content creation and social media management with AI-powered automation.
+            <h3 className="text-lg font-bold mb-4">AutoContentFlow</h3>
+            <p className="text-neutral-400 mb-4">
+              AI-powered content management platform to streamline social media content generation across multiple platforms.
             </p>
+            <div className="flex space-x-4">
+              <a href="#" className="text-neutral-400 hover:text-white transition-colors">
+                <Facebook className="h-5 w-5" />
+              </a>
+              <a href="#" className="text-neutral-400 hover:text-white transition-colors">
+                <Twitter className="h-5 w-5" />
+              </a>
+              <a href="#" className="text-neutral-400 hover:text-white transition-colors">
+                <Instagram className="h-5 w-5" />
+              </a>
+              <a href="#" className="text-neutral-400 hover:text-white transition-colors">
+                <Linkedin className="h-5 w-5" />
+              </a>
+              <a href="#" className="text-neutral-400 hover:text-white transition-colors">
+                <Youtube className="h-5 w-5" />
+              </a>
+            </div>
           </div>
           
           <div>
-            <h3 className="font-semibold mb-3">Features</h3>
-            <ul className="space-y-2 text-sm">
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">AI Content Generation</a></li>
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">Workflow Automation</a></li>
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">Analytics Dashboard</a></li>
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">Multi-Platform Publishing</a></li>
+            <h3 className="text-lg font-bold mb-4">Features</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/ai-content-generation" className="text-neutral-400 hover:text-white transition-colors">
+                  AI Content Generation
+                </Link>
+              </li>
+              <li>
+                <Link href="/workflow-automation" className="text-neutral-400 hover:text-white transition-colors">
+                  Workflow Automation
+                </Link>
+              </li>
+              <li>
+                <Link href="/multi-platform-publishing" className="text-neutral-400 hover:text-white transition-colors">
+                  Multi-Platform Publishing
+                </Link>
+              </li>
+              <li>
+                <Link href="/analytics" className="text-neutral-400 hover:text-white transition-colors">
+                  Analytics & Insights
+                </Link>
+              </li>
+              <li>
+                <Link href="/content-library" className="text-neutral-400 hover:text-white transition-colors">
+                  Content Library
+                </Link>
+              </li>
             </ul>
           </div>
           
           <div>
-            <h3 className="font-semibold mb-3">Resources</h3>
-            <ul className="space-y-2 text-sm">
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">Documentation</a></li>
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">API Reference</a></li>
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">Content Library</a></li>
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">FAQs</a></li>
+            <h3 className="text-lg font-bold mb-4">Resources</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/documentation" className="text-neutral-400 hover:text-white transition-colors">
+                  Documentation
+                </Link>
+              </li>
+              <li>
+                <Link href="/api-reference" className="text-neutral-400 hover:text-white transition-colors">
+                  API Reference
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog" className="text-neutral-400 hover:text-white transition-colors">
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link href="/faq" className="text-neutral-400 hover:text-white transition-colors">
+                  FAQ
+                </Link>
+              </li>
             </ul>
           </div>
           
           <div>
-            <h3 className="font-semibold mb-3">Company</h3>
-            <ul className="space-y-2 text-sm">
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">About Us</a></li>
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">Blog</a></li>
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">Careers</a></li>
-              <li><a href="#" className="text-neutral-600 hover:text-neutral-900">Contact</a></li>
+            <h3 className="text-lg font-bold mb-4">Contact Us</h3>
+            <ul className="space-y-4">
+              <li className="flex">
+                <Mail className="h-5 w-5 mr-3 text-neutral-400" />
+                <a href="mailto:info@autocontentflow.com" className="text-neutral-400 hover:text-white transition-colors">
+                  hello@autocontentflow.com
+                </a>
+              </li>
+              <li className="flex">
+                <Phone className="h-5 w-5 mr-3 text-neutral-400" />
+                <a href="tel:+1234567890" className="text-neutral-400 hover:text-white transition-colors">
+                  +1 (800) 555-1234
+                </a>
+              </li>
+              <li className="flex">
+                <MapPin className="h-5 w-5 mr-3 text-neutral-400" />
+                <span className="text-neutral-400">
+                  123 Content Ave, San Francisco, CA 94105
+                </span>
+              </li>
             </ul>
           </div>
         </div>
         
-        <div className="border-t border-neutral-200 mt-8 pt-6 flex flex-col md:flex-row justify-between">
-          <p className="text-sm text-neutral-600">
+        <div className="pt-8 border-t border-neutral-800 flex flex-col md:flex-row justify-between items-center">
+          <div className="mb-4 md:mb-0 text-neutral-400 text-sm">
             &copy; {new Date().getFullYear()} AutoContentFlow. All rights reserved.
-          </p>
-          <div className="flex space-x-6 mt-4 md:mt-0">
-            <a href="#" className="text-neutral-600 hover:text-neutral-900">
-              Privacy Policy
-            </a>
-            <a href="#" className="text-neutral-600 hover:text-neutral-900">
+          </div>
+          
+          <div className="flex space-x-4 text-sm text-neutral-400">
+            <Link href="/terms" className="hover:text-white transition-colors">
               Terms of Service
-            </a>
-            <a href="#" className="text-neutral-600 hover:text-neutral-900">
+            </Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="/cookies" className="hover:text-white transition-colors">
               Cookie Policy
-            </a>
+            </Link>
           </div>
         </div>
       </div>
