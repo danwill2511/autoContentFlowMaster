@@ -1,14 +1,40 @@
 
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 
-export async function registerForPushNotifications() {
-  const { status } = await Notifications.requestPermissionsAsync();
-  if (status !== 'granted') {
-    return;
+export async function registerForPushNotificationsAsync() {
+  let token;
+
+  if (Device.isDevice) {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    
+    if (finalStatus !== 'granted') {
+      return;
+    }
+    
+    token = await Notifications.getExpoPushTokenAsync({
+      projectId: Constants.expoConfig?.extra?.eas?.projectId,
+    });
   }
 
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
   return token;
+}
+
+export function setupNotifications() {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
 }
 
 export async function sendWorkflowNotification(title: string, body: string) {
@@ -16,7 +42,6 @@ export async function sendWorkflowNotification(title: string, body: string) {
     content: {
       title,
       body,
-      data: { type: 'workflow' },
     },
     trigger: null,
   });
