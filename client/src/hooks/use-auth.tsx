@@ -44,6 +44,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
       try {
+        console.log("Attempting login with:", { email, password: "***" });
+        
         const res = await fetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -52,11 +54,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
         
         if (!res.ok) {
+          console.error("Login failed with status:", res.status);
           const errorData = await res.json();
+          console.error("Login error response:", errorData);
           throw new Error(errorData.message || "Login failed");
         }
         
-        return await res.json();
+        const userData = await res.json();
+        console.log("Login successful, user data:", userData);
+        return userData;
       } catch (error) {
         console.error("Login error:", error);
         throw error;
@@ -64,11 +70,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/user"], data);
-      // Don't invalidate the query we just set to avoid double fetching
-      // Use a callback for navigation to avoid React rendering issues
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 0);
+      // Just set the user data without redirecting - auth-page.tsx will handle redirection
+      // using the useEffect hook when it detects the user is logged in
     },
   });
 

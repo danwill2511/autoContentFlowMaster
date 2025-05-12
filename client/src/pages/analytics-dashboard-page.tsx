@@ -282,7 +282,9 @@ export default function AnalyticsDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {analyticsData?.totalEngagement || 0}
+                  {analyticsData?.totalEngagement ? 
+                    (analyticsData.totalEngagement.likes + analyticsData.totalEngagement.comments + analyticsData.totalEngagement.shares).toLocaleString() 
+                    : 0}
                 </div>
               </CardContent>
             </Card>
