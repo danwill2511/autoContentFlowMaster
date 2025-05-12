@@ -36,8 +36,8 @@ interface AuthContextType {
   register: (userData: RegisterCredentials) => Promise<User>;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
-  loginMutation: ReturnType<typeof useMutation>;
-  registerMutation: ReturnType<typeof useMutation>;
+  loginMutation: any;
+  registerMutation: any;
 }
 
 // Create auth context with default values

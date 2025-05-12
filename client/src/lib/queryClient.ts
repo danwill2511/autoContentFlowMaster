@@ -42,7 +42,9 @@ export async function apiRequest(
   // Add auth token to headers if available
   const token = getAuthToken();
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+    // Using Record to fix TypeScript error with headers
+    const authHeaders = { Authorization: `Bearer ${token}` };
+    Object.assign(headers, authHeaders);
   }
 
   const config: RequestInit = {
