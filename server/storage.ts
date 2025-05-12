@@ -72,11 +72,13 @@ export class MemStorage implements IStorage {
   private platformsMap: Map<number, Platform>;
   private workflowPlatformsMap: Map<number, WorkflowPlatform>;
   private postsMap: Map<number, Post>;
+  private timeOptimizationsMap: Map<number, TimeOptimization>;
   private userCurrentId: number;
   private workflowCurrentId: number;
   private platformCurrentId: number;
   private workflowPlatformCurrentId: number;
   private postCurrentId: number;
+  private timeOptimizationCurrentId: number;
   sessionStore: any; // Using any for session store type to avoid compatibility issues
 
   constructor() {
@@ -85,11 +87,13 @@ export class MemStorage implements IStorage {
     this.platformsMap = new Map();
     this.workflowPlatformsMap = new Map();
     this.postsMap = new Map();
+    this.timeOptimizationsMap = new Map();
     this.userCurrentId = 1;
     this.workflowCurrentId = 1;
     this.platformCurrentId = 1;
     this.workflowPlatformCurrentId = 1;
     this.postCurrentId = 1;
+    this.timeOptimizationCurrentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -371,11 +375,149 @@ export class MemStorage implements IStorage {
     this.platformsMap.clear();
     this.workflowPlatformsMap.clear();
     this.postsMap.clear();
+    this.timeOptimizationsMap.clear();
     this.userCurrentId = 1;
     this.workflowCurrentId = 1;
     this.platformCurrentId = 1;
     this.workflowPlatformCurrentId = 1;
     this.postCurrentId = 1;
+    this.timeOptimizationCurrentId = 1;
+  }
+  
+  // Post engagement metrics update method
+  async updatePostEngagementMetrics(id: number, engagementMetrics: any): Promise<Post> {
+    const post = await this.getPost(id);
+    if (!post) {
+      throw new Error(`Post with id ${id} not found`);
+    }
+    
+    const updatedPost: Post = {
+      ...post,
+      engagementMetrics
+    };
+    
+    this.postsMap.set(id, updatedPost);
+    return updatedPost;
+  }
+  
+  // Time optimization methods
+  async getTimeOptimization(id: number): Promise<TimeOptimization | undefined> {
+    return this.timeOptimizationsMap.get(id);
+  }
+  
+  async getTimeOptimizationByPlatform(platformId: number): Promise<TimeOptimization | undefined> {
+    for (const optimization of this.timeOptimizationsMap.values()) {
+      if (optimization.platformId === platformId) {
+        return optimization;
+      }
+    }
+    return undefined;
+  }
+  
+  async getTimeOptimizationsByPlatformType(platformType: string): Promise<TimeOptimization[]> {
+    const optimizations: TimeOptimization[] = [];
+    for (const optimization of this.timeOptimizationsMap.values()) {
+      if (optimization.platformType === platformType) {
+        optimizations.push(optimization);
+      }
+    }
+    return optimizations;
+  }
+  
+  async createTimeOptimization(timeOptimization: InsertTimeOptimization): Promise<TimeOptimization> {
+    const id = this.timeOptimizationCurrentId++;
+    const now = new Date();
+    
+    const newTimeOptimization: TimeOptimization = {
+      id,
+      ...timeOptimization,
+      lastUpdated: now,
+      createdAt: now
+    };
+    
+    this.timeOptimizationsMap.set(id, newTimeOptimization);
+    return newTimeOptimization;
+  }
+  
+  async updateTimeOptimization(id: number, data: Partial<InsertTimeOptimization>): Promise<TimeOptimization> {
+    const optimization = await this.getTimeOptimization(id);
+    if (!optimization) {
+      throw new Error(`Time optimization with id ${id} not found`);
+    }
+    
+    const updatedOptimization: TimeOptimization = {
+      ...optimization,
+      ...data,
+      lastUpdated: new Date()
+    };
+    
+    this.timeOptimizationsMap.set(id, updatedOptimization);
+    return updatedOptimization;
+  }
+  
+  async calculateOptimalPostTime(platformIds: number[]): Promise<Date> {
+    // Get all relevant time optimizations
+    const platforms = await this.getPlatformsByIds(platformIds);
+    const optimizations: TimeOptimization[] = [];
+    
+    // Collect optimizations data for each platform
+    for (const platform of platforms) {
+      const optimization = await this.getTimeOptimizationByPlatform(platform.id);
+      if (optimization) {
+        optimizations.push(optimization);
+      }
+    }
+    
+    // If no optimizations found, return a default time (now + 1 hour)
+    if (optimizations.length === 0) {
+      const defaultTime = new Date();
+      defaultTime.setHours(defaultTime.getHours() + 1);
+      return defaultTime;
+    }
+    
+    // Calculate optimal time based on collected data
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
+    
+    // Track best hours and their cumulative engagement scores
+    type HourScore = { hour: number; score: number; count: number };
+    const hourScores: HourScore[] = Array.from({ length: 24 }, (_, i) => ({ 
+      hour: i, 
+      score: 0,
+      count: 0
+    }));
+    
+    // Collect and weight the best hours from all platforms
+    for (const opt of optimizations) {
+      const bestHours = opt.bestHours as number[];
+      const engagementScore = opt.engagementScore || 1;
+      
+      for (const hour of bestHours) {
+        hourScores[hour].score += engagementScore;
+        hourScores[hour].count += 1;
+      }
+    }
+    
+    // Sort by score (highest first) and then by count (highest first)
+    hourScores.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return b.count - a.count;
+    });
+    
+    // Take the highest scoring hour
+    const bestHour = hourScores[0].hour;
+    
+    // Create the optimal time (today at the best hour)
+    const optimalTime = new Date();
+    
+    // If best hour is earlier today, schedule for tomorrow
+    if (bestHour <= optimalTime.getHours()) {
+      optimalTime.setDate(optimalTime.getDate() + 1);
+    }
+    
+    optimalTime.setHours(bestHour, 0, 0, 0);
+    
+    return optimalTime;
   }
 }
 
@@ -628,9 +770,147 @@ export class DatabaseStorage implements IStorage {
     return updatedPost;
   }
 
+  async updatePostEngagementMetrics(id: number, engagementMetrics: any): Promise<Post> {
+    const [post] = await db
+      .update(posts)
+      .set({ engagementMetrics: JSON.stringify(engagementMetrics) })
+      .where(eq(posts.id, id))
+      .returning();
+    
+    if (!post) {
+      throw new Error(`Post with id ${id} not found`);
+    }
+    
+    return post;
+  }
+  
+  // Time optimization methods
+  async getTimeOptimization(id: number): Promise<TimeOptimization | undefined> {
+    const [optimization] = await db
+      .select()
+      .from(timeOptimizations)
+      .where(eq(timeOptimizations.id, id));
+      
+    return optimization;
+  }
+  
+  async getTimeOptimizationByPlatform(platformId: number): Promise<TimeOptimization | undefined> {
+    const [optimization] = await db
+      .select()
+      .from(timeOptimizations)
+      .where(eq(timeOptimizations.platformId, platformId));
+      
+    return optimization;
+  }
+  
+  async getTimeOptimizationsByPlatformType(platformType: string): Promise<TimeOptimization[]> {
+    return db
+      .select()
+      .from(timeOptimizations)
+      .where(eq(timeOptimizations.platformType, platformType));
+  }
+  
+  async createTimeOptimization(timeOptimization: InsertTimeOptimization): Promise<TimeOptimization> {
+    const now = new Date();
+    const [created] = await db
+      .insert(timeOptimizations)
+      .values({
+        ...timeOptimization,
+        lastUpdated: now,
+      })
+      .returning();
+      
+    return created;
+  }
+  
+  async updateTimeOptimization(id: number, data: Partial<InsertTimeOptimization>): Promise<TimeOptimization> {
+    const [updated] = await db
+      .update(timeOptimizations)
+      .set({
+        ...data,
+        lastUpdated: new Date()
+      })
+      .where(eq(timeOptimizations.id, id))
+      .returning();
+      
+    if (!updated) {
+      throw new Error(`Time optimization with id ${id} not found`);
+    }
+    
+    return updated;
+  }
+  
+  async calculateOptimalPostTime(platformIds: number[]): Promise<Date> {
+    // Get all relevant platforms and time optimizations
+    const platformsData = await db
+      .select()
+      .from(platforms)
+      .where(inArray(platforms.id, platformIds));
+      
+    // Get all optimizations for these platforms
+    const optimizationsPromises = platformsData.map(platform => 
+      this.getTimeOptimizationByPlatform(platform.id)
+    );
+    
+    const optimizationsResults = await Promise.all(optimizationsPromises);
+    const optimizations = optimizationsResults.filter(Boolean) as TimeOptimization[];
+    
+    // If no optimizations found, return a default time (now + 1 hour)
+    if (optimizations.length === 0) {
+      const defaultTime = new Date();
+      defaultTime.setHours(defaultTime.getHours() + 1);
+      return defaultTime;
+    }
+    
+    // Calculate optimal time based on collected data
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
+    
+    // Track best hours and their cumulative engagement scores
+    type HourScore = { hour: number; score: number; count: number };
+    const hourScores: HourScore[] = Array.from({ length: 24 }, (_, i) => ({ 
+      hour: i, 
+      score: 0,
+      count: 0
+    }));
+    
+    // Collect and weight the best hours from all platforms
+    for (const opt of optimizations) {
+      const bestHours = opt.bestHours as number[];
+      const engagementScore = opt.engagementScore || 1;
+      
+      for (const hour of bestHours) {
+        hourScores[hour].score += engagementScore;
+        hourScores[hour].count += 1;
+      }
+    }
+    
+    // Sort by score (highest first) and then by count (highest first)
+    hourScores.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return b.count - a.count;
+    });
+    
+    // Take the highest scoring hour
+    const bestHour = hourScores[0].hour;
+    
+    // Create the optimal time (today at the best hour)
+    const optimalTime = new Date();
+    
+    // If best hour is earlier today, schedule for tomorrow
+    if (bestHour <= optimalTime.getHours()) {
+      optimalTime.setDate(optimalTime.getDate() + 1);
+    }
+    
+    optimalTime.setHours(bestHour, 0, 0, 0);
+    
+    return optimalTime;
+  }
+  
   async clearTestData(): Promise<void> {
     await db.delete(posts);
     await db.delete(workflowPlatforms);
+    await db.delete(timeOptimizations);
     await db.delete(platforms);
     await db.delete(workflows);
     await db.delete(users);
