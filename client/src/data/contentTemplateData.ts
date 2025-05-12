@@ -30,7 +30,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["product", "launch", "announcement"],
     premium: false,
     template: "Excited to announce our new [Product]! 🚀\n\n[Product] helps you [benefit] without [pain point]. Learn more at [link] #ProductLaunch #[Industry]",
-    animationPreview: "/assets/animations/product-launch.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Product+Launch+Workflow",
     workflowSteps: [
       "Draft product announcement",
       "AI enhancement for platform-specific versions",
@@ -50,7 +50,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["insights", "industry", "weekly"],
     premium: false,
     template: "📊 This week in [Industry]: \n\n1. [Trend 1] is changing how companies approach [topic]\n2. [Company] announced [news] that will impact [audience]\n3. New research shows [statistic] about [topic]\n\nYour thoughts? #[Industry]Insights",
-    animationPreview: "/assets/animations/weekly-insights.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Weekly+Insights+Workflow",
     workflowSteps: [
       "Research industry trends",
       "AI summary generation",
@@ -70,7 +70,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["testimonial", "customer", "success"],
     premium: false,
     template: "💬 Customer Spotlight: [Company/Person]\n\n\"[Testimonial quote highlighting the problem and solution]\"\n\nResults: [Specific metrics or improvements]\n\nLearn how we can help you achieve similar results: [Link] #CustomerSuccess",
-    animationPreview: "/assets/animations/customer-story.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Customer+Story+Workflow",
     workflowSteps: [
       "Collect customer testimonial",
       "Create visual template",
@@ -90,7 +90,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["webinar", "event", "promotion"],
     premium: true,
     template: "Join us for our upcoming webinar: \"[Title]\" 📆\n\nLearn how to [benefit/outcome] from our expert [Speaker Name].\n\nDate: [Date]\nTime: [Time]\nRegister: [Link]\n\n#Webinar #[Industry]",
-    animationPreview: "/assets/animations/webinar-series.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Webinar+Series+Workflow",
     workflowSteps: [
       "Create announcement post",
       "Schedule reminder posts",
@@ -110,7 +110,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["quote", "inspiration", "motivation"],
     premium: false,
     template: "\"[Quote]\" - [Author]\n\n#[Industry]Inspiration #[Relevant]Quote",
-    animationPreview: "/assets/animations/quote-template.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Quote+Template+Workflow",
     workflowSteps: [
       "Select relevant quote",
       "Generate branded visual with AI",
