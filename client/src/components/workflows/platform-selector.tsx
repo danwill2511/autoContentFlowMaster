@@ -1,69 +1,114 @@
-import { useState } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 
-export interface Platform {
+import React, { useState, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface Platform {
   id: number;
   name: string;
-  icon: React.ReactNode;
-  bgColor: string;
+  type: string;
+  icon?: string;
 }
 
 interface PlatformSelectorProps {
-  platforms: Platform[];
   selectedPlatforms: number[];
-  onChange: (selectedIds: number[]) => void;
+  onPlatformSelect: (platformIds: number[]) => void;
 }
 
-// Utility function for conditional class names
-function cn(...classes: string[]) {
-  return classes.filter(Boolean).join(' ');
-}
+export function PlatformSelector({ selectedPlatforms, onPlatformSelect }: PlatformSelectorProps) {
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-export function PlatformSelector({ platforms, selectedPlatforms, onChange }: PlatformSelectorProps) {
-  // const platforms = [ // Removed since this is now a prop
-  //   { id: 'twitter', name: 'Twitter', icon: '🐦', color: 'bg-blue-400' },
-  //   { id: 'instagram', name: 'Instagram', icon: '📸', color: 'bg-pink-400' },
-  //   { id: 'linkedin', name: 'LinkedIn', icon: '💼', color: 'bg-blue-700' },
-  //   { id: 'pinterest', name: 'Pinterest', icon: '📌', color: 'bg-red-500' },
-  //   { id: 'youtube', name: 'YouTube', icon: '🎥', color: 'bg-red-600' }
-  // ];
+  useEffect(() => {
+    fetchPlatforms();
+  }, []);
 
-  const handlePlatformClick = (platformId: number) => {
-    onChange(
-      selectedPlatforms.includes(platformId)
-        ? selectedPlatforms.filter((id) => id !== platformId)
-        : [...selectedPlatforms, platformId]
-    );
+  const fetchPlatforms = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch('/api/platforms');
+      if (!response.ok) {
+        throw new Error('Failed to fetch platforms');
+      }
+      const data = await response.json();
+      setPlatforms(data);
+    } catch (err) {
+      setError('Failed to load platforms. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Failed to load platforms. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  return (
-    <div className="p-4">
-      <h3 className="text-xl font-semibold mb-6 text-center">Choose Your Platforms ✨</h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-        {platforms.map((platform) => (
-          <button
-            key={platform.id}
-            onClick={() => handlePlatformClick(platform.id)}
-            className={cn(
-              "relative group p-4 rounded-xl transition-all duration-200 hover:scale-105",
-              selectedPlatforms.includes(platform.id) ? `${platform.bgColor} text-white` : "bg-white border border-neutral-200"
-            )}
-          >
-            <div className="flex flex-col items-center gap-2">
-              <span className="text-3xl">{platform.icon}</span>
-              <span className="font-medium">{platform.name}</span>
-            </div>
-            {selectedPlatforms.includes(platform.id) && (
-              <span className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-sm">
-                ✓
-              </span>
-            )}
-          </button>
-        ))}
+  const handlePlatformToggle = (platformId: number) => {
+    const updatedSelection = selectedPlatforms.includes(platformId)
+      ? selectedPlatforms.filter(id => id !== platformId)
+      : [...selectedPlatforms, platformId];
+    onPlatformSelect(updatedSelection);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-4 bg-destructive/10 text-destructive">
+        <p>{error}</p>
+        <button 
+          onClick={fetchPlatforms}
+          className="mt-2 text-sm underline hover:text-destructive/80"
+        >
+          Retry
+        </button>
+      </Card>
+    );
+  }
+
+  if (platforms.length === 0) {
+    return (
+      <Card className="p-4 text-center">
+        <p className="text-muted-foreground">No platforms available. Please connect a platform first.</p>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {platforms.map((platform) => (
+        <div key={platform.id} className="flex items-center space-x-3 p-3 rounded-lg border">
+          {platform.icon && (
+            <img 
+              src={platform.icon} 
+              alt={platform.name} 
+              className="w-6 h-6"
+            />
+          )}
+          <div className="flex-1">
+            <p className="font-medium">{platform.name}</p>
+            <p className="text-sm text-muted-foreground">{platform.type}</p>
+          </div>
+          <Checkbox
+            checked={selectedPlatforms.includes(platform.id)}
+            onCheckedChange={() => handlePlatformToggle(platform.id)}
+          />
+        </div>
+      ))}
     </div>
   );
 }
-
-export default PlatformSelector;
