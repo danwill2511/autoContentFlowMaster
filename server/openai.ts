@@ -1,6 +1,4 @@
-
 import OpenAI from "openai";
-import { z } from "zod";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
@@ -204,3 +202,5 @@ export async function generatePlatformSpecificContent(
 
   return retryWithExponentialBackoff(operation);
 }
+import { z } from "zod";
+export { openai };
