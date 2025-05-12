@@ -11,6 +11,7 @@ import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import PlatformSelector, { Platform as PlatformType } from "@/components/workflows/platform-selector";
 import ContentPreview from "@/components/workflows/content-preview";
+import ContentFlowVisualizer from "@/components/workflows/content-flow-visualizer";
 import {
   Form,
   FormControl,
@@ -523,9 +524,24 @@ export default function CreateWorkflowPage() {
                 </div>
 
                 <Separator />
+                
+                <div>
+                  <h3 className="text-base font-medium text-neutral-900 mb-4">5. Content Flow Visualization</h3>
+                  <div className="grid grid-cols-1 gap-6">
+                    <ContentFlowVisualizer 
+                      platforms={selectedPlatforms.map(id => {
+                        const platform = platforms?.find(p => p.id === id);
+                        return platform || { id, name: "Unknown Platform", userId: 0, createdAt: new Date() };
+                      })}
+                      showControls={false}
+                    />
+                  </div>
+                </div>
+
+                <Separator />
 
                 <div>
-                  <h3 className="text-base font-medium text-neutral-900 mb-4">5. Scheduling</h3>
+                  <h3 className="text-base font-medium text-neutral-900 mb-4">6. Scheduling</h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-6">
                     <div className="sm:col-span-3">
                       <FormField
