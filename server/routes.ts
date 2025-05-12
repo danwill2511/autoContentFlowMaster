@@ -741,6 +741,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Test endpoint for generating AI preview images
+  app.get("/api/templates/test-preview", async (req, res) => {
+    try {
+      // Sample data for testing
+      const sampleTemplate = {
+        title: "Social Media Content Calendar",
+        description: "A workflow to schedule and automate content posting across multiple platforms",
+        category: "Social Media",
+        workflowSteps: [
+          "Generate content ideas based on trending topics",
+          "Create platform-specific variations of content",
+          "Schedule optimal posting times using AI recommendations",
+          "Automatically post content to selected platforms",
+          "Analyze engagement metrics and optimize future content"
+        ]
+      };
+      
+      console.log("Testing preview generation with sample template");
+      
+      // Create enhanced description using the same logic as the main endpoint
+      let enhancedDescription = sampleTemplate.description;
+      if (sampleTemplate.workflowSteps && Array.isArray(sampleTemplate.workflowSteps)) {
+        enhancedDescription += "\n\nThis workflow process includes the following steps:\n";
+        sampleTemplate.workflowSteps.forEach((step, index) => {
+          enhancedDescription += `${index + 1}. ${step}\n`;
+        });
+        
+        const stepText = sampleTemplate.workflowSteps.join(" ");
+        if (stepText.toLowerCase().includes("schedule") || stepText.toLowerCase().includes("automate")) {
+          enhancedDescription += "\nThis is an automation-focused workflow with scheduling capabilities.";
+        }
+        if (stepText.toLowerCase().includes("analyze") || stepText.toLowerCase().includes("report")) {
+          enhancedDescription += "\nThis workflow includes data analysis and reporting features.";
+        }
+        if (stepText.toLowerCase().includes("generate") || stepText.toLowerCase().includes("create")) {
+          enhancedDescription += "\nThis workflow focuses on AI-powered content generation.";
+        }
+      }
+      
+      const imageUrl = await generateTemplatePreviewImage(
+        sampleTemplate.title, 
+        enhancedDescription, 
+        sampleTemplate.category
+      );
+      
+      if (!imageUrl) {
+        return res.status(500).json({ message: "Failed to generate test preview image" });
+      }
+      
+      console.log("Successfully generated test preview image");
+      
+      res.json({ 
+        imageUrl,
+        template: sampleTemplate 
+      });
+    } catch (error) {
+      console.error("Error generating test preview image:", error);
+      res.status(500).json({ 
+        message: "Error generating test preview image",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // Generate template preview image using AI
   app.post("/api/templates/generate-preview", async (req, res) => {
     if (!req.isAuthenticated()) {
