@@ -6,15 +6,15 @@ import { logger } from './logger';
 const defaultLimits = {
   general: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // Limit each IP to 100 requests per windowMs
+    max: 1000 // Limit each IP to 1000 requests per windowMs - increased to handle development environment
   },
   auth: {
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5 // Limit each IP to 5 login attempts per hour
+    max: 20 // Limit each IP to 20 login attempts per hour - increased for development
   },
   contentGeneration: {
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 50 // Limit each IP to 50 content generation requests per hour
+    max: 100 // Limit each IP to 100 content generation requests per hour - increased for development
   }
 };
 
@@ -40,8 +40,8 @@ export const generalLimiter = rateLimit({
   legacyHeaders: false,
   // Using a correct property name for the rate limiter
   skipSuccessfulRequests: false,
-  // Configure trusted proxy properly
-  trustProxy: false // Explicitly disable automatic trust
+  // Set IP source determination directly
+  keyGenerator: (req, res) => req.ip || req.connection.remoteAddress || 'unknown-ip'
 });
 
 export const authLimiter = rateLimit({
