@@ -1,13 +1,15 @@
 
 import OpenAI from "openai";
+import { z } from "zod";
 
-// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 });
 
-// Check if OpenAI API key is set
 const isOpenAIConfigured = !!process.env.OPENAI_API_KEY;
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // ms
 
 interface ContentGenerationOptions {
   contentType: string;
@@ -17,38 +19,91 @@ interface ContentGenerationOptions {
   length?: string;
 }
 
-// Generate content based on user specifications
-export async function generateContent(options: ContentGenerationOptions): Promise<string> {
+async function retryWithExponentialBackoff<T>(
+  operation: () => Promise<T>,
+  retries = MAX_RETRIES,
+  delay = RETRY_DELAY
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (retries === 0) throw error;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return retryWithExponentialBackoff(operation, retries - 1, delay * 2);
+  }
+}
+
+export async function analyzeTrends(category: string, region = "global"): Promise<{
+  topics: string[];
+  insights: string;
+}> {
   if (!isOpenAIConfigured) {
-    return "OpenAI API key is not configured. Please add your API key to continue generating content.";
+    throw new Error("OpenAI API key not configured");
   }
 
-  const { contentType, contentTone, topics, platforms, length = "medium" } = options;
-  
-  // Format platforms for better prompt
-  const platformsList = platforms.join(", ");
-  
-  // Determine length constraints
-  let wordCount = 300; // Default medium length
-  if (length === "short") wordCount = 150;
-  if (length === "long") wordCount = 600;
-  
-  try {
-    // The newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+  const operation = async () => {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are a professional content creator who specializes in creating engaging digital content."
+          content: "You are a trend analysis expert who identifies current trends and provides insights."
         },
         {
           role: "user",
-          content: `Create ${contentType} content with a ${contentTone} tone about ${topics}. 
-          This content will be adapted for the following platforms: ${platformsList}.
-          Make it approximately ${wordCount} words.
-          The content should be engaging, informative, and tailored to trending interests.
-          Format with appropriate paragraphs, headings, and structure.`
+          content: `Analyze current trends in ${category} for ${region}. Provide:
+          1. Top 5 trending topics
+          2. Brief insight into why these are trending
+          Format as JSON with 'topics' array and 'insights' string.`
+        }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 500,
+      temperature: 0.7,
+    });
+
+    const result = z.object({
+      topics: z.array(z.string()),
+      insights: z.string()
+    }).parse(JSON.parse(response.choices[0].message.content || "{}"));
+
+    return result;
+  };
+
+  return retryWithExponentialBackoff(operation);
+}
+
+export async function generateContent(options: ContentGenerationOptions): Promise<string> {
+  if (!isOpenAIConfigured) {
+    throw new Error("OpenAI API key not configured");
+  }
+
+  const { contentType, contentTone, topics, platforms, length = "medium" } = options;
+  
+  const wordCount = {
+    short: 150,
+    medium: 300,
+    long: 600
+  }[length] || 300;
+
+  const operation = async () => {
+    const trends = await analyzeTrends(topics);
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are a professional content creator specializing in multi-platform content."
+        },
+        {
+          role: "user",
+          content: `Create ${contentType} content with a ${contentTone} tone about ${topics}.
+          Consider these trending subtopics: ${trends.topics.join(", ")}
+          Target platforms: ${platforms.join(", ")}
+          Length: ~${wordCount} words
+          Make it engaging and incorporate current trends naturally.
+          Format with clear structure and SEO-friendly elements.`
         }
       ],
       max_tokens: 800,
@@ -57,49 +112,86 @@ export async function generateContent(options: ContentGenerationOptions): Promis
 
     return response.choices[0].message.content?.trim() || 
       "Could not generate content. Please try again with different parameters.";
-  } catch (error) {
-    console.error("Error generating content with OpenAI:", error);
-    return "An error occurred while generating content. Please try again later.";
-  }
+  };
+
+  return retryWithExponentialBackoff(operation);
 }
 
-// Adapt general content for specific platforms
+const platformFormatting = {
+  LinkedIn: {
+    maxLength: 3000,
+    hashtags: true,
+    format: "professional",
+    sections: ["hook", "context", "value", "cta"]
+  },
+  Twitter: {
+    maxLength: 280,
+    hashtags: true,
+    format: "concise",
+    sections: ["hook", "content", "cta"]
+  },
+  Facebook: {
+    maxLength: 5000,
+    hashtags: false,
+    format: "conversational",
+    sections: ["story", "content", "engagement"]
+  },
+  Pinterest: {
+    maxLength: 500,
+    hashtags: true,
+    format: "visual",
+    sections: ["description", "keywords", "link"]
+  },
+  YouTube: {
+    maxLength: 5000,
+    hashtags: true,
+    format: "detailed",
+    sections: ["title", "description", "timestamps", "links"]
+  },
+  Instagram: {
+    maxLength: 2200,
+    hashtags: true,
+    format: "visual",
+    sections: ["caption", "hashtags"]
+  }
+};
+
 export async function generatePlatformSpecificContent(
   content: string,
   platform: string
 ): Promise<string> {
   if (!isOpenAIConfigured) {
-    return "OpenAI API key is not configured. Please add your API key to continue generating content.";
+    throw new Error("OpenAI API key not configured");
   }
 
-  // Platform-specific formatting instructions
-  const platformInstructions: Record<string, string> = {
-    "LinkedIn": "professional, business-oriented with appropriate hashtags",
-    "Twitter": "concise (under 280 characters), engaging, with hashtags",
-    "Facebook": "conversational, engaging, with a call to action",
-    "Pinterest": "descriptive, visual-oriented, with keywords for SEO",
-    "YouTube": "engaging video description with timestamps, keywords, and call to action",
-    "Instagram": "visual, concise, with popular hashtags and emoji"
+  const platformConfig = platformFormatting[platform as keyof typeof platformFormatting] || {
+    maxLength: 1000,
+    hashtags: true,
+    format: "standard",
+    sections: ["content"]
   };
 
-  const instruction = platformInstructions[platform] || "appropriate for social media";
-
-  try {
-    // The newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+  const operation = async () => {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are a social media content specialist who adapts content for different platforms."
+          content: `You are a ${platform} content optimization specialist.`
         },
         {
           role: "user",
-          content: `Adapt the following content for ${platform}. Make it ${instruction}:
+          content: `Adapt this content for ${platform}:
           
           ${content}
           
-          The adapted content should maintain the core message but be optimized for ${platform}'s format and audience.`
+          Requirements:
+          - Maximum length: ${platformConfig.maxLength} characters
+          - Format: ${platformConfig.format}
+          - Include ${platformConfig.hashtags ? "relevant hashtags" : "no hashtags"}
+          - Structure using sections: ${platformConfig.sections.join(", ")}
+          
+          Maintain the core message while optimizing for ${platform}'s best practices.`
         }
       ],
       max_tokens: 500,
@@ -108,40 +200,7 @@ export async function generatePlatformSpecificContent(
 
     return response.choices[0].message.content?.trim() || 
       `Could not adapt content for ${platform}. Please try again.`;
-  } catch (error) {
-    console.error(`Error adapting content for ${platform}:`, error);
-    return `An error occurred while adapting content for ${platform}. Please try again later.`;
-  }
-}
+  };
 
-// Find trending topics in a specific category
-export async function findTrendingTopics(category: string): Promise<string[]> {
-  if (!isOpenAIConfigured) {
-    return ["OpenAI API key is not configured"];
-  }
-
-  try {
-    // The newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are a trend researcher who identifies current popular topics."
-        },
-        {
-          role: "user",
-          content: `What are the top 5 trending topics in ${category} right now? Provide them as a comma-separated list without numbering or additional context.`
-        }
-      ],
-      max_tokens: 100,
-      temperature: 0.7,
-    });
-
-    const topicsText = response.choices[0].message.content?.trim() || "";
-    return topicsText.split(",").map((topic: string) => topic.trim());
-  } catch (error) {
-    console.error("Error finding trending topics:", error);
-    return ["Failed to fetch trending topics"];
-  }
+  return retryWithExponentialBackoff(operation);
 }
