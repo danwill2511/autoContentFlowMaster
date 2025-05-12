@@ -91,47 +91,58 @@ async function processPost(post: Post) {
   
   while (retryCount < maxRetries) {
     try {
-  
-  const workflow = await storage.getWorkflow(post.workflowId);
-  if (!workflow) {
-    throw new Error(`Workflow ${post.workflowId} not found for post ${post.id}`);
-  }
-  
-  const platformIds = post.platformIds as number[];
-  const platforms = await storage.getPlatformsByIds(platformIds);
-  
-  const errors: Array<{ platform: string; error: Error }> = [];
-  
-  // Generate platform-specific content for each platform
-  for (const platform of platforms) {
-    try {
-      // Format content specifically for this platform
-      const platformContent = await withRetry(() => 
-        generatePlatformSpecificContent(post.content, platform.name)
-      );
+      const workflow = await storage.getWorkflow(post.workflowId);
+      if (!workflow) {
+        throw new Error(`Workflow ${post.workflowId} not found for post ${post.id}`);
+      }
       
-      // In a real app, we would post to the actual social media platforms here
-      console.log(`Successfully formatted content for ${platform.name} (Post ID: ${post.id})`);
+      const platformIds = post.platformIds as number[];
+      const platforms = await storage.getPlatformsByIds(platformIds);
       
-      // Log successful processing
-      await logPostSuccess(post, platform.name);
+      const errors: Array<{ platform: string; error: Error }> = [];
+      
+      // Generate platform-specific content for each platform
+      for (const platform of platforms) {
+        try {
+          // Format content specifically for this platform
+          const platformContent = await withRetry(() => 
+            generatePlatformSpecificContent(post.content, platform.name)
+          );
+          
+          // In a real app, we would post to the actual social media platforms here
+          console.log(`Successfully formatted content for ${platform.name} (Post ID: ${post.id})`);
+          
+          // Log successful processing
+          await logPostSuccess(post, platform.name);
+        } catch (error) {
+          console.error(`Error posting to ${platform.name}:`, error);
+          errors.push({ platform: platform.name, error: error as Error });
+        }
+      }
+      
+      // Update post status based on results
+      if (errors.length === platforms.length) {
+        // All platforms failed
+        await storage.updatePostStatus(post.id, "failed");
+        throw new Error(`Failed to post to all platforms: ${errors.map(e => e.platform).join(", ")}`);
+      } else if (errors.length > 0) {
+        // Some platforms failed
+        await storage.updatePostStatus(post.id, "partial_success", new Date());
+      } else {
+        // All successful
+        await storage.updatePostStatus(post.id, "published", new Date());
+      }
+      
+      // If we got here, we succeeded
+      return;
     } catch (error) {
-      console.error(`Error posting to ${platform.name}:`, error);
-      errors.push({ platform: platform.name, error: error as Error });
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        throw error;
+      }
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
     }
-  }
-  
-  // Update post status based on results
-  if (errors.length === platforms.length) {
-    // All platforms failed
-    await storage.updatePostStatus(post.id, "failed");
-    throw new Error(`Failed to post to all platforms: ${errors.map(e => e.platform).join(", ")}`);
-  } else if (errors.length > 0) {
-    // Some platforms failed
-    await storage.updatePostStatus(post.id, "partial_success", new Date());
-  } else {
-    // All successful
-    await storage.updatePostStatus(post.id, "published", new Date());
   }
 }
 
