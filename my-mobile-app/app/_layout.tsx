@@ -8,6 +8,8 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import OfflineIndicator from '../components/OfflineIndicator';
+import { initializeOfflineSync } from '../utils/offlineSync';
 
 // This layout component handles authentication state and protected routes
 function RootLayoutContent() {
@@ -15,6 +17,12 @@ function RootLayoutContent() {
   const segments = useSegments();
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  
+  // Initialize offline sync on component mount
+  useEffect(() => {
+    // Initialize offline sync system
+    initializeOfflineSync();
+  }, []);
   
   // Auth state effect
   useEffect(() => {
@@ -44,8 +52,11 @@ function RootLayoutContent() {
   
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Slot />
-      <StatusBar style="auto" />
+      <View style={{ flex: 1 }}>
+        <Slot />
+        <StatusBar style="auto" />
+        <OfflineIndicator />
+      </View>
     </ThemeProvider>
   );
 }
