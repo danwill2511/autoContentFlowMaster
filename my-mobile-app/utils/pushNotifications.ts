@@ -1,28 +1,150 @@
-// Note: This file is a template that will need expo-notifications to be
-// fully functional, but provides the structure
+// Push Notification Utils
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-/**
- * Push Notification Service for AutoContentFlow Mobile App
- * 
- * Requires:
- * - expo-notifications
- * - expo-device
- * 
- * This file contains all the logic for handling push notifications including:
- * - Requesting permissions
- * - Registering for push notifications
- * - Handling notifications when the app is in different states
- */
+// Import API configuration
+import { API_URL, DEFAULT_HEADERS } from './api';
 
-// These imports will be enabled once dependencies are installed
-// import * as Notifications from 'expo-notifications';
-// import * as Device from 'expo-device';
-// import { Platform } from 'react-native';
+// Configuration for how notifications are presented
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
-// Configuration for how notifications are displayed
-const configurePushNotifications = () => {
-  // Uncomment when dependencies are available
-  /*
+export interface NotificationData {
+  title: string;
+  body: string;
+  data?: Record<string, any>;
+}
+
+// Register for push notifications
+export async function registerForPushNotificationsAsync() {
+  let token;
+  
+  // Check if device is physical (not simulator or emulator)
+  if (Device.isDevice) {
+    // Check existing permissions
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    
+    // If no existing permission, request it
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    
+    // If permission not granted, exit
+    if (finalStatus !== 'granted') {
+      console.log('Failed to get push token for push notification!');
+      return;
+    }
+    
+    // Get push token from Expo notification service
+    token = (await Notifications.getExpoPushTokenAsync({
+      projectId: Constants.expoConfig?.extra?.eas?.projectId ?? 'autocontentflow',
+    })).data;
+    
+    // Store token for later use
+    await AsyncStorage.setItem('pushToken', token);
+    
+    // Register token with server
+    await registerPushTokenWithServer(token);
+  } else {
+    console.log('Must use physical device for Push Notifications');
+  }
+
+  // Special handling for Android
+  if (Platform.OS === 'android') {
+    Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+    });
+  }
+
+  return token;
+}
+
+// Send token to server
+async function registerPushTokenWithServer(token: string) {
+  try {
+    const response = await fetch(`${API_URL}/api/register-push-token`, {
+      method: 'POST',
+      headers: {
+        ...DEFAULT_HEADERS,
+        'Authorization': `Bearer ${await AsyncStorage.getItem('accessToken')}`,
+      },
+      body: JSON.stringify({ token }),
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to register push token with server');
+    }
+  } catch (error) {
+    console.error('Error registering push token:', error);
+  }
+}
+
+// Schedule a local notification
+export async function scheduleNotification({ 
+  title, 
+  body, 
+  data = {}, 
+  trigger = null 
+}: NotificationData & { trigger?: Notifications.NotificationTriggerInput }) {
+  return await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      data,
+      sound: true,
+    },
+    trigger: trigger || null,
+  });
+}
+
+// Add notification listener
+export function addNotificationListener(
+  callback: (notification: Notifications.Notification) => void
+) {
+  return Notifications.addNotificationReceivedListener(callback);
+}
+
+// Add notification response listener
+export function addNotificationResponseListener(
+  callback: (response: Notifications.NotificationResponse) => void
+) {
+  return Notifications.addNotificationResponseReceivedListener(callback);
+}
+
+// Get all scheduled notifications
+export async function getAllScheduledNotifications() {
+  return await Notifications.getAllScheduledNotificationsAsync();
+}
+
+// Cancel a specific notification
+export async function cancelScheduledNotification(identifier: string) {
+  await Notifications.cancelScheduledNotificationAsync(identifier);
+}
+
+// Cancel all notifications
+export async function cancelAllNotifications() {
+  await Notifications.cancelAllScheduledNotificationsAsync();
+}
+
+// Initialize notifications system
+export async function initializeNotifications() {
+  // Register for push notifications
+  await registerForPushNotificationsAsync();
+  
+  // Set up background notification handler
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -30,135 +152,4 @@ const configurePushNotifications = () => {
       shouldSetBadge: true,
     }),
   });
-  */
-};
-
-// Check and request permissions for notifications
-const registerForPushNotifications = async () => {
-  // Placeholder for the actual implementation
-  // Will be replaced with actual code once dependencies are installed
-  
-  /*
-  let token;
-  
-  // Check if device is physical (not an emulator)
-  if (Device.isDevice) {
-    // Check if we have permission
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    // If we don't have permission, ask for it
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    
-    // If we still don't have permission, return
-    if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notifications!');
-      return null;
-    }
-    
-    // Get the token
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-  } else {
-    console.log('Must use physical device for push notifications');
-  }
-  
-  // For Android, we need to set up a notification channel
-  if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#6366F1',
-    });
-  }
-  
-  return token;
-  */
-  
-  // Temporary placeholder return value
-  return 'placeholder-token';
-};
-
-// Send the token to our backend
-const sendPushTokenToBackend = async (token: string) => {
-  try {
-    // Will be implemented once the API is available
-    console.log('Sending push token to backend:', token);
-    
-    /*
-    const response = await fetch(`${API_URL}/api/push-tokens`, {
-      method: 'POST',
-      headers: DEFAULT_HEADERS,
-      body: JSON.stringify({ token }),
-      credentials: 'include',
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to send push token to backend');
-    }
-    
-    console.log('Push token sent to backend successfully');
-    */
-  } catch (error) {
-    console.error('Error sending push token to backend:', error);
-  }
-};
-
-// Handle notifications when the app is in the foreground
-const setupNotificationHandlers = () => {
-  // Will be implemented once dependencies are available
-  /*
-  // Set up foreground notification handler
-  const foregroundSubscription = Notifications.addNotificationReceivedListener((notification) => {
-    console.log('Notification received in foreground:', notification);
-  });
-  
-  // Set up handler for when a user taps on a notification
-  const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
-    console.log('Notification response received:', response);
-    
-    // You can navigate to specific screens based on the notification here
-    // For example:
-    // const data = response.notification.request.content.data;
-    // if (data.type === 'workflow-published') {
-    //   navigation.navigate('WorkflowDetails', { id: data.workflowId });
-    // }
-  });
-  
-  // Return cleanup function to be used in useEffect's return
-  return () => {
-    foregroundSubscription.remove();
-    responseSubscription.remove();
-  };
-  */
-};
-
-// Schedule a local notification
-const scheduleLocalNotification = async (title: string, body: string, data = {}) => {
-  // Will be implemented once dependencies are available
-  /*
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title,
-      body,
-      data,
-    },
-    trigger: {
-      seconds: 2, // Show notification in 2 seconds
-    },
-  });
-  */
-  console.log(`Scheduled notification: ${title} - ${body}`);
-};
-
-// Export all functions
-export {
-  configurePushNotifications,
-  registerForPushNotifications,
-  sendPushTokenToBackend,
-  setupNotificationHandlers,
-  scheduleLocalNotification,
-};
+}
