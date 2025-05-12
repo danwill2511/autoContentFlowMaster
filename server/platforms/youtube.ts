@@ -23,7 +23,7 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 // Environment variables
 const YOUTUBE_CLIENT_ID = process.env.YOUTUBE_CLIENT_ID || '';
 const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET || '';
-const REDIRECT_URI = process.env.YOUTUBE_REDIRECT_URI || 'https://app.autocontentflow.repl.co/api/platforms/oauth/callback';
+const REDIRECT_URI = process.env.YOUTUBE_REDIRECT_URI || 'https://app.autocontentflow.repl.co/api/platforms/oauth/callback?platform=youtube';
 
 // Check if YouTube API keys are configured
 const isYouTubeConfigured = !!(YOUTUBE_CLIENT_ID && YOUTUBE_CLIENT_SECRET);

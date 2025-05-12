@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -45,6 +45,18 @@ export const workflowPlatforms = pgTable("workflow_platforms", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const timeOptimizations = pgTable("time_optimizations", {
+  id: serial("id").primaryKey(),
+  platformId: integer("platform_id").notNull(),
+  platformType: text("platform_type").notNull(), // e.g., "instagram", "twitter", "linkedin"
+  bestDays: jsonb("best_days").notNull(), // array of days (0-6, where 0 is Sunday)
+  bestHours: jsonb("best_hours").notNull(), // array of hours (0-23)
+  audienceTimezone: text("audience_timezone").default("UTC").notNull(),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  engagementScore: integer("engagement_score"), // Optional engagement score from previous posts
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
   workflowId: integer("workflow_id").notNull(),
@@ -53,6 +65,9 @@ export const posts = pgTable("posts", {
   scheduledFor: timestamp("scheduled_for").notNull(),
   postedAt: timestamp("posted_at"),
   platformIds: json("platform_ids").notNull(),
+  optimizationApplied: boolean("optimization_applied").default(false),
+  optimizationData: jsonb("optimization_data"), // Stores the calculated time optimization data
+  engagementMetrics: jsonb("engagement_metrics"), // Stores engagement metrics after posting
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -62,6 +77,7 @@ export const insertPlatformSchema = createInsertSchema(platforms).omit({ id: tru
 export const insertWorkflowSchema = createInsertSchema(workflows).omit({ id: true, createdAt: true });
 export const insertWorkflowPlatformSchema = createInsertSchema(workflowPlatforms).omit({ id: true, createdAt: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true });
+export const insertTimeOptimizationSchema = createInsertSchema(timeOptimizations).omit({ id: true, createdAt: true, lastUpdated: true });
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -78,6 +94,9 @@ export type InsertWorkflowPlatform = z.infer<typeof insertWorkflowPlatformSchema
 
 export type Post = typeof posts.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;
+
+export type TimeOptimization = typeof timeOptimizations.$inferSelect;
+export type InsertTimeOptimization = z.infer<typeof insertTimeOptimizationSchema>;
 
 // Login schema
 export const loginSchema = z.object({

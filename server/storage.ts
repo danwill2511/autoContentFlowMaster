@@ -1,5 +1,5 @@
-import { users, workflows, platforms, workflowPlatforms, posts } from "@shared/schema";
-import type { User, InsertUser, Workflow, InsertWorkflow, Platform, InsertPlatform, WorkflowPlatform, InsertWorkflowPlatform, Post, InsertPost } from "@shared/schema";
+import { users, workflows, platforms, workflowPlatforms, posts, timeOptimizations } from "@shared/schema";
+import type { User, InsertUser, Workflow, InsertWorkflow, Platform, InsertPlatform, WorkflowPlatform, InsertWorkflowPlatform, Post, InsertPost, TimeOptimization, InsertTimeOptimization } from "@shared/schema";
 import { and, eq, desc, lte, gte, sql } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -48,6 +48,15 @@ export interface IStorage {
   getPostsCreatedTodayCount(userId: number): Promise<number>;
   createPost(post: InsertPost): Promise<Post>;
   updatePostStatus(id: number, status: string, postedAt?: Date): Promise<Post>;
+  updatePostEngagementMetrics(id: number, engagementMetrics: any): Promise<Post>;
+  
+  // Time optimization methods
+  getTimeOptimization(id: number): Promise<TimeOptimization | undefined>;
+  getTimeOptimizationByPlatform(platformId: number): Promise<TimeOptimization | undefined>;
+  getTimeOptimizationsByPlatformType(platformType: string): Promise<TimeOptimization[]>;
+  createTimeOptimization(timeOptimization: InsertTimeOptimization): Promise<TimeOptimization>;
+  updateTimeOptimization(id: number, data: Partial<InsertTimeOptimization>): Promise<TimeOptimization>;
+  calculateOptimalPostTime(platformIds: number[]): Promise<Date>;
   
   // Session store
   sessionStore: any; // Using any for session store type to avoid compatibility issues

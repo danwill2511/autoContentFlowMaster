@@ -20,7 +20,7 @@ const FACEBOOK_TOKEN_URL = 'https://graph.facebook.com/v18.0/oauth/access_token'
 // Environment variables
 const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID || '';
 const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET || '';
-const REDIRECT_URI = process.env.INSTAGRAM_REDIRECT_URI || 'https://app.autocontentflow.repl.co/api/platforms/oauth/callback';
+const REDIRECT_URI = process.env.INSTAGRAM_REDIRECT_URI || 'https://app.autocontentflow.repl.co/api/platforms/oauth/callback?platform=instagram';
 
 // Check if Instagram API keys are configured
 const isInstagramConfigured = !!(INSTAGRAM_APP_ID && INSTAGRAM_APP_SECRET);

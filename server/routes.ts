@@ -319,49 +319,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const platform = await storage.getPlatform(parseInt(req.params.id));
+      const platformId = parseInt(req.params.id);
+      const platform = await storage.getPlatform(platformId);
+      
       if (!platform || platform.userId !== req.user.id) {
         return res.status(403).json({ message: "Forbidden" });
       }
 
-      // Generate OAuth URL based on platform
-      const state = randomBytes(32).toString('hex');
-      // Store state in session for validation
-      req.session.oauthState = state;
+      // Generate a random state for CSRF protection
+      const originalState = randomBytes(16).toString('hex');
       
-      const authUrl = generateOAuthUrl(platform.name, state);
+      // Store state in session for additional validation
+      req.session.oauthState = originalState;
+      
+      // Create an encoded state that includes the platform ID and the original state
+      // This allows us to identify which platform to update in the callback
+      const stateObj = {
+        platformId,
+        originalState
+      };
+      
+      // Base64 encode the state object to pass it through the OAuth flow
+      const encodedState = Buffer.from(JSON.stringify(stateObj)).toString('base64');
+      
+      // Generate OAuth URL based on platform with the encoded state
+      const authUrl = generateOAuthUrl(platform.name, encodedState);
+      
       res.json({ authUrl });
     } catch (error) {
-      res.status(500).json({ message: "Failed to initiate OAuth flow" });
+      console.error("OAuth initiation error:", error);
+      res.status(500).json({ 
+        message: "Failed to initiate OAuth flow",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
   // Platform OAuth callback
-  app.post("/api/platforms/oauth/callback", async (req, res) => {
+  app.get("/api/platforms/oauth/callback", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      // If not authenticated, redirect to login page
+      return res.redirect('/auth');
+    }
+
+    try {
+      const { code, state, platform: platformName } = req.query;
+      
+      if (!code || !state || !platformName) {
+        return res.status(400).send("Missing required parameters");
+      }
+      
+      // Decode the state which contains platformId and original state
+      let stateObj;
+      try {
+        stateObj = JSON.parse(Buffer.from(state as string, 'base64').toString());
+      } catch (e) {
+        return res.status(400).send("Invalid state parameter");
+      }
+      
+      const { platformId, originalState } = stateObj;
+      
+      // Validate state to prevent CSRF (if stored in session)
+      if (req.session.oauthState && originalState !== req.session.oauthState) {
+        return res.status(400).send("Invalid state parameter - CSRF protection");
+      }
+      
+      // Exchange code for access token (using the specific platform's exchange function)
+      const tokens = await exchangeCodeForTokens(code as string, originalState, platformName as string);
+      
+      // Update platform with new tokens
+      await storage.updatePlatform(platformId, {
+        accessToken: tokens.access_token,
+        apiSecret: tokens.refresh_token // Store refresh token in apiSecret field
+      });
+
+      // Redirect to platform detail page with success message
+      res.redirect(`/platforms/${platformId}?success=true`);
+    } catch (error) {
+      console.error("OAuth callback error:", error);
+      res.status(500).send(`Failed to complete OAuth flow: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+
+  // Platform OAuth callback (for server-side handling)
+  app.post("/api/platforms/oauth/server-callback", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     try {
-      const { code, state } = req.body;
+      const { code, state, platformId, platformName } = req.body;
       
-      // Validate state to prevent CSRF
-      if (state !== req.session.oauthState) {
+      // Validate state to prevent CSRF (if stored in session)
+      if (req.session.oauthState && state !== req.session.oauthState) {
         return res.status(400).json({ message: "Invalid state parameter" });
       }
 
-      // Exchange code for access token
-      const tokens = await exchangeCodeForTokens(code);
+      // Exchange code for access token (using the specific platform's exchange function)
+      const tokens = await exchangeCodeForTokens(code, state, platformName);
       
       // Update platform with new tokens
-      const platform = await storage.updatePlatform(parseInt(req.params.id), {
+      await storage.updatePlatform(parseInt(platformId), {
         accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token
+        apiSecret: tokens.refresh_token // Store refresh token in apiSecret field
       });
 
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ message: "Failed to complete OAuth flow" });
+      console.error("OAuth server callback error:", error);
+      res.status(500).json({ 
+        message: "Failed to complete OAuth flow",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
@@ -411,6 +480,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: validationError.message });
       }
       res.status(500).json({ message: "Failed to update platform" });
+    }
+  });
+
+  // Platform direct posting
+  app.post("/api/platforms/:id/post", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      const platformId = parseInt(req.params.id);
+      const platform = await storage.getPlatform(platformId);
+
+      if (!platform) {
+        return res.status(404).json({ message: "Platform not found" });
+      }
+
+      if (platform.userId !== req.user.id) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const { content, options } = req.body;
+
+      if (!content) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+
+      // Post the content to the platform
+      const result = await postToPlatform(platform, content, options);
+      res.json(result);
+    } catch (error) {
+      console.error("Platform posting error:", error);
+      res.status(500).json({ 
+        message: "Failed to post to platform", 
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 

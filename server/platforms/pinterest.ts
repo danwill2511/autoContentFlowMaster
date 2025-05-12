@@ -2,7 +2,7 @@
  * Pinterest API Integration
  * 
  * This module provides functionality for interacting with the Pinterest API
- * for authenticating users and posting content.
+ * for authenticating users and creating pins.
  * 
  * Pinterest API docs: https://developers.pinterest.com/docs/api/v5/
  */
@@ -13,17 +13,16 @@ import { URLSearchParams } from 'url';
 import { logger } from '../logger';
 
 // Pinterest API configuration
-const PINTEREST_API_VERSION = 'v5';
-const PINTEREST_API_URL = `https://api.pinterest.com/${PINTEREST_API_VERSION}`;
-const PINTEREST_AUTH_URL = 'https://www.pinterest.com/oauth/';
+const PINTEREST_API_URL = 'https://api.pinterest.com/v5';
+const PINTEREST_AUTH_URL = 'https://www.pinterest.com/oauth';
 
 // Environment variables
-const PINTEREST_CLIENT_ID = process.env.PINTEREST_CLIENT_ID || '';
-const PINTEREST_CLIENT_SECRET = process.env.PINTEREST_CLIENT_SECRET || '';
-const REDIRECT_URI = process.env.PINTEREST_REDIRECT_URI || 'https://app.autocontentflow.repl.co/api/platforms/oauth/callback';
+const PINTEREST_APP_ID = process.env.PINTEREST_APP_ID || '';
+const PINTEREST_APP_SECRET = process.env.PINTEREST_APP_SECRET || '';
+const REDIRECT_URI = process.env.PINTEREST_REDIRECT_URI || 'https://app.autocontentflow.repl.co/api/platforms/oauth/callback?platform=pinterest';
 
 // Check if Pinterest API keys are configured
-const isPinterestConfigured = !!(PINTEREST_CLIENT_ID && PINTEREST_CLIENT_SECRET);
+const isPinterestConfigured = !!(PINTEREST_APP_ID && PINTEREST_APP_SECRET);
 
 /**
  * Generates an OAuth URL for Pinterest authentication
@@ -36,14 +35,14 @@ function generateOAuthUrl(state: string): string {
   }
 
   const params = new URLSearchParams({
-    client_id: PINTEREST_CLIENT_ID,
+    client_id: PINTEREST_APP_ID,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
     scope: 'boards:read,pins:read,pins:write',
     state
   });
 
-  return `${PINTEREST_AUTH_URL}authorize?${params.toString()}`;
+  return `${PINTEREST_AUTH_URL}/authorize?${params.toString()}`;
 }
 
 /**
@@ -59,13 +58,13 @@ async function exchangeCodeForTokens(code: string): Promise<{ access_token: stri
   try {
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
-      client_id: PINTEREST_CLIENT_ID,
-      client_secret: PINTEREST_CLIENT_SECRET,
       code,
-      redirect_uri: REDIRECT_URI
+      redirect_uri: REDIRECT_URI,
+      client_id: PINTEREST_APP_ID,
+      client_secret: PINTEREST_APP_SECRET
     });
 
-    const response = await axios.post(`${PINTEREST_AUTH_URL}token`, params.toString(), {
+    const response = await axios.post(`${PINTEREST_AUTH_URL}/token`, params.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
@@ -78,7 +77,7 @@ async function exchangeCodeForTokens(code: string): Promise<{ access_token: stri
   } catch (error) {
     logger.error('Pinterest token exchange error:', error);
     if (axios.isAxiosError(error) && error.response) {
-      throw new Error(`Pinterest authentication failed: ${error.response.data.error_description || error.response.data.error || error.message}`);
+      throw new Error(`Pinterest authentication failed: ${error.response.data.message || error.message}`);
     }
     throw new Error(`Pinterest authentication failed: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -97,12 +96,12 @@ async function refreshAccessToken(refreshToken: string): Promise<{ access_token:
   try {
     const params = new URLSearchParams({
       grant_type: 'refresh_token',
-      client_id: PINTEREST_CLIENT_ID,
-      client_secret: PINTEREST_CLIENT_SECRET,
-      refresh_token: refreshToken
+      refresh_token: refreshToken,
+      client_id: PINTEREST_APP_ID,
+      client_secret: PINTEREST_APP_SECRET
     });
 
-    const response = await axios.post(`${PINTEREST_AUTH_URL}token`, params.toString(), {
+    const response = await axios.post(`${PINTEREST_AUTH_URL}/token`, params.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
@@ -110,11 +109,31 @@ async function refreshAccessToken(refreshToken: string): Promise<{ access_token:
 
     return {
       access_token: response.data.access_token,
-      refresh_token: response.data.refresh_token || refreshToken
+      refresh_token: response.data.refresh_token
     };
   } catch (error) {
     logger.error('Pinterest token refresh error:', error);
     throw new Error(`Failed to refresh Pinterest token: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Gets user's Pinterest boards
+ * @param accessToken Pinterest access token
+ * @returns Array of user's boards
+ */
+async function getUserBoards(accessToken: string): Promise<any[]> {
+  try {
+    const response = await axios.get(`${PINTEREST_API_URL}/boards`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    
+    return response.data.items || [];
+  } catch (error) {
+    logger.error('Pinterest get boards error:', error);
+    throw new Error(`Failed to get Pinterest boards: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -139,16 +158,12 @@ async function testConnection(platform: Platform): Promise<{ success: boolean, m
   }
 
   try {
-    // Try to get user data to verify the token
-    const response = await axios.get(`${PINTEREST_API_URL}/user_account`, {
-      headers: {
-        'Authorization': `Bearer ${platform.accessToken}`
-      }
-    });
-
+    // Try to get user's boards to verify the token
+    const boards = await getUserBoards(platform.accessToken);
+    
     return {
       success: true,
-      message: `Successfully connected to Pinterest as ${response.data.username || 'user'}`
+      message: `Successfully connected to Pinterest with ${boards.length} boards`
     };
   } catch (error) {
     logger.error('Pinterest connection test error:', error);
@@ -179,45 +194,21 @@ async function testConnection(platform: Platform): Promise<{ success: boolean, m
 }
 
 /**
- * Gets the user's Pinterest boards
- * @param accessToken Pinterest access token
- * @returns Array of board objects
- */
-async function getBoards(accessToken: string): Promise<any[]> {
-  try {
-    const response = await axios.get(`${PINTEREST_API_URL}/boards`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      },
-      params: {
-        page_size: 100
-      }
-    });
-    
-    return response.data.items || [];
-  } catch (error) {
-    logger.error('Error fetching Pinterest boards:', error);
-    throw new Error(`Failed to fetch Pinterest boards: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-/**
- * Creates a new Pinterest pin
+ * Creates a pin on Pinterest
  * @param platform Platform object with Pinterest credentials
- * @param content The content to post
- * @param options Additional options (board, media URL, alt text, etc.)
- * @returns Post result with pin ID and URL
+ * @param content The description content for the pin
+ * @param options Additional options for the pin
+ * @returns Pin result with pin ID and URL
  */
 async function postContent(
   platform: Platform, 
-  content: string, 
+  content: string,
   options: {
     title?: string;
     boardId?: string;
-    mediaUrl?: string;
-    mediaType?: 'image' | 'video';
-    altText?: string;
-  } = {}
+    imageUrl: string;
+    link?: string;
+  }
 ): Promise<{ success: boolean, message: string, postId?: string, postUrl?: string }> {
   if (!platform.accessToken) {
     return {
@@ -226,36 +217,42 @@ async function postContent(
     };
   }
 
+  if (!options.imageUrl) {
+    return {
+      success: false,
+      message: 'Image URL is required for Pinterest pins'
+    };
+  }
+
   try {
-    // If no boardId was provided, get the first available board
     let boardId = options.boardId;
+    
+    // If no board ID provided, get the first board from the user's account
     if (!boardId) {
-      const boards = await getBoards(platform.accessToken);
+      const boards = await getUserBoards(platform.accessToken);
+      
       if (boards.length === 0) {
         return {
           success: false,
           message: 'No Pinterest boards found. Please create a board on Pinterest first.'
         };
       }
+      
       boardId = boards[0].id;
     }
 
-    // Prepare the pin data
-    const pinData: any = {
+    // Create the pin
+    const pinData = {
       board_id: boardId,
-      description: content.substring(0, 500), // Pinterest limit is 500 chars
       media_source: {
-        source_type: options.mediaType === 'video' ? 'video_url' : 'image_url',
-        url: options.mediaUrl || 'https://source.unsplash.com/random/800x600/?nature'
+        source_type: 'image_url',
+        url: options.imageUrl
       },
-      alt_text: options.altText || ''
+      title: options.title || '',
+      description: content,
+      link: options.link || ''
     };
 
-    if (options.title) {
-      pinData.title = options.title.substring(0, 100); // Pinterest limit is 100 chars
-    }
-
-    // Create the pin
     const response = await axios.post(`${PINTEREST_API_URL}/pins`, pinData, {
       headers: {
         'Authorization': `Bearer ${platform.accessToken}`,
@@ -263,16 +260,16 @@ async function postContent(
       }
     });
 
-    // Return success information
     const pinId = response.data.id;
+
     return {
       success: true,
-      message: 'Successfully posted to Pinterest',
+      message: 'Successfully created pin on Pinterest',
       postId: pinId,
       postUrl: `https://www.pinterest.com/pin/${pinId}/`
     };
   } catch (error) {
-    logger.error('Pinterest post error:', error);
+    logger.error('Pinterest pin creation error:', error);
     
     // Handle expired token
     if (axios.isAxiosError(error) && error.response?.status === 401 && platform.apiSecret) {
@@ -295,9 +292,36 @@ async function postContent(
     
     return {
       success: false,
-      message: `Failed to post to Pinterest: ${error instanceof Error ? error.message : String(error)}`
+      message: `Failed to create pin on Pinterest: ${error instanceof Error ? error.message : String(error)}`
     };
   }
+}
+
+/**
+ * Formats content specifically for Pinterest
+ * @param content Generic content to format
+ * @param options Formatting options
+ * @returns Pinterest-optimized content
+ */
+function formatContent(content: string, options: any = {}): string {
+  // Pinterest works well with emojis and short paragraphs
+  let formattedContent = content;
+  
+  // Keep it under Pinterest's description limit (500 characters)
+  if (formattedContent.length > 500) {
+    formattedContent = formattedContent.substring(0, 497) + '...';
+  }
+  
+  // Add hashtags if requested
+  if (options.addHashtags && options.hashtags) {
+    const hashtags = Array.isArray(options.hashtags) 
+      ? options.hashtags.join(' ') 
+      : options.hashtags;
+    
+    formattedContent = `${formattedContent}\n\n${hashtags}`;
+  }
+  
+  return formattedContent;
 }
 
 // Export the Pinterest API module
@@ -306,6 +330,7 @@ export const pinterestApi = {
   exchangeCodeForTokens,
   refreshAccessToken,
   testConnection,
-  getBoards,
-  postContent
+  getUserBoards,
+  postContent,
+  formatContent
 };

@@ -22,7 +22,7 @@ const TWITTER_TOKEN_URL = 'https://api.twitter.com/2/oauth2/token';
 // Environment variables
 const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID || '';
 const TWITTER_CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET || '';
-const TWITTER_REDIRECT_URI = process.env.TWITTER_REDIRECT_URI || 'https://app.autocontentflow.repl.co/api/platforms/oauth/callback';
+const TWITTER_REDIRECT_URI = process.env.TWITTER_REDIRECT_URI || 'https://app.autocontentflow.repl.co/api/platforms/oauth/callback?platform=twitter';
 
 // Token for PKCE (Proof Key for Code Exchange)
 const generateCodeVerifier = (): string => {

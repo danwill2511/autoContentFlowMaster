@@ -19,7 +19,7 @@ const LINKEDIN_AUTH_URL = 'https://www.linkedin.com/oauth/v2';
 // Environment variables
 const LINKEDIN_CLIENT_ID = process.env.LINKEDIN_CLIENT_ID || '';
 const LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET || '';
-const REDIRECT_URI = process.env.LINKEDIN_REDIRECT_URI || 'https://app.autocontentflow.repl.co/api/platforms/oauth/callback';
+const REDIRECT_URI = process.env.LINKEDIN_REDIRECT_URI || 'https://app.autocontentflow.repl.co/api/platforms/oauth/callback?platform=linkedin';
 
 // Check if LinkedIn API keys are configured
 const isLinkedInConfigured = !!(LINKEDIN_CLIENT_ID && LINKEDIN_CLIENT_SECRET);
