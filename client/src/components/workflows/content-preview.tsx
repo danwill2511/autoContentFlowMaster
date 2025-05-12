@@ -22,6 +22,50 @@ export function ContentPreview({
   topics, 
   platforms,
   platformSettings 
+
+const formatForPlatform = (content: string, platform: string, settings?: any): string => {
+  let formatted = content;
+  
+  // Apply platform-specific character limits
+  const maxLength = settings?.characterLimit || getPlatformDefaultLimit(platform);
+  if (formatted.length > maxLength) {
+    formatted = formatted.slice(0, maxLength - 3) + '...';
+  }
+
+  // Add hashtags if enabled
+  if (settings?.hashtagCount > 0) {
+    const hashtags = generateHashtags(formatted, settings.hashtagCount);
+    formatted = `${formatted}\n\n${hashtags}`;
+  }
+
+  // Add platform-specific formatting
+  switch(platform.toLowerCase()) {
+    case 'twitter':
+    case 'x':
+      formatted = formatted.replace(/\n\n/g, '\n');
+      break;
+    case 'linkedin':
+      formatted = formatted.replace(/\n/g, '\n\n');
+      break;
+  }
+
+  return formatted;
+};
+
+const generateHashtags = (content: string, count: number): string => {
+  const words = content.toLowerCase()
+    .split(/\s+/)
+    .filter(word => word.length > 3)
+    .map(word => word.replace(/[^a-z0-9]/g, ''));
+  
+  const uniqueWords = Array.from(new Set(words));
+  const hashtags = uniqueWords
+    .slice(0, count)
+    .map(word => `#${word}`);
+  
+  return hashtags.join(' ');
+};
+
 }: ContentPreviewProps & { platformSettings?: Record<string, any> }) {
   const [previewContent, setPreviewContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -97,6 +141,8 @@ export function ContentPreview({
 
     for (const platform of platforms) {
       try {
+        // Apply platform-specific formatting before API call
+        const formattedContent = formatForPlatform(content, platform, platformSettings?.[platform.toLowerCase()]);
         const res = await apiRequest("POST", "/api/content/adapt", {
           content,
           platform

@@ -14,7 +14,30 @@ interface PlatformSettingsProps {
 
 export function PlatformSettings({ platformId, platformName, settings, onChange }: PlatformSettingsProps) {
   const handleChange = (key: string, value: any) => {
-    onChange(platformId, { ...settings, [key]: value });
+    let validatedValue = value;
+    
+    // Validate inputs based on platform and field type
+    switch(key) {
+      case "hashtagCount":
+        validatedValue = Math.min(Math.max(0, value), 30);
+        break;
+      case "characterLimit":
+        validatedValue = Math.min(Math.max(10, value), getPlatformMaxLimit(platformName));
+        break;
+    }
+    
+    onChange(platformId, { ...settings, [key]: validatedValue });
+  };
+
+  const getPlatformMaxLimit = (platform: string): number => {
+    switch(platform.toLowerCase()) {
+      case 'twitter':
+      case 'x': return 280;
+      case 'linkedin': return 3000;
+      case 'instagram': return 2200;
+      case 'facebook': return 5000;
+      default: return 1000;
+    }
   };
 
   return (

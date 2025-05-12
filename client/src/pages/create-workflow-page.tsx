@@ -65,12 +65,76 @@ const workflowSchema = z.object({
 
 type WorkflowFormValues = z.infer<typeof workflowSchema>;
 
+// Define the PlatformSettings component
+function PlatformSettings({ platformId, platformName, settings, onChange }: any) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{platformName} Settings</CardTitle>
+        <CardDescription>Configure specific settings for {platformName}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        <div className="grid grid-cols-3 gap-2">
+          <FormLabel htmlFor={`${platformName}-hashtagCount`}>Hashtag Count</FormLabel>
+          <FormControl>
+            <Input
+              type="number"
+              id={`${platformName}-hashtagCount`}
+              placeholder="0-30"
+              value={settings?.hashtagCount || ""}
+              onChange={(e) => onChange(platformId, { ...settings, hashtagCount: e.target.value })}
+            />
+          </FormControl>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <FormLabel htmlFor={`${platformName}-characterLimit`}>Character Limit</FormLabel>
+          <FormControl>
+            <Input
+              type="number"
+              id={`${platformName}-characterLimit`}
+              placeholder="10-5000"
+              value={settings?.characterLimit || ""}
+              onChange={(e) => onChange(platformId, { ...settings, characterLimit: e.target.value })}
+            />
+          </FormControl>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <FormLabel htmlFor={`${platformName}-includeImages`}>Include Images</FormLabel>
+          <FormControl>
+            <input
+              type="checkbox"
+              id={`${platformName}-includeImages`}
+              checked={settings?.includeImages || false}
+              onChange={(e) => onChange(platformId, { ...settings, includeImages: e.target.checked })}
+            />
+          </FormControl>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <FormLabel htmlFor={`${platformName}-includeLinks`}>Include Links</FormLabel>
+          <FormControl>
+            <input
+              type="checkbox"
+              id={`${platformName}-includeLinks`}
+              checked={settings?.includeLinks || false}
+              onChange={(e) => onChange(platformId, { ...settings, includeLinks: e.target.checked })}
+            />
+          </FormControl>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function CreateWorkflowPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [_, setLocation] = useLocation();
   const [selectedPlatforms, setSelectedPlatforms] = useState<number[]>([]);
-  
+  const [platformSettings, setPlatformSettings] = useState<any>({});
+
   // Get user platforms
   const { data: platforms } = useQuery<any[]>({
     queryKey: ["/api/platforms"],
@@ -80,7 +144,7 @@ export default function CreateWorkflowPage() {
   // Map platforms to platform selector format
   const mapPlatforms = (): PlatformType[] => {
     if (!platforms) return [];
-    
+
     // This is a simplified approach since the real platforms data might be structured differently
     // In a real implementation, you would map platform data from the API to the correct format
     return platforms.map(platform => ({
@@ -141,6 +205,7 @@ export default function CreateWorkflowPage() {
       const res = await apiRequest("POST", "/api/workflows", {
         ...data,
         platforms: selectedPlatforms,
+        platformSettings: platformSettings,
       });
       return await res.json();
     },
@@ -161,6 +226,13 @@ export default function CreateWorkflowPage() {
     },
   });
 
+  const handlePlatformSettingsChange = (platformId: number, newSettings: any) => {
+    setPlatformSettings(prevSettings => ({
+      ...prevSettings,
+      [platformId]: newSettings,
+    }));
+  };
+
   const onSubmit = (data: WorkflowFormValues) => {
     if (selectedPlatforms.length === 0) {
       toast({
@@ -170,7 +242,7 @@ export default function CreateWorkflowPage() {
       });
       return;
     }
-    
+
     // Add the nextPostDate if set
     if (data.nextPostDate) {
       const dateObj = new Date(data.nextPostDate);
@@ -186,14 +258,14 @@ export default function CreateWorkflowPage() {
       tomorrow.setHours(12, 0, 0, 0);
       data.nextPostDate = tomorrow.toISOString();
     }
-    
+
     createWorkflow.mutate(data);
   };
 
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col">
       <Navbar />
-      
+
       <main className="flex-grow max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 w-full">
         <div className="px-4 sm:px-0 mb-8">
           <h1 className="text-2xl font-semibold text-neutral-900">Create New Workflow</h1>
@@ -201,7 +273,7 @@ export default function CreateWorkflowPage() {
             Set up automated content creation and posting across your platforms.
           </p>
         </div>
-        
+
         <Card className="mx-auto mb-8">
           <CardHeader>
             <CardTitle>New Content Workflow</CardTitle>
@@ -209,7 +281,7 @@ export default function CreateWorkflowPage() {
               Configure your automated content creation and posting settings
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -234,7 +306,7 @@ export default function CreateWorkflowPage() {
                         )}
                       />
                     </div>
-                    
+
                     <div className="sm:col-span-2">
                       <FormField
                         control={form.control}
@@ -268,17 +340,39 @@ export default function CreateWorkflowPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <h3 className="text-base font-medium text-neutral-900 mb-4">2. Select Platforms</h3>
                   {platforms && platforms.length > 0 ? (
+                    <div className="space-y-4">
                     <PlatformSelector
                       platforms={mapPlatforms()}
                       selectedPlatforms={selectedPlatforms}
                       onChange={(selected) => setSelectedPlatforms(selected)}
                     />
+
+                    {selectedPlatforms.length > 0 && (
+                      <div className="mt-4 space-y-4">
+                        <h4 className="text-sm font-medium text-neutral-900">Platform Settings</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {selectedPlatforms.map(platformId => {
+                            const platform = platforms?.find(p => p.id === platformId);
+                            return platform ? (
+                              <PlatformSettings
+                                key={platformId}
+                                platformId={platformId}
+                                platformName={platform.name}
+                                settings={platformSettings[platformId]}
+                                onChange={handlePlatformSettingsChange}
+                              />
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   ) : (
                     <div className="text-center py-6 border border-dashed border-neutral-300 rounded-lg">
                       <svg
@@ -312,9 +406,9 @@ export default function CreateWorkflowPage() {
                     </p>
                   )}
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <h3 className="text-base font-medium text-neutral-900 mb-4">3. Content Configuration</h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-6">
@@ -350,7 +444,7 @@ export default function CreateWorkflowPage() {
                         )}
                       />
                     </div>
-                    
+
                     <div className="sm:col-span-3">
                       <FormField
                         control={form.control}
@@ -383,7 +477,7 @@ export default function CreateWorkflowPage() {
                         )}
                       />
                     </div>
-                    
+
                     <div className="sm:col-span-6">
                       <FormField
                         control={form.control}
@@ -408,9 +502,9 @@ export default function CreateWorkflowPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <h3 className="text-base font-medium text-neutral-900 mb-4">4. Content Preview</h3>
                   <div className="grid grid-cols-1 gap-6">
@@ -427,9 +521,9 @@ export default function CreateWorkflowPage() {
                     )}
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <h3 className="text-base font-medium text-neutral-900 mb-4">5. Scheduling</h3>
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-6">
@@ -453,7 +547,7 @@ export default function CreateWorkflowPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="border-t border-neutral-200 pt-6">
                   <div className="flex justify-end space-x-3">
                     <Button type="button" variant="outline" onClick={() => setLocation("/")}>
