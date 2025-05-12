@@ -15,7 +15,9 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByReplitId(replitId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(userId: number, updates: Partial<User>): Promise<User>;
   updateUserSubscription(userId: number, subscription: string): Promise<User>;
   
   // Workflow methods
@@ -54,6 +56,7 @@ export interface IStorage {
   clearTestData(): Promise<void>;
 }
 
+// Define memory storage class for development/testing
 export class MemStorage implements IStorage {
   private usersMap: Map<number, User>;
   private workflowsMap: Map<number, Workflow>;
@@ -79,17 +82,7 @@ export class MemStorage implements IStorage {
     this.workflowPlatformCurrentId = 1;
     this.postCurrentId = 1;
     this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
-    });
-    
-    // Create initial demo user
-    this.createUser({
-      username: "demo",
-      password: "password123",
-      name: "Demo User",
-      email: "demo@example.com",
-      subscription: "essential",
-      isAdmin: false
+      checkPeriod: 86400000,
     });
   }
 
@@ -104,7 +97,6 @@ export class MemStorage implements IStorage {
     );
   }
   
-
   // Get user by Replit ID
   async getUserByReplitId(replitId: string): Promise<User | undefined> {
     if (!replitId) return undefined;
@@ -129,6 +121,7 @@ export class MemStorage implements IStorage {
       email: insertUser.email,
       name: insertUser.name || null,
       replitId: insertUser.replitId || null,
+      profileImage: insertUser.profileImage || null,
       subscription: insertUser.subscription || "free",
       isAdmin: insertUser.isAdmin !== undefined ? insertUser.isAdmin : false,
       createdAt: now
@@ -153,33 +146,7 @@ export class MemStorage implements IStorage {
   }
   
   async updateUserSubscription(userId: number, subscription: string): Promise<User> {
-    const user = await this.getUser(userId);
-    if (!user) {
-      throw new Error(`User ${userId} not found`);
-    }
-    
-    const updatedUser: User = {
-      ...user,
-      subscription
-    };
-    
-    this.usersMap.set(userId, updatedUser);
-    return updatedUser;
-  }
-  
-  async updateUser(userId: number, updates: Partial<User>): Promise<User> {
-    const user = await this.getUser(userId);
-    if (!user) {
-      throw new Error(`User ${userId} not found`);
-    }
-    
-    const updatedUser: User = {
-      ...user,
-      ...updates
-    };
-    
-    this.usersMap.set(userId, updatedUser);
-    return updatedUser;
+    return this.updateUser(userId, { subscription });
   }
 
   // Workflow methods
@@ -244,7 +211,7 @@ export class MemStorage implements IStorage {
   async countUserWorkflows(userId: number): Promise<number> {
     return (await this.getWorkflowsByUser(userId)).length;
   }
-
+  
   // Platform methods
   async getPlatform(id: number): Promise<Platform | undefined> {
     return this.platformsMap.get(id);
@@ -257,7 +224,9 @@ export class MemStorage implements IStorage {
   }
   
   async getPlatformsByIds(ids: number[]): Promise<Platform[]> {
-    return ids.map(id => this.platformsMap.get(id)).filter(Boolean) as Platform[];
+    return Array.from(this.platformsMap.values()).filter(
+      (platform) => ids.includes(platform.id)
+    );
   }
   
   async createPlatform(insertPlatform: InsertPlatform): Promise<Platform> {
@@ -266,10 +235,10 @@ export class MemStorage implements IStorage {
     const platform: Platform = {
       id,
       name: insertPlatform.name,
-      userId: insertPlatform.userId,
       apiKey: insertPlatform.apiKey || null,
       apiSecret: insertPlatform.apiSecret || null,
       accessToken: insertPlatform.accessToken || null,
+      userId: insertPlatform.userId,
       createdAt: now
     };
     this.platformsMap.set(id, platform);
@@ -290,11 +259,11 @@ export class MemStorage implements IStorage {
     this.platformsMap.set(id, updatedPlatform);
     return updatedPlatform;
   }
-
+  
   // WorkflowPlatform methods
   async getWorkflowPlatforms(workflowId: number): Promise<WorkflowPlatform[]> {
     return Array.from(this.workflowPlatformsMap.values()).filter(
-      (wp) => wp.workflowId === workflowId
+      (workflowPlatform) => workflowPlatform.workflowId === workflowId
     );
   }
   
@@ -302,14 +271,16 @@ export class MemStorage implements IStorage {
     const id = this.workflowPlatformCurrentId++;
     const now = new Date();
     const workflowPlatform: WorkflowPlatform = {
-      ...insertWorkflowPlatform,
       id,
+      workflowId: insertWorkflowPlatform.workflowId,
+      platformId: insertWorkflowPlatform.platformId,
+      platformSpecificSettings: insertWorkflowPlatform.platformSpecificSettings || null,
       createdAt: now
     };
     this.workflowPlatformsMap.set(id, workflowPlatform);
     return workflowPlatform;
   }
-
+  
   // Post methods
   async getPost(id: number): Promise<Post | undefined> {
     return this.postsMap.get(id);
@@ -318,36 +289,38 @@ export class MemStorage implements IStorage {
   async getPostsByWorkflow(workflowId: number): Promise<Post[]> {
     return Array.from(this.postsMap.values()).filter(
       (post) => post.workflowId === workflowId
-    ).sort((a, b) => {
-      // Sort by scheduled date, most recent first
-      return new Date(b.scheduledFor).getTime() - new Date(a.scheduledFor).getTime();
-    });
+    );
   }
   
   async getPendingPostsDue(date: Date): Promise<Post[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
     return Array.from(this.postsMap.values()).filter(
       (post) => 
-        post.status === "pending" && 
-        new Date(post.scheduledFor) <= date
+        post.status === "pending" &&
+        post.scheduledDate &&
+        post.scheduledDate >= startOfDay &&
+        post.scheduledDate <= endOfDay
     );
   }
   
   async getPostsCreatedTodayCount(userId: number): Promise<number> {
-    // Get all workflows for this user
-    const userWorkflows = await this.getWorkflowsByUser(userId);
-    const userWorkflowIds = userWorkflows.map(w => w.id);
-    
-    // Get all posts created today for these workflows
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    return Array.from(this.postsMap.values()).filter(post => {
-      const postDate = new Date(post.createdAt);
-      return (
-        userWorkflowIds.includes(post.workflowId) &&
-        postDate >= today
-      );
-    }).length;
+    return Array.from(this.postsMap.values()).filter(
+      (post) => {
+        const workflow = this.workflowsMap.get(post.workflowId);
+        return workflow && 
+          workflow.userId === userId && 
+          post.createdAt && 
+          post.createdAt >= today;
+      }
+    ).length;
   }
   
   async createPost(insertPost: InsertPost): Promise<Post> {
@@ -356,10 +329,10 @@ export class MemStorage implements IStorage {
     const post: Post = {
       id,
       workflowId: insertPost.workflowId,
+      title: insertPost.title || null,
       content: insertPost.content,
-      scheduledFor: insertPost.scheduledFor,
-      platformIds: insertPost.platformIds,
       status: insertPost.status || "pending",
+      scheduledDate: insertPost.scheduledDate || null,
       postedAt: insertPost.postedAt || null,
       createdAt: now
     };
@@ -376,7 +349,7 @@ export class MemStorage implements IStorage {
     const updatedPost: Post = {
       ...post,
       status,
-      ...(postedAt && { postedAt })
+      ...(postedAt ? { postedAt } : {})
     };
     
     this.postsMap.set(id, updatedPost);
@@ -384,14 +357,11 @@ export class MemStorage implements IStorage {
   }
   
   async clearTestData(): Promise<void> {
-    // Clear all data from memory maps
     this.usersMap.clear();
     this.workflowsMap.clear();
     this.platformsMap.clear();
     this.workflowPlatformsMap.clear();
     this.postsMap.clear();
-    
-    // Reset all IDs
     this.userCurrentId = 1;
     this.workflowCurrentId = 1;
     this.platformCurrentId = 1;
@@ -455,17 +425,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateUserSubscription(userId: number, subscription: string): Promise<User> {
-    const [updatedUser] = await db
-      .update(users)
-      .set({ subscription })
-      .where(eq(users.id, userId))
-      .returning();
-    
-    if (!updatedUser) {
-      throw new Error(`User ${userId} not found`);
-    }
-    
-    return updatedUser;
+    return this.updateUser(userId, { subscription });
   }
 
   // Workflow methods
@@ -475,11 +435,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWorkflowsByUser(userId: number): Promise<Workflow[]> {
-    return db.select().from(workflows).where(eq(workflows.userId, userId));
+    return db
+      .select()
+      .from(workflows)
+      .where(eq(workflows.userId, userId))
+      .orderBy(desc(workflows.createdAt))
+      .limit(100)
+      .execute();
   }
 
   async getActiveWorkflows(): Promise<Workflow[]> {
-    return db.select().from(workflows).where(eq(workflows.status, "active"));
+    return db
+      .select()
+      .from(workflows)
+      .where(eq(workflows.status, "active"))
+      .execute();
   }
 
   async createWorkflow(insertWorkflow: InsertWorkflow): Promise<Workflow> {
@@ -510,12 +480,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async countUserWorkflows(userId: number): Promise<number> {
-    const result = await db
+    const [result] = await db
       .select({ count: sql<number>`count(*)` })
       .from(workflows)
       .where(eq(workflows.userId, userId));
     
-    return result[0]?.count || 0;
+    return result?.count || 0;
   }
 
   // Platform methods
@@ -563,15 +533,12 @@ export class DatabaseStorage implements IStorage {
     return db
       .select()
       .from(workflowPlatforms)
-      .where(eq(workflowPlatforms.workflowId, workflowId));
+      .where(eq(workflowPlatforms.workflowId, workflowId))
+      .execute();
   }
 
   async createWorkflowPlatform(insertWorkflowPlatform: InsertWorkflowPlatform): Promise<WorkflowPlatform> {
-    const [workflowPlatform] = await db
-      .insert(workflowPlatforms)
-      .values(insertWorkflowPlatform)
-      .returning();
-    
+    const [workflowPlatform] = await db.insert(workflowPlatforms).values(insertWorkflowPlatform).returning();
     return workflowPlatform;
   }
 
@@ -586,44 +553,46 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(posts)
       .where(eq(posts.workflowId, workflowId))
-      .orderBy(desc(posts.scheduledFor));
+      .orderBy(desc(posts.createdAt))
+      .execute();
   }
 
   async getPendingPostsDue(date: Date): Promise<Post[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
     return db
       .select()
       .from(posts)
       .where(
         and(
           eq(posts.status, "pending"),
-          lte(posts.scheduledFor, date)
+          gte(posts.scheduledDate, startOfDay),
+          lte(posts.scheduledDate, endOfDay)
         )
-      );
+      )
+      .execute();
   }
 
   async getPostsCreatedTodayCount(userId: number): Promise<number> {
-    // Get today's date at midnight
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Get all workflows for this user
-    const userWorkflows = await this.getWorkflowsByUser(userId);
-    
-    if (!userWorkflows.length) return 0;
-    
-    const userWorkflowIds = userWorkflows.map(w => w.id);
-    
-    const result = await db
+    const [result] = await db
       .select({ count: sql<number>`count(*)` })
       .from(posts)
+      .innerJoin(workflows, eq(posts.workflowId, workflows.id))
       .where(
         and(
-          sql`${posts.workflowId} IN (${userWorkflowIds.join(',')})`,
+          eq(workflows.userId, userId),
           gte(posts.createdAt, today)
         )
       );
     
-    return result[0]?.count || 0;
+    return result?.count || 0;
   }
 
   async createPost(insertPost: InsertPost): Promise<Post> {
@@ -632,14 +601,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePostStatus(id: number, status: string, postedAt?: Date): Promise<Post> {
-    const updateData: any = { status };
+    const updates: Partial<Post> = { status };
     if (postedAt) {
-      updateData.postedAt = postedAt;
+      updates.postedAt = postedAt;
     }
     
     const [updatedPost] = await db
       .update(posts)
-      .set(updateData)
+      .set(updates)
       .where(eq(posts.id, id))
       .returning();
     
@@ -649,16 +618,14 @@ export class DatabaseStorage implements IStorage {
     
     return updatedPost;
   }
-  
+
   async clearTestData(): Promise<void> {
-    // Delete all data from tables in reverse order of dependencies
     await db.delete(posts);
     await db.delete(workflowPlatforms);
-    await db.delete(workflows);
     await db.delete(platforms);
+    await db.delete(workflows);
     await db.delete(users);
   }
 }
 
-// Create DB storage instance
 export const storage = new DatabaseStorage();
