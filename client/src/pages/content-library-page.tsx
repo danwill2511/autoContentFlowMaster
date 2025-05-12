@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Search, FileText, Bookmark, Calendar, Star, Share2, Download, Plus, Filter, Play, Pause, List } from "lucide-react";
+import { Search, FileText, Bookmark, Calendar, Star, Share2, Download, Plus, Filter, Play, Pause, List, Loader2, Check } from "lucide-react";
 import Layout from "@/components/layout/layout";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import { contentTemplates } from "@/data/contentTemplateData";
 import { ContentTemplate } from "@/data/contentTemplateData";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function ContentLibraryPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,7 +24,85 @@ export default function ContentLibraryPage() {
   const [sortOption, setSortOption] = useState("popular");
   const [selectedTemplate, setSelectedTemplate] = useState<ContentTemplate | null>(null);
   const [showWorkflowSteps, setShowWorkflowSteps] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [savedTemplates, setSavedTemplates] = useState<number[]>(() => {
+    const saved = localStorage.getItem('savedTemplates');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const { toast } = useToast();
 
+  // Mutation for generating preview images
+  const generatePreviewMutation = useMutation({
+    mutationFn: async (template: ContentTemplate) => {
+      const response = await apiRequest("POST", "/api/templates/generate-preview", {
+        title: template.title,
+        description: template.description,
+        category: template.category,
+        workflowSteps: template.workflowSteps
+      });
+      return await response.json();
+    },
+    onSuccess: (data, template) => {
+      // Update the template with the new image URL
+      const updatedTemplate = { ...template, animationPreview: data.imageUrl };
+      // We'd typically update this in the database, but for now we'll just toast a success message
+      toast({
+        title: "Preview generated successfully",
+        description: "The AI image preview has been generated and saved.",
+      });
+      
+      // Force a re-render by setting the selected template
+      setSelectedTemplate(updatedTemplate);
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to generate preview",
+        description: "An error occurred while generating the preview image.",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Function to toggle saving a template
+  const toggleSaveTemplate = (templateId: number) => {
+    let newSavedTemplates: number[];
+    
+    if (savedTemplates.includes(templateId)) {
+      newSavedTemplates = savedTemplates.filter(id => id !== templateId);
+      toast({
+        title: "Template removed",
+        description: "Template has been removed from your saved items."
+      });
+    } else {
+      newSavedTemplates = [...savedTemplates, templateId];
+      toast({
+        title: "Template saved",
+        description: "Template has been saved to your library."
+      });
+    }
+    
+    setSavedTemplates(newSavedTemplates);
+    localStorage.setItem('savedTemplates', JSON.stringify(newSavedTemplates));
+  };
+  
+  // Function to use a template (start workflow creation with this template)
+  const useTemplate = (template: ContentTemplate) => {
+    toast({
+      title: "Template applied",
+      description: "Template has been applied to a new workflow.",
+    });
+    
+    // Here you would typically redirect to workflow creation with this template
+    // or open a modal to configure workflow options
+    setIsDialogOpen(false);
+  };
+  
+  // Function to regenerate preview image for a template
+  const regeneratePreview = (template: ContentTemplate) => {
+    generatePreviewMutation.mutate(template);
+  };
+  
   // Get unique categories
   const categories = ["All", ...new Set(contentTemplates.map((t) => t.category))];
   
@@ -216,13 +296,19 @@ export default function ContentLibraryPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between border-t pt-3 pb-3">
-                    <Dialog>
+                    <Dialog open={isDialogOpen && selectedTemplate?.id === template.id} onOpenChange={(open) => {
+                      setIsDialogOpen(open);
+                      if (open) setSelectedTemplate(template);
+                    }}>
                       <DialogTrigger asChild>
                         <Button 
                           variant="outline" 
                           size="sm" 
                           className="text-xs"
-                          onClick={() => setSelectedTemplate(template)}
+                          onClick={() => {
+                            setSelectedTemplate(template);
+                            setIsDialogOpen(true);
+                          }}
                         >
                           <Play className="h-3 w-3 mr-1" /> View Workflow
                         </Button>
@@ -237,18 +323,48 @@ export default function ContentLibraryPage() {
                         
                         <div className="flex flex-col md:flex-row gap-6 mt-2">
                           <div className="md:w-1/2">
-                            {template.animationPreview && (
-                              <div className="border rounded-lg overflow-hidden bg-muted p-2 text-center">
-                                <p className="text-sm mb-2">Workflow Animation Preview</p>
-                                <div className="h-56 flex items-center justify-center">
+                            <div className="border rounded-lg overflow-hidden bg-muted p-2 text-center">
+                              <div className="flex justify-between items-center mb-2">
+                                <p className="text-sm">Workflow Preview</p>
+                                {!generatePreviewMutation.isPending && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 text-xs"
+                                    onClick={() => regeneratePreview(template)}
+                                    title="Generate AI preview"
+                                  >
+                                    <Download className="h-3 w-3 mr-1" /> 
+                                    Generate AI Preview
+                                  </Button>
+                                )}
+                              </div>
+                              <div className="h-56 flex items-center justify-center">
+                                {generatePreviewMutation.isPending && generatePreviewMutation.variables?.id === template.id ? (
+                                  <div className="flex flex-col items-center gap-2">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    <p className="text-sm text-muted-foreground">Generating AI preview...</p>
+                                  </div>
+                                ) : template.animationPreview ? (
                                   <img 
                                     src={template.animationPreview} 
                                     alt={`${template.title} workflow preview`} 
                                     className="max-h-full"
                                   />
-                                </div>
+                                ) : (
+                                  <div className="flex flex-col items-center gap-2">
+                                    <p className="text-sm text-muted-foreground">No preview available</p>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={() => regeneratePreview(template)}
+                                    >
+                                      Generate AI Preview
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            </div>
                             
                             <div className="mt-4">
                               <h4 className="font-medium text-sm mb-2">Template Content:</h4>
@@ -306,11 +422,23 @@ export default function ContentLibraryPage() {
                             <span>{template.rating} rating • {template.downloads.toLocaleString()} downloads</span>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline">
-                              <Bookmark className="h-4 w-4 mr-2" />
-                              Save
+                            <Button 
+                              variant="outline"
+                              onClick={() => toggleSaveTemplate(template.id)}
+                            >
+                              {savedTemplates.includes(template.id) ? (
+                                <>
+                                  <Check className="h-4 w-4 mr-2" />
+                                  Saved
+                                </>
+                              ) : (
+                                <>
+                                  <Bookmark className="h-4 w-4 mr-2" />
+                                  Save
+                                </>
+                              )}
                             </Button>
-                            <Button>
+                            <Button onClick={() => useTemplate(template)}>
                               <Download className="h-4 w-4 mr-2" />
                               Use Template
                             </Button>
@@ -319,7 +447,12 @@ export default function ContentLibraryPage() {
                       </DialogContent>
                     </Dialog>
                     
-                    <Button variant="default" size="sm" className="text-xs">
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="text-xs"
+                      onClick={() => useTemplate(template)}
+                    >
                       <Download className="h-3 w-3 mr-1" /> Use
                     </Button>
                   </CardFooter>

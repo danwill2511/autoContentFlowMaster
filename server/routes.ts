@@ -740,6 +740,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch trending topics" });
     }
   });
+  
+  // Generate template preview image using AI
+  app.post("/api/templates/generate-preview", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { title, description, category, workflowSteps } = req.body;
+      
+      if (!title || !description || !category) {
+        return res.status(400).json({ 
+          message: "Missing required parameters: title, description, and category are required" 
+        });
+      }
+      
+      console.log("Generating template preview image for:", title);
+      
+      // Create a more detailed prompt by including workflow steps if available
+      let enhancedDescription = description;
+      if (workflowSteps && Array.isArray(workflowSteps) && workflowSteps.length > 0) {
+        enhancedDescription += ` Workflow steps include: ${workflowSteps.join(", ")}`;
+      }
+      
+      const imageUrl = await generateTemplatePreviewImage(title, enhancedDescription, category);
+      
+      if (!imageUrl) {
+        return res.status(500).json({ message: "Failed to generate preview image" });
+      }
+      
+      res.json({ imageUrl });
+    } catch (error) {
+      console.error("Error generating template preview image:", error);
+      res.status(500).json({ message: "Error generating template preview image" });
+    }
+  });
 
   // Analytics routes
   app.get("/api/analytics", async (req, res) => {
