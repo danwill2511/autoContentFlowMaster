@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -26,11 +25,28 @@ export default function MultiPlatformPublishingPage() {
   return (
     <Layout>
       <div className="container mx-auto py-8 px-4">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Multi-Platform Publishing</h1>
-            <p className="text-muted-foreground">Manage and schedule your content across platforms</p>
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 rounded-3xl" />
+          <div className="relative bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-lg mb-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-4">Multi-Platform Publishing 🚀</h1>
+              <p className="text-lg text-neutral-600">Publish and manage your content seamlessly across all platforms</p>
+              <div className="flex flex-wrap justify-center gap-3 mt-4">
+                <Button variant="outline" size="sm">
+                  <span className="mr-2">📅</span> Schedule Posts
+                </Button>
+                <Button variant="outline" size="sm">
+                  <span className="mr-2">📊</span> View Analytics
+                </Button>
+                <Button variant="outline" size="sm">
+                  <span className="mr-2">⚡</span> Quick Post
+                </Button>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <div className="flex justify-between items-center mb-8">
           <Button asChild>
             <a href="/platforms">Connect Platform</a>
           </Button>

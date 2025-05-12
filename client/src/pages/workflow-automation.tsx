@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Layout } from '@/components/layout/layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,8 +9,27 @@ import { ContentFlowVisualizer } from '@/components/workflows/content-flow-visua
 export default function WorkflowAutomationPage() {
   return (
     <Layout>
-      <div className="container mx-auto p-6">
-        <h1 className="text-4xl font-bold mb-8 text-center">Build Your Content Flow</h1>
+      <div className="container mx-auto py-8">
+  <div className="relative">
+    <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 rounded-3xl" />
+    <div className="relative bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-lg mb-8">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold mb-4">Workflow Automation 🔄</h1>
+        <p className="text-lg text-neutral-600">Build powerful automated content workflows with ease</p>
+        <div className="flex flex-wrap justify-center gap-3 mt-4">
+          <Button variant="outline" size="sm">
+            <span className="mr-2">✨</span> Create Workflow
+          </Button>
+          <Button variant="outline" size="sm">
+            <span className="mr-2">📋</span> Templates
+          </Button>
+          <Button variant="outline" size="sm">
+            <span className="mr-2">⚙️</span> Settings
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card>

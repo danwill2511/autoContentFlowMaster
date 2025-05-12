@@ -11,7 +11,15 @@ export default function AnalyticsDashboardPage() {
   return (
     <Layout>
       <div className="container mx-auto p-6">
-        <h1 className="text-4xl font-bold mb-8 text-center">Content Performance</h1>
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 rounded-3xl" />
+          <div className="relative bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-lg mb-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-4">Analytics Dashboard ✨</h1>
+              <p className="text-lg text-neutral-600">Track and optimize your content performance across all platforms</p>
+            </div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>

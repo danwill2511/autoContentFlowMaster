@@ -1,3 +1,7 @@
+The code update enhances the content library's visual appearance with a new header section featuring a gradient background, improved layout, and additional buttons.
+```
+
+```replit_final_file
 import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -29,7 +33,7 @@ export default function ContentLibraryPage() {
     const saved = localStorage.getItem('savedTemplates');
     return saved ? JSON.parse(saved) : [];
   });
-  
+
   const { toast } = useToast();
 
   // Mutation for generating preview images
@@ -51,7 +55,7 @@ export default function ContentLibraryPage() {
         title: "Preview generated successfully",
         description: "The AI image preview has been generated and saved.",
       });
-      
+
       // Force a re-render by setting the selected template
       setSelectedTemplate(updatedTemplate);
     },
@@ -63,11 +67,11 @@ export default function ContentLibraryPage() {
       });
     }
   });
-  
+
   // Function to toggle saving a template
   const toggleSaveTemplate = (templateId: number) => {
     let newSavedTemplates: number[];
-    
+
     if (savedTemplates.includes(templateId)) {
       newSavedTemplates = savedTemplates.filter(id => id !== templateId);
       toast({
@@ -81,31 +85,31 @@ export default function ContentLibraryPage() {
         description: "Template has been saved to your library."
       });
     }
-    
+
     setSavedTemplates(newSavedTemplates);
     localStorage.setItem('savedTemplates', JSON.stringify(newSavedTemplates));
   };
-  
+
   // Function to use a template (start workflow creation with this template)
   const useTemplate = (template: ContentTemplate) => {
     toast({
       title: "Template applied",
       description: "Template has been applied to a new workflow.",
     });
-    
+
     // Here you would typically redirect to workflow creation with this template
     // or open a modal to configure workflow options
     setIsDialogOpen(false);
   };
-  
+
   // Function to regenerate preview image for a template
   const regeneratePreview = (template: ContentTemplate) => {
     generatePreviewMutation.mutate(template);
   };
-  
+
   // Get unique categories
   const categories = ["All", ...new Set(contentTemplates.map((t) => t.category))];
-  
+
   // Get unique platforms
   const allPlatforms = contentTemplates.flatMap((t) => t.platforms);
   const platforms = ["All", ...new Set(allPlatforms)];
@@ -115,16 +119,16 @@ export default function ContentLibraryPage() {
     const matchesSearch = template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       template.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       template.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     const matchesCategory = categoryFilter === "All" || template.category === categoryFilter;
-    
+
     const matchesPlatform = platformFilter === "All" || 
       template.platforms.some(platform => platform === platformFilter);
-    
+
     const matchesPremium = premiumFilter === "All" || 
       (premiumFilter === "Premium" && template.premium) ||
       (premiumFilter === "Free" && !template.premium);
-    
+
     return matchesSearch && matchesCategory && matchesPlatform && matchesPremium;
   });
 
@@ -144,75 +148,26 @@ export default function ContentLibraryPage() {
 
   return (
     <Layout>
+      
       <div className="container mx-auto py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Content Template Library</h1>
-            <p className="text-muted-foreground mt-2">
-              Explore our collection of optimized content templates for various platforms and use cases
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="default" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Create Custom Template
-            </Button>
-            
-            {/* Test button for AI preview generation */}
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-2"
-              onClick={async () => {
-                try {
-                  toast({
-                    title: "Testing AI Preview Generation",
-                    description: "Requesting a sample image from the API...",
-                  });
-                  
-                  const response = await fetch("/api/templates/test-preview");
-                  const data = await response.json();
-                  
-                  if (data.imageUrl) {
-                    toast({
-                      title: "Preview Generated Successfully",
-                      description: "AI preview image was generated for the sample template.",
-                    });
-                    
-                    // Open a dialog to show the generated image
-                    setSelectedTemplate({
-                      id: 9999,
-                      title: data.template.title,
-                      description: data.template.description,
-                      category: data.template.category,
-                      platforms: ["LinkedIn", "Twitter", "Instagram"],
-                      tags: ["automated", "social", "scheduling"],
-                      premium: false,
-                      workflowSteps: data.template.workflowSteps,
-                      animationPreview: data.imageUrl,
-                      template: "Sample template content would go here.",
-                      downloads: 0,
-                      rating: 5
-                    });
-                    setIsDialogOpen(true);
-                  } else {
-                    toast({
-                      title: "Preview Generation Failed",
-                      description: "Failed to generate an AI preview image.",
-                      variant: "destructive"
-                    });
-                  }
-                } catch (error) {
-                  console.error("Error testing AI preview generation:", error);
-                  toast({
-                    title: "Error",
-                    description: "An error occurred while testing AI preview generation.",
-                    variant: "destructive"
-                  });
-                }
-              }}
-            >
-              <Loader2 className="h-4 w-4" /> Test AI Preview
-            </Button>
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 rounded-3xl" />
+          <div className="relative bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-lg mb-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-4">Content Library 📚</h1>
+              <p className="text-lg text-neutral-600">Your centralized hub for content templates and inspiration</p>
+              <div className="flex flex-wrap justify-center gap-3 mt-4">
+                <Button variant="outline" size="sm">
+                  <span className="mr-2">📝</span> Create Template
+                </Button>
+                <Button variant="outline" size="sm">
+                  <span className="mr-2">🔍</span> Browse Templates
+                </Button>
+                <Button variant="outline" size="sm">
+                  <span className="mr-2">⭐</span> Favorites
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -327,7 +282,7 @@ export default function ContentLibraryPage() {
                   </CardHeader>
                   <CardContent className="pt-0">
                     <p className="text-sm mb-3 line-clamp-2">{template.description}</p>
-                    
+
                     <div className="flex flex-wrap gap-1 mb-3">
                       {template.platforms.map((platform) => (
                         <Badge key={platform} variant="outline" className="text-xs">
@@ -346,7 +301,7 @@ export default function ContentLibraryPage() {
                         {template.rating}
                       </div>
                     </div>
-                    
+
                     <div className="overflow-hidden bg-muted rounded-md p-2 mb-2 h-24">
                       <ScrollArea className="h-full">
                         <div className="text-xs whitespace-pre-wrap">{template.template}</div>
@@ -378,7 +333,7 @@ export default function ContentLibraryPage() {
                             {template.description}
                           </DialogDescription>
                         </DialogHeader>
-                        
+
                         <div className="flex flex-col md:flex-row gap-6 mt-2">
                           <div className="md:w-1/2">
                             <div className="border rounded-lg overflow-hidden bg-muted p-2 text-center">
@@ -423,7 +378,7 @@ export default function ContentLibraryPage() {
                                 )}
                               </div>
                             </div>
-                            
+
                             <div className="mt-4">
                               <h4 className="font-medium text-sm mb-2">Template Content:</h4>
                               <div className="bg-muted rounded-md p-3 text-sm whitespace-pre-wrap">
@@ -431,7 +386,7 @@ export default function ContentLibraryPage() {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="md:w-1/2">
                             {template.workflowSteps && (
                               <div className="border rounded-lg p-4">
@@ -451,7 +406,7 @@ export default function ContentLibraryPage() {
                                 </ol>
                               </div>
                             )}
-                            
+
                             <div className="mt-4">
                               <h4 className="font-medium text-sm mb-2">Platform Support:</h4>
                               <div className="flex flex-wrap gap-2">
@@ -460,7 +415,7 @@ export default function ContentLibraryPage() {
                                 ))}
                               </div>
                             </div>
-                            
+
                             <div className="mt-4">
                               <h4 className="font-medium text-sm mb-2">Tags:</h4>
                               <div className="flex flex-wrap gap-1">
@@ -473,7 +428,7 @@ export default function ContentLibraryPage() {
                             </div>
                           </div>
                         </div>
-                        
+
                         <DialogFooter className="sm:justify-between mt-6">
                           <div className="flex items-center text-sm">
                             <Star className="h-4 w-4 text-yellow-500 mr-1" />
@@ -504,7 +459,7 @@ export default function ContentLibraryPage() {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
-                    
+
                     <Button 
                       variant="default" 
                       size="sm" 
