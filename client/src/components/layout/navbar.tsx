@@ -18,11 +18,11 @@ import { Menu, X, ChevronDown } from 'lucide-react';
 
 export default function Navbar() {
   const [location] = useLocation();
-  const { user, logoutMutation } = useAuth();
+  const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    logoutMutation.mutate();
+    logout();
   };
 
   const isActive = (path: string) => {
@@ -234,7 +234,7 @@ export default function Navbar() {
                         </SheetClose>
                         <Button className="w-full" onClick={() => {
                           setIsMenuOpen(false);
-                          handleLogout();
+                          logout();
                         }}>
                           Logout
                         </Button>
