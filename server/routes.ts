@@ -46,7 +46,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/paypal/order/:orderID/capture", async (req, res) => {
-    await capturePaypalOrder(req, res);
+    try {
+      const result = await capturePaypalOrder(req, res);
+      
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Extract subscription details from the order
+      const orderData = result.purchase_units[0];
+      const amount = orderData.amount.value;
+      
+      // Determine subscription tier based on amount
+      let newTier: SubscriptionTier = "free";
+      if (amount === "758" || amount === "79") newTier = "business";
+      else if (amount === "278" || amount === "29") newTier = "pro";
+      else if (amount === "134" || amount === "14") newTier = "essential";
+      
+      // Update user's subscription
+      await storage.updateUserSubscription(req.user.id, newTier);
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Payment capture error:", error);
+      res.status(500).json({ error: "Failed to process payment" });
+    }
+  });
+
+  // PayPal webhook handler
+  app.post("/api/paypal/webhook", async (req, res) => {
+    try {
+      const event = req.body;
+      
+      switch (event.event_type) {
+        case 'PAYMENT.CAPTURE.COMPLETED':
+          // Payment successful
+          break;
+          
+        case 'PAYMENT.CAPTURE.DENIED':
+          // Payment failed
+          const userId = event.resource.custom_id;
+          await storage.updateUserSubscription(userId, "free");
+          break;
+          
+        case 'BILLING.SUBSCRIPTION.CANCELLED':
+          // Subscription cancelled
+          const cancelledUserId = event.resource.custom_id;
+          await storage.updateUserSubscription(cancelledUserId, "free");
+          break;
+      }
+      
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Webhook error:", error);
+      res.status(400).json({ error: "Webhook error" });
+    }
   });
 
   // Subscription routes

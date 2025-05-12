@@ -58,9 +58,26 @@ export default function PayPalButton({
   };
 
   const onApprove = async (data: any) => {
-    console.log("onApprove", data);
-    const orderData = await captureOrder(data.orderId);
-    console.log("Capture result", orderData);
+    try {
+      const orderData = await captureOrder(data.orderId);
+      
+      // Refresh the page to update subscription status
+      window.location.reload();
+      
+      // Show success message
+      toast({
+        title: "Subscription updated!",
+        description: "Your subscription has been successfully updated.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast({
+        title: "Payment failed",
+        description: "There was an error processing your payment. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const onCancel = async (data: any) => {
