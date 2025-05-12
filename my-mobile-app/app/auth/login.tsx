@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,14 +16,59 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../context/AuthContext';
+import BiometricAuth from '../../components/BiometricAuth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const { login, isLoading } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [storedUsername, setStoredUsername] = useState<string | null>(null);
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const insets = useSafeAreaInsets();
+  
+  // Check for stored credentials on component mount
+  useEffect(() => {
+    const checkStoredCredentials = async () => {
+      try {
+        const savedUsername = await AsyncStorage.getItem('lastUsername');
+        if (savedUsername) {
+          setStoredUsername(savedUsername);
+          setUsername(savedUsername);
+        }
+      } catch (error) {
+        console.error('Error checking stored credentials:', error);
+      }
+    };
+    
+    checkStoredCredentials();
+  }, []);
 
+  // Handle biometric login
+  const handleBiometricLogin = async () => {
+    try {
+      // Get stored password for username
+      const storedPassword = await AsyncStorage.getItem(`password_${storedUsername}`);
+      
+      if (!storedUsername || !storedPassword) {
+        setErrorMsg('Biometric login failed. Please log in with your credentials.');
+        return;
+      }
+      
+      setErrorMsg(null);
+      await login(storedUsername, storedPassword);
+      router.replace('/');
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMsg(error.message);
+      } else {
+        setErrorMsg('Biometric authentication failed. Please log in with your credentials.');
+      }
+    }
+  };
+
+  // Handle traditional login
   const handleLogin = async () => {
     if (!username || !password) {
       setErrorMsg('Please enter both username and password');
@@ -33,6 +78,11 @@ export default function LoginScreen() {
     setErrorMsg(null);
     try {
       await login(username, password);
+      
+      // Save credentials for biometric login
+      await AsyncStorage.setItem('lastUsername', username);
+      await AsyncStorage.setItem(`password_${username}`, password);
+      
       router.replace('/');
     } catch (error) {
       if (error instanceof Error) {
