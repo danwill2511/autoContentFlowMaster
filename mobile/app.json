@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "AutoContentFlow Mobile",
@@ -26,13 +27,19 @@
       "package": "com.autocontentflow.mobile"
     },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "f4f327b3-ec8a-453f-b0f1-453396821379"
-      }
-    },
-    "owner": "dannywillems25@gmail.com"
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff"
+        }
+      ]
+    ],
+    "scheme": "autocontentflow"
   }
 }

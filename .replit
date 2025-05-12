@@ -12,7 +12,7 @@ build = ["sh", "-c", "npm run build"]
 run = ["sh", "-c", "NODE_ENV=production node dist/index.js"]
 
 [workflows]
-runButton = "AutoContentFlow"
+runButton = "Expo Dev"
 
 [[workflows.workflow]]
 name = "Project"
@@ -64,6 +64,15 @@ args = "cd mobile && npm run start"
 
 [[workflows.workflow]]
 name = "Expo Dev Server"
+author = 42018904
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx expo start --web --host 0.0.0.0"
+
+[[workflows.workflow]]
+name = "Expo Dev"
 author = 42018904
 mode = "sequential"
 
