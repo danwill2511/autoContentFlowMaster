@@ -1,3 +1,4 @@
+
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -31,7 +32,7 @@ async function retryWithExponentialBackoff<T>(
   }
 }
 
-export async function analyzeTrends(category: string, region = "global"): Promise<{
+export async function findTrendingTopics(category: string, region = "global"): Promise<{
   topics: string[];
   insights: string;
 }> {
@@ -41,7 +42,7 @@ export async function analyzeTrends(category: string, region = "global"): Promis
 
   const operation = async () => {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -85,10 +86,10 @@ export async function generateContent(options: ContentGenerationOptions): Promis
   }[length] || 300;
 
   const operation = async () => {
-    const trends = await analyzeTrends(topics);
+    const trends = await findTrendingTopics(topics);
     
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -171,7 +172,7 @@ export async function generatePlatformSpecificContent(
 
   const operation = async () => {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -202,5 +203,6 @@ export async function generatePlatformSpecificContent(
 
   return retryWithExponentialBackoff(operation);
 }
+
 import { z } from "zod";
 export { openai };
