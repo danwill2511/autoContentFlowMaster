@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { AIAssistant } from '../../client/src/components/ui/ai-assistant';
+import { AiAssistant } from '../../client/src/components/ui/ai-assistant';
 
 // Mock necessary components
 jest.mock('@/components/ui/button', () => ({
@@ -47,13 +47,13 @@ global.fetch = jest.fn(() =>
   })
 ) as jest.Mock;
 
-describe('AIAssistant Component', () => {
+describe('AiAssistant Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   test('renders in collapsed state by default', () => {
-    render(<AIAssistant />);
+    render(<AiAssistant />);
     
     // Button with icon should be visible
     expect(screen.getByTestId('messages-square-icon')).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('AIAssistant Component', () => {
   });
 
   test('expands when button is clicked', () => {
-    render(<AIAssistant />);
+    render(<AiAssistant />);
     
     // Click the floating button to expand
     fireEvent.click(screen.getByTestId('mock-button'));
@@ -74,7 +74,7 @@ describe('AIAssistant Component', () => {
   });
 
   test('collapses when close button is clicked', () => {
-    render(<AIAssistant />);
+    render(<AiAssistant />);
     
     // Expand first
     fireEvent.click(screen.getByTestId('mock-button'));
@@ -89,7 +89,7 @@ describe('AIAssistant Component', () => {
   });
 
   test('handles user input and sends message', async () => {
-    render(<AIAssistant />);
+    render(<AiAssistant />);
     
     // Expand chat
     fireEvent.click(screen.getByTestId('mock-button'));
@@ -129,7 +129,7 @@ describe('AIAssistant Component', () => {
       })
     );
     
-    render(<AIAssistant />);
+    render(<AiAssistant />);
     
     // Expand chat
     fireEvent.click(screen.getByTestId('mock-button'));
@@ -166,7 +166,7 @@ describe('AIAssistant Component', () => {
       Promise.reject(new Error('Network error'))
     );
     
-    render(<AIAssistant />);
+    render(<AiAssistant />);
     
     // Expand chat
     fireEvent.click(screen.getByTestId('mock-button'));
@@ -190,7 +190,7 @@ describe('AIAssistant Component', () => {
   });
 
   test('shows examples when chat is initialized', () => {
-    render(<AIAssistant />);
+    render(<AiAssistant />);
     
     // Expand chat
     fireEvent.click(screen.getByTestId('mock-button'));
@@ -202,7 +202,7 @@ describe('AIAssistant Component', () => {
   });
 
   test('clicking an example message sends it as user query', async () => {
-    render(<AIAssistant />);
+    render(<AiAssistant />);
     
     // Expand chat
     fireEvent.click(screen.getByTestId('mock-button'));

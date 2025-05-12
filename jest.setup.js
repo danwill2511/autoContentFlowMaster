@@ -31,3 +31,14 @@ Object.defineProperty(window, 'IntersectionObserver', {
   configurable: true,
   value: IntersectionObserver,
 });
+
+// Mock for global fetch
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(""),
+    ok: true,
+    status: 200,
+    headers: new Headers(),
+  })
+);
