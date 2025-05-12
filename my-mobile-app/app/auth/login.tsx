@@ -18,31 +18,50 @@ import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../context/AuthContext';
 import BiometricAuth from '../../components/BiometricAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  isBiometricAvailable, 
+  initializeBiometricSettings 
+} from '../../utils/biometricAuth';
 
 export default function LoginScreen() {
+  // Auth context and loading state
   const { login, isLoading } = useAuth();
+  
+  // Form state
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
+  // Biometric authentication state
   const [storedUsername, setStoredUsername] = useState<string | null>(null);
   const [biometricsAvailable, setBiometricsAvailable] = useState(false);
+  
+  // Safe area insets for proper layout
   const insets = useSafeAreaInsets();
   
   // Check for stored credentials on component mount
   useEffect(() => {
-    const checkStoredCredentials = async () => {
+    const init = async () => {
       try {
+        // Check for stored credentials
         const savedUsername = await AsyncStorage.getItem('lastUsername');
         if (savedUsername) {
           setStoredUsername(savedUsername);
           setUsername(savedUsername);
         }
+        
+        // Initialize biometric settings
+        await initializeBiometricSettings();
+        
+        // Check if biometrics are available
+        const available = await isBiometricAvailable();
+        setBiometricsAvailable(available);
       } catch (error) {
-        console.error('Error checking stored credentials:', error);
+        console.error('Error during initialization:', error);
       }
     };
     
-    checkStoredCredentials();
+    init();
   }, []);
 
   // Handle biometric login
@@ -156,6 +175,14 @@ export default function LoginScreen() {
               <Text style={styles.buttonText}>Sign In</Text>
             )}
           </TouchableOpacity>
+          
+          {/* Biometric authentication */}
+          {storedUsername && (
+            <BiometricAuth
+              onSuccess={handleBiometricLogin}
+              promptMessage={`Sign in as ${storedUsername}`}
+            />
+          )}
 
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>Don't have an account? </Text>
@@ -270,5 +297,10 @@ const styles = StyleSheet.create({
     color: '#6366f1',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  biometricContainer: {
+    marginTop: 16,
+    marginBottom: 16,
+    alignItems: 'center',
   },
 });
