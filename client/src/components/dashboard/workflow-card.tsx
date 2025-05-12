@@ -12,7 +12,7 @@ interface WorkflowCardProps {
   onClick?: () => void;
 }
 
-export const WorkflowCard = React.memo(function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
+export const WorkflowCard = React.memo(function WorkflowCard({ workflow, platforms, onClick }: WorkflowCardProps) {
   const { toast } = useToast();
   const [location, setLocation] = useWouterLocation();
 
@@ -96,7 +96,11 @@ export const WorkflowCard = React.memo(function WorkflowCard({ workflow, platfor
   };
 
   return (
-    <div className="workflow-card bg-white shadow rounded-lg overflow-hidden border border-neutral-200 hover:shadow-md transition-shadow">
+    <div 
+      className="workflow-card bg-white shadow rounded-lg overflow-hidden border border-neutral-200 hover:shadow-md transition-shadow"
+      onClick={onClick}
+      style={onClick ? { cursor: "pointer" } : {}}
+    >
       <div className="px-4 py-5 sm:px-6 border-b border-neutral-200 bg-neutral-50 flex justify-between items-center">
         <button 
           onClick={() => setLocation(`/workflows/${workflow.id}`)} 
@@ -141,7 +145,7 @@ export const WorkflowCard = React.memo(function WorkflowCard({ workflow, platfor
           </div>
         </div>
       </div>
-      <div className="px-4 py-4 sm:px-6 bg-neutral-50 border-t border-neutral-200 flex justify-between">
+      <div className="px-4 py-4 sm:px-6 bg-neutral-50 border-t border-neutral-200 flex justify-between flex-wrap gap-2">
         <Button variant="outline" size="sm" asChild>
           <button onClick={() => setLocation(`/workflows/${workflow.id}/edit`)}>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
@@ -180,6 +184,18 @@ export const WorkflowCard = React.memo(function WorkflowCard({ workflow, platfor
             Analytics
           </button>
         </Button>
+        {onClick && (
+          <Button size="sm" variant="outline" onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M9 9a2 2 0 114 0 2 2 0 01-4 0z" />
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a4 4 0 00-3.446 6.032l-2.261 2.26a1 1 0 101.414 1.415l2.261-2.261A4 4 0 1011 5z" clipRule="evenodd" />
+            </svg>
+            Visualize
+          </Button>
+        )}
       </div>
     </div>
   );
