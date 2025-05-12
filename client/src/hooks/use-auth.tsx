@@ -189,7 +189,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       logout,
       isLoading: isLoading || loginMutation.isPending || registerMutation.isPending || logoutMutation.isPending,
     }),
-    [user, isLoading, loginMutation.isPending, registerMutation.isPending, logoutMutation.isPending]
+    [user, isLoading]
   );
 
   return (
