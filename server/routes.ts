@@ -51,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/paypal/order/:orderID/capture", async (req, res) => {
     try {
       const result = await capturePaypalOrder(req, res);
-      
+
       if (!req.isAuthenticated()) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -59,16 +59,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract subscription details from the order
       const orderData = result.purchase_units[0];
       const amount = orderData.amount.value;
-      
+
       // Determine subscription tier based on amount
       let newTier: SubscriptionTier = "free";
       if (amount === "758" || amount === "79") newTier = "business";
       else if (amount === "278" || amount === "29") newTier = "pro";
       else if (amount === "134" || amount === "14") newTier = "essential";
-      
+
       // Update user's subscription
       await storage.updateUserSubscription(req.user.id, newTier);
-      
+
       res.json(result);
     } catch (error) {
       console.error("Payment capture error:", error);
@@ -80,25 +80,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/paypal/webhook", async (req, res) => {
     try {
       const event = req.body;
-      
+
       switch (event.event_type) {
         case 'PAYMENT.CAPTURE.COMPLETED':
           // Payment successful
           break;
-          
+
         case 'PAYMENT.CAPTURE.DENIED':
           // Payment failed
           const userId = event.resource.custom_id;
           await storage.updateUserSubscription(userId, "free");
           break;
-          
+
         case 'BILLING.SUBSCRIPTION.CANCELLED':
           // Subscription cancelled
           const cancelledUserId = event.resource.custom_id;
           await storage.updateUserSubscription(cancelledUserId, "free");
           break;
       }
-      
+
       res.json({ received: true });
     } catch (error) {
       console.error("Webhook error:", error);
@@ -322,30 +322,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const platformId = parseInt(req.params.id);
       const platform = await storage.getPlatform(platformId);
-      
+
       if (!platform || platform.userId !== req.user.id) {
         return res.status(403).json({ message: "Forbidden" });
       }
 
       // Generate a random state for CSRF protection
       const originalState = randomBytes(16).toString('hex');
-      
+
       // Store state in session for additional validation
       req.session.oauthState = originalState;
-      
+
       // Create an encoded state that includes the platform ID and the original state
       // This allows us to identify which platform to update in the callback
       const stateObj = {
         platformId,
         originalState
       };
-      
+
       // Base64 encode the state object to pass it through the OAuth flow
       const encodedState = Buffer.from(JSON.stringify(stateObj)).toString('base64');
-      
+
       // Generate OAuth URL based on platform with the encoded state
       const authUrl = generateOAuthUrl(platform.name, encodedState);
-      
+
       res.json({ authUrl });
     } catch (error) {
       console.error("OAuth initiation error:", error);
@@ -365,11 +365,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { code, state, platform: platformName } = req.query;
-      
+
       if (!code || !state || !platformName) {
         return res.status(400).send("Missing required parameters");
       }
-      
+
       // Decode the state which contains platformId and original state
       let stateObj;
       try {
@@ -377,17 +377,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (e) {
         return res.status(400).send("Invalid state parameter");
       }
-      
+
       const { platformId, originalState } = stateObj;
-      
+
       // Validate state to prevent CSRF (if stored in session)
       if (req.session.oauthState && originalState !== req.session.oauthState) {
         return res.status(400).send("Invalid state parameter - CSRF protection");
       }
-      
+
       // Exchange code for access token (using the specific platform's exchange function)
       const tokens = await exchangeCodeForTokens(code as string, originalState, platformName as string);
-      
+
       // Update platform with new tokens
       await storage.updatePlatform(platformId, {
         accessToken: tokens.access_token,
@@ -410,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { code, state, platformId, platformName } = req.body;
-      
+
       // Validate state to prevent CSRF (if stored in session)
       if (req.session.oauthState && state !== req.session.oauthState) {
         return res.status(400).json({ message: "Invalid state parameter" });
@@ -418,7 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Exchange code for access token (using the specific platform's exchange function)
       const tokens = await exchangeCodeForTokens(code, state, platformName);
-      
+
       // Update platform with new tokens
       await storage.updatePlatform(parseInt(platformId), {
         accessToken: tokens.access_token,
@@ -571,7 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to generate content" });
     }
   });
-  
+
   // Adapt content for specific platform
   app.post("/api/content/adapt", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -593,27 +593,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Scheduler API endpoints
-  
+
   // Manually trigger scheduling of a post
   app.post("/api/scheduler/post", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    
+
     try {
       const { workflowId, content, platformIds, scheduledFor } = req.body;
-      
+
       if (!workflowId || !content || !platformIds || !platformIds.length) {
         return res.status(400).json({ message: "Missing required fields" });
       }
-      
+
       // Optional: limit post scheduling based on subscription tier
       const user = req.user;
       if (user) {
         const dailyPostsCount = await storage.getPostsCreatedTodayCount(user.id);
         const tier = user.subscription as SubscriptionTier;
         const maxDailyPosts = subscriptionTiers[tier]?.maxDailyPosts || 3;
-        
+
         if (dailyPostsCount >= maxDailyPosts) {
           return res.status(403).json({ 
             message: `You have reached your daily limit of ${maxDailyPosts} posts for your ${tier} plan.`,
@@ -624,7 +624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       // Parse date if provided, otherwise use smart optimization
       let parsedDate = undefined;
       if (scheduledFor) {
@@ -633,14 +633,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Invalid date format for scheduledFor" });
         }
       }
-      
+
       const post = await scheduler.schedulePost(
         workflowId,
         content,
         platformIds,
         parsedDate
       );
-      
+
       res.status(201).json({ 
         post,
         message: "Post scheduled successfully",
@@ -651,22 +651,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to schedule post" });
     }
   });
-  
+
   // Get optimal posting times for a set of platforms
   app.post("/api/scheduler/optimal-times", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    
+
     try {
       const { platformIds } = req.body;
-      
+
       if (!platformIds || !platformIds.length) {
         return res.status(400).json({ message: "Missing platform IDs" });
       }
-      
+
       const optimalTime = await storage.calculateOptimalPostTime(platformIds);
-      
+
       // Get platform-specific time data
       const timeOptimizations = [];
       for (const platformId of platformIds) {
@@ -688,7 +688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       res.json({ 
         optimalTime, 
         timeOptimizations,
@@ -699,23 +699,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to calculate optimal posting time" });
     }
   });
-  
+
   // Manual trigger for checking and processing pending posts
   app.post("/api/scheduler/process-pending", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    
+
     const user = req.user;
     if (!user?.isAdmin) {
       return res.status(403).json({ message: "Unauthorized: Admin access required" });
     }
-    
+
     try {
       // Instead of directly calling processPendingPosts which is private,
       // We'll create a new public method in the scheduler for this purpose
       const processedCount = await scheduler.processPendingPostsManually();
-      
+
       res.json({ 
         message: `Processed ${processedCount} pending posts`,
         count: processedCount
@@ -740,7 +740,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch trending topics" });
     }
   });
-  
+
   // Test endpoint for generating AI preview images
   app.get("/api/templates/test-preview", async (req, res) => {
     try {
@@ -757,9 +757,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Analyze engagement metrics and optimize future content"
         ]
       };
-      
+
       console.log("Testing preview generation with sample template");
-      
+
       // Create enhanced description using the same logic as the main endpoint
       let enhancedDescription = sampleTemplate.description;
       if (sampleTemplate.workflowSteps && Array.isArray(sampleTemplate.workflowSteps)) {
@@ -767,7 +767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sampleTemplate.workflowSteps.forEach((step, index) => {
           enhancedDescription += `${index + 1}. ${step}\n`;
         });
-        
+
         const stepText = sampleTemplate.workflowSteps.join(" ");
         if (stepText.toLowerCase().includes("schedule") || stepText.toLowerCase().includes("automate")) {
           enhancedDescription += "\nThis is an automation-focused workflow with scheduling capabilities.";
@@ -779,19 +779,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           enhancedDescription += "\nThis workflow focuses on AI-powered content generation.";
         }
       }
-      
+
       const imageUrl = await generateTemplatePreviewImage(
         sampleTemplate.title, 
         enhancedDescription, 
         sampleTemplate.category
       );
-      
+
       if (!imageUrl) {
         return res.status(500).json({ message: "Failed to generate test preview image" });
       }
-      
+
       console.log("Successfully generated test preview image");
-      
+
       res.json({ 
         imageUrl,
         template: sampleTemplate 
@@ -804,24 +804,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Generate template preview image using AI
   app.post("/api/templates/generate-preview", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    
+
     try {
       const { title, description, category, workflowSteps } = req.body;
-      
+
       if (!title || !description || !category) {
         return res.status(400).json({ 
           message: "Missing required parameters: title, description, and category are required" 
         });
       }
-      
+
       console.log("Generating template preview image for:", title);
-      
+
       // Create a more detailed context by structuring workflow steps if available
       let enhancedDescription = description;
       if (workflowSteps && Array.isArray(workflowSteps) && workflowSteps.length > 0) {
@@ -830,7 +830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         workflowSteps.forEach((step, index) => {
           enhancedDescription += `${index + 1}. ${step}\n`;
         });
-        
+
         // Add specific workflow characteristics based on the steps
         const stepText = workflowSteps.join(" ");
         if (stepText.toLowerCase().includes("schedule") || stepText.toLowerCase().includes("automate")) {
@@ -846,16 +846,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           enhancedDescription += "\nThis workflow includes content review and approval processes.";
         }
       }
-      
+
       const imageUrl = await generateTemplatePreviewImage(title, enhancedDescription, category);
-      
+
       if (!imageUrl) {
         return res.status(500).json({ message: "Failed to generate preview image" });
       }
-      
+
       // Log success but don't expose the whole URL in logs
       console.log(`Successfully generated preview image for "${title}"`);
-      
+
       res.json({ imageUrl });
     } catch (error) {
       console.error("Error generating template preview image:", error);
@@ -873,19 +873,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get query parameters for filtering
       const timeRange = req.query.timeRange || '30d';
       const platform = req.query.platform || 'all';
-      
+
       // Get user's activity data
       const user = await storage.getUser(req.user.id);
       const workflows = await storage.getWorkflowsByUser(req.user.id);
       const platforms = await storage.getPlatformsByUser(req.user.id);
-      
+
       // Get posts for each workflow
       let allPosts = [];
       let totalEngagement = 0;
       for (const workflow of workflows) {
         const posts = await storage.getPostsByWorkflow(workflow.id);
         allPosts = [...allPosts, ...posts];
-        totalEngagement += posts.reduce((sum, post) => sum + (post.engagement || 0), 0);
+        totalEngagement += posts.reduce((sum, post) => sum + (post.engagement || 0),```text
+0), 0);
       }
 
       // Calculate daily engagement for the past period based on timeRange
@@ -952,56 +953,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get query parameters
       const timeRange = req.query.timeRange || '30d';
-      
+
       // Get user's platforms and posts
       const platforms = await storage.getPlatformsByUser(req.user.id);
       const workflows = await storage.getWorkflowsByUser(req.user.id);
-      
+
       // Get posts for performance analysis
       let allPosts = [];
       for (const workflow of workflows) {
         const posts = await storage.getPostsByWorkflow(workflow.id);
         allPosts = [...allPosts, ...posts];
       }
-      
+
       // Filter posts by date range
       const daysToInclude = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysToInclude);
-      
+
       const filteredPosts = allPosts.filter(post => new Date(post.createdAt) >= cutoffDate);
-      
+
       // Calculate total metrics
       const totalReach = filteredPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
       const totalEngagement = filteredPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
       const averageEngagementRate = totalReach > 0 ? (totalEngagement / totalReach) * 100 : 0;
-      
+
       // Compare with previous period
       const previousCutoffDate = new Date(cutoffDate);
       previousCutoffDate.setDate(previousCutoffDate.getDate() - daysToInclude);
-      
+
       const previousPeriodPosts = allPosts.filter(post => {
         const postDate = new Date(post.createdAt);
         return postDate >= previousCutoffDate && postDate < cutoffDate;
       });
-      
+
       const previousTotalReach = previousPeriodPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
       const previousTotalEngagement = previousPeriodPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
-      
+
       const reachGrowth = previousTotalReach > 0 
         ? ((totalReach - previousTotalReach) / previousTotalReach) * 100 
         : 100;
-      
+
       const engagementGrowth = previousTotalEngagement > 0 
         ? ((totalEngagement - previousTotalEngagement) / previousTotalEngagement) * 100 
         : 100;
-      
+
       // Get platform-specific performance
       const platformPerformance = platforms.map(platform => {
         const platformPosts = filteredPosts.filter(post => post.platformIds?.includes(platform.id));
         const totalPlatformReach = platformPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
         const totalPlatformEngagement = platformPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
-        
+
         return {
           platformId: platform.id,
           platformName: platform.name,
@@ -1011,41 +1012,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
           contentCount: platformPosts.length
         };
       });
-      
+
       // Generate weekly performance data
       const weeklyPerformance = [];
       const weeks = Math.min(12, Math.ceil(daysToInclude / 7));
-      
+
       for (let i = 0; i < weeks; i++) {
         const endDate = new Date();
         endDate.setDate(endDate.getDate() - (i * 7));
-        
+
         const startDate = new Date(endDate);
         startDate.setDate(startDate.getDate() - 7);
-        
+
         const weekPosts = filteredPosts.filter(post => {
           const postDate = new Date(post.createdAt);
           return postDate >= startDate && postDate < endDate;
         });
-        
+
         const weekReach = weekPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
         const weekEngagement = weekPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
-        
+
         weeklyPerformance.push({
           date: startDate.toISOString().substring(0, 10),
           reach: weekReach,
           engagement: weekEngagement
         });
       }
-      
+
       // Determine top platform
       const topPlatform = platformPerformance.length > 0 
         ? platformPerformance.sort((a, b) => b.engagementRate - a.engagementRate)[0].platformName 
         : "None";
-      
+
       // Get top performing content
       const topContent = filteredPosts.sort((a, b) => (b.engagement || 0) - (a.engagement || 0))[0];
-      
+
       // Format recent metrics
       const recentMetrics = filteredPosts
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -1065,7 +1066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             date: post.createdAt
           };
         });
-      
+
       // Prepare response
       const response = {
         topPlatform,
@@ -1083,9 +1084,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         platformPerformance,
         recentMetrics
       };
-      
+
       res.json(response);
-      
+
     } catch (error) {
       console.error('Content performance metrics error:', error);
       res.status(500).json({ message: "Failed to fetch content performance metrics" });
@@ -1101,17 +1102,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get query parameters
       const timeRange = req.query.timeRange || '30d';
-      
+
       // Get platforms and their audience data
       const platforms = await storage.getPlatformsByUser(req.user.id);
-      
+
       // Calculate audience metrics
       let totalFollowers = 0;
       let newFollowers = 0;
       let averageEngagementRate = 0;
-      
+
       const platformGrowth = [];
-      
+
       // For each platform, get the audience data
       for (const platform of platforms) {
         // This would typically come from the platform's API
@@ -1119,10 +1120,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const platformFollowers = 1000 + (platform.id * 500);
         const platformGrowthRate = 3 + (platform.id % 5);
         const platformNewFollowers = Math.floor(platformFollowers * (platformGrowthRate / 100));
-        
+
         totalFollowers += platformFollowers;
         newFollowers += platformNewFollowers;
-        
+
         platformGrowth.push({
           platformId: platform.id,
           platformName: platform.name,
@@ -1130,49 +1131,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
           growthRate: platformGrowthRate
         });
       }
-      
+
       // Calculate average engagement rate
       if (platforms.length > 0) {
         const workflows = await storage.getWorkflowsByUser(req.user.id);
         let allPosts = [];
-        
+
         for (const workflow of workflows) {
           const posts = await storage.getPostsByWorkflow(workflow.id);
           allPosts = [...allPosts, ...posts];
         }
-        
+
         const totalEngagement = allPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
         const totalImpressions = allPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
-        
+
         averageEngagementRate = totalImpressions > 0 ? (totalEngagement / totalImpressions) * 100 : 0;
       }
-      
+
       // Generate follower growth trend
       const growthTrend = [];
       const daysToInclude = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
       const dataPoints = Math.min(14, daysToInclude);
       const interval = Math.floor(daysToInclude / dataPoints);
-      
+
       let runningTotal = totalFollowers;
-      
+
       for (let i = 0; i < dataPoints; i++) {
         const date = new Date();
         date.setDate(date.getDate() - (i * interval));
-        
+
         // For simulation, assume followers grow by about 1% each interval
         const growthFactor = 1 - (0.01 * interval);
         const previousValue = Math.floor(runningTotal * growthFactor);
         const newFollowersInPeriod = runningTotal - previousValue;
-        
+
         growthTrend.unshift({
           date: date.toISOString().substring(0, 10),
           followers: previousValue,
           newFollowers: newFollowersInPeriod
         });
-        
+
         runningTotal = previousValue;
       }
-      
+
       // Generate demographic data
       const demographicData = {
         ageGroups: [
@@ -1196,20 +1197,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { location: "Germany", percentage: 5.2 }
         ]
       };
-      
+
       // Generate active hours data
       const activeHours = Array.from({ length: 24 }, (_, i) => {
         // Generate a distribution with peaks at 9am, 12pm, and 8pm
         const morningPeak = Math.exp(-Math.pow((i - 9) / 2, 2)) * 20;
         const noonPeak = Math.exp(-Math.pow((i - 12) / 2, 2)) * 15;
         const eveningPeak = Math.exp(-Math.pow((i - 20) / 2, 2)) * 25;
-        
+
         return {
           hour: i,
           activity: parseFloat((morningPeak + noonPeak + eveningPeak).toFixed(1))
         };
       });
-      
+
       // Prepare response
       const response = {
         totalFollowers,
@@ -1221,9 +1222,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeHours,
         platformGrowth
       };
-      
+
       res.json(response);
-      
+
     } catch (error) {
       console.error('Audience analytics error:', error);
       res.status(500).json({ message: "Failed to fetch audience analytics data" });
@@ -1239,24 +1240,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get query parameters
       const timeRange = req.query.timeRange || '30d';
-      
+
       // Get user's content data
       const workflows = await storage.getWorkflowsByUser(req.user.id);
-      
+
       // Get posts for comparison analysis
       let allPosts = [];
       for (const workflow of workflows) {
         const posts = await storage.getPostsByWorkflow(workflow.id);
         allPosts = [...allPosts, ...posts];
       }
-      
+
       // Filter posts by date range
       const daysToInclude = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysToInclude);
-      
+
       const filteredPosts = allPosts.filter(post => new Date(post.createdAt) >= cutoffDate);
-      
+
       // Categorize posts by content type
       const contentTypes = ['Image', 'Video', 'Article', 'Text', 'Link'];
       const contentTypePerformance = contentTypes.map(type => {
@@ -1265,10 +1266,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const hash = hashString(post.content);
           return hash % contentTypes.length === contentTypes.indexOf(type);
         });
-        
+
         const typeEngagement = typePosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
         const typeReach = typePosts.reduce((sum, post) => sum + (post.reach || 0), 0);
-        
+
         return {
           contentType: type,
           averageEngagement: typePosts.length > 0 ? Math.round(typeEngagement / typePosts.length) : 0,
@@ -1278,7 +1279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           conversionRate: (type === 'Video' || type === 'Link') ? Math.random() * 5 + 1 : undefined
         };
       });
-      
+
       // Categorize posts by length
       const lengthCategories = ['Very Short', 'Short', 'Medium', 'Long', 'Very Long'];
       const contentLengthPerformance = lengthCategories.map((category, index) => {
@@ -1288,10 +1289,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const categoryIndex = getContentLengthCategory(length);
           return categoryIndex === index;
         });
-        
+
         const categoryEngagement = categoryPosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
         const categoryReach = categoryPosts.reduce((sum, post) => sum + (post.reach || 0), 0);
-        
+
         return {
           lengthCategory: category,
           averageEngagement: categoryPosts.length > 0 ? Math.round(categoryEngagement / categoryPosts.length) : 0,
@@ -1299,28 +1300,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalItems: categoryPosts.length
         };
       });
-      
+
       // Extract and analyze hashtags
       const hashtags = new Map();
-      
+
       filteredPosts.forEach(post => {
         // Extract hashtags using regex
         const matches = post.content.match(/#[a-zA-Z0-9_]+/g) || [];
-        
+
         matches.forEach(tag => {
           const hashtag = tag.substring(1).toLowerCase(); // Remove # and convert to lowercase
-          
+
           if (!hashtags.has(hashtag)) {
             hashtags.set(hashtag, { count: 0, totalEngagement: 0 });
           }
-          
+
           const data = hashtags.get(hashtag);
           data.count += 1;
           data.totalEngagement += post.engagement || 0;
           hashtags.set(hashtag, data);
         });
       });
-      
+
       // Format hashtag performance data
       const hashtagPerformance = Array.from(hashtags.entries())
         .map(([hashtag, data]) => ({
@@ -1330,7 +1331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
         .sort((a, b) => b.averageEngagement - a.averageEngagement)
         .slice(0, 20); // Get top 20 hashtags
-      
+
       // Analyze posting time impact
       const timeFrames = ['Morning (6-10am)', 'Midday (10am-2pm)', 'Afternoon (2-6pm)', 'Evening (6-10pm)', 'Night (10pm-6am)'];
       const timeBasedPerformance = timeFrames.map(frame => {
@@ -1338,7 +1339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const framePosts = filteredPosts.filter(post => {
           const postDate = new Date(post.createdAt);
           const hour = postDate.getHours();
-          
+
           return (
             (frame === 'Morning (6-10am)' && hour >= 6 && hour < 10) ||
             (frame === 'Midday (10am-2pm)' && hour >= 10 && hour < 14) ||
@@ -1347,16 +1348,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             (frame === 'Night (10pm-6am)' && (hour >= 22 || hour < 6))
           );
         });
-        
+
         const frameEngagement = framePosts.reduce((sum, post) => sum + (post.engagement || 0), 0);
-        
+
         return {
           timeFrame: frame,
           averageEngagement: framePosts.length > 0 ? Math.round(frameEngagement / framePosts.length) : 0,
           totalItems: framePosts.length
         };
       });
-      
+
       // Format comparison data
       const formatComparison = [
         { format: 'Single Image', engagement: 65, reach: 70, conversionRate: 2.5 },
@@ -1365,7 +1366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { format: 'Text Only', engagement: 45, reach: 55, conversionRate: 1.8 },
         { format: 'Link + Image', engagement: 60, reach: 68, conversionRate: 3.7 }
       ];
-      
+
       // Prepare response
       const response = {
         contentTypePerformance,
@@ -1374,9 +1375,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timeBasedPerformance,
         formatComparison
       };
-      
+
       res.json(response);
-      
+
     } catch (error) {
       console.error('Content comparison analytics error:', error);
       res.status(500).json({ message: "Failed to fetch content comparison data" });
@@ -1393,20 +1394,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // In a real application, these insights would be generated based on
       // actual user data and stored in the database. For demonstration purposes,
       // we're generating them on the fly.
-      
+
       // Get user's workflows and posts for context
       const workflows = await storage.getWorkflowsByUser(req.user.id);
       const platforms = await storage.getPlatformsByUser(req.user.id);
-      
+
       let allPosts = [];
       for (const workflow of workflows) {
         const posts = await storage.getPostsByWorkflow(workflow.id);
         allPosts = [...allPosts, ...posts];
       }
-      
+
       // Generate insights based on available data
       const insights = [];
-      
+
       // Only generate meaningful insights if we have data
       if (allPosts.length > 0) {
         // Recommendation for optimal posting time
@@ -1420,7 +1421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           actionable: true,
           createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days ago
         });
-        
+
         // Content type recommendation
         insights.push({
           id: 'ins-2',
@@ -1432,7 +1433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           actionable: true,
           createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days ago
         });
-        
+
         // Platform-specific insight
         if (platforms.length > 1) {
           insights.push({
@@ -1446,7 +1447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days ago
           });
         }
-        
+
         // Achievement notification
         insights.push({
           id: 'ins-4',
@@ -1458,7 +1459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           actionable: false,
           createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() // 1 day ago
         });
-        
+
         // Content length insight
         insights.push({
           id: 'ins-5',
@@ -1470,7 +1471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           actionable: true,
           createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
         });
-        
+
         // Audience insight
         insights.push({
           id: 'ins-6',
@@ -1482,7 +1483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           actionable: true,
           createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() // 4 days ago,
         });
-        
+
         // Hashtag recommendation
         insights.push({
           id: 'ins-7',
@@ -1506,7 +1507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           actionable: true,
           createdAt: new Date().toISOString()
         });
-        
+
         if (platforms.length > 0) {
           insights.push({
             id: 'ins-starter-2',
@@ -1531,12 +1532,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       // Select top recommendation
       const topRecommendation = insights.find(i => i.type === 'recommendation' && i.impact === 'high') || 
                                insights.find(i => i.impact === 'high') ||
                                insights[0];
-      
+
       // Prepare response
       const response = {
         insights: insights.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
@@ -1544,9 +1545,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalInsights: insights.length,
         unreadInsights: insights.length // In a real app, this would track which insights have been read
       };
-      
+
       res.json(response);
-      
+
     } catch (error) {
       console.error('Content insights error:', error);
       res.status(500).json({ message: "Failed to fetch content insights" });
@@ -1561,16 +1562,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { insightId } = req.params;
-      
+
       // In a real application, this would update the insight in the database
       // For demonstration purposes, we'll just return a success response
-      
+
       res.json({ 
         success: true, 
         message: "Insight marked as read",
         insightId
       });
-      
+
     } catch (error) {
       console.error('Mark insight as read error:', error);
       res.status(500).json({ message: "Failed to mark insight as read" });
@@ -1586,13 +1587,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // In a real application, this would trigger an AI process to generate new insights
       // For demonstration purposes, we'll just return a success response
-      
+
       res.json({ 
         success: true, 
         message: "New insights generated successfully",
         count: 3 // Number of new insights generated
       });
-      
+
     } catch (error) {
       console.error('Generate insights error:', error);
       res.status(500).json({ message: "Failed to generate new insights" });
@@ -1630,10 +1631,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get query parameters for filtering
       const timeRange = req.query.timeRange || '1m';
       const platform = req.query.platform || 'all';
-      
+
       // Get user's workflows
       const workflows = await storage.getWorkflowsByUser(req.user.id);
-      
+
       // For each workflow, get associated posts
       let allPosts: Array<typeof storage.getPostsByWorkflow extends (...args: any[]) => Promise<infer R> ? R extends Array<infer T> ? T : never : never> = [];
       for (const workflow of workflows) {
@@ -1645,7 +1646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filteredPosts = allPosts.filter(post => {
         const postDate = new Date(post.createdAt);
         const now = new Date();
-        
+
         switch(timeRange) {
           case '7d':
             return (now.getTime() - postDate.getTime()) <= 7 * 24 * 60 * 60 * 1000;
@@ -1664,24 +1665,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get platform data if available
       const userPlatforms = await storage.getPlatformsByUser(req.user.id);
-      
+
       // Get engagement data by month
       const engagementData = [];
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      
+
       // Sample engagement calculation - in a real app this would come from actual platform API data
-      const getRandomEngagement = () => Math.floor(Math.random() * 1000);
-      
+      const getRandomEngagement = ()> Math.floor(Math.random() * 1000);
+
       // Group posts by month
       const now = new Date();
       const startDate = new Date(now);
       startDate.setMonth(now.getMonth() - 6); // Last 6 months
-      
+
       for (let i = 0; i < 7; i++) {
         const month = new Date(startDate);
         month.setMonth(startDate.getMonth() + i);
         const monthName = monthNames[month.getMonth()];
-        
+
         // In a real app, these would be actual engagement metrics from the posts
         engagementData.push({
           name: monthName,
@@ -1690,20 +1691,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           shares: getRandomEngagement()
         });
       }
-      
+
       // Platform performance data
       const platformPerformance = userPlatforms.map(platform => ({
         name: platform.name,
         value: getRandomEngagement()
       }));
-      
+
       // Content type performance
       const contentTypePerformance = [
         { name: "Blog", value: 35 },
         { name: "Image", value: 45 },
         { name: "Video", value: 20 },
       ];
-      
+
       // Get top performing posts
       const topPosts = filteredPosts
         .sort((a, b) => (b.engagement || 0) - (a.engagement || 0))
@@ -1715,15 +1716,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           engagement: post.engagement || Math.floor(Math.random() * 1000), // In a real app, this would be actual data
           date: post.createdAt.toISOString().split('T')[0]
         }));
-      
+
       // Total engagement metrics
       const totalLikes = engagementData.reduce((sum, month) => sum + month.likes, 0);
       const totalComments = engagementData.reduce((sum, month) => sum + month.comments, 0);
       const totalShares = engagementData.reduce((sum, month) => sum + month.shares, 0);
-      
+
       // Growth rate calculation (comparing to previous period)
       const growthRate = 23.4; // In a real app, this would be calculated based on previous period data
-      
+
       const analyticsData = {
         engagementData,
         platformPerformance,
@@ -1737,7 +1738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         growthRate,
         // Add any additional metrics here
       };
-      
+
       res.json(analyticsData);
     } catch (error) {
       console.error('Analytics error:', error);
