@@ -1,30 +1,134 @@
 import express, { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import session from "express-session";
 import { users, type User, type InsertUser } from "@shared/schema";
 import { storage } from "./storage";
 import cors from "cors";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import jwt from "jsonwebtoken";
+
+// JWT token secret
+const JWT_SECRET = process.env.SESSION_SECRET || "auto-content-flow-secret";
+
+// Interface for decoded JWT
+interface DecodedToken {
+  userId: number;
+  iat: number;
+  exp: number;
+}
 
 export function registerRoutes(app: Express): Server {
   app.use(cors());
   app.use(express.json());
+  
+  app.set("trust proxy", 1);
 
-  // Basic user routes
-  app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+  // Middleware to check if user is authenticated with JWT
+  const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: "Unauthorized: No token provided" });
     }
     
-    res.json(req.user);
-  });
-
-  // Analytics Data API
-  app.get("/api/analytics", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+    const token = authHeader.split(' ')[1];
+    
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+      (req as any).userId = decoded.userId;
+      next();
+    } catch (error) {
+      return res.status(401).json({ message: "Unauthorized: Invalid token" });
     }
+  };
+  
+  // User routes
+  app.post("/api/register", async (req, res) => {
+    try {
+      // Validate input and check for existing users
+      const existingUser = await storage.getUserByEmail(req.body.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+      
+      // Create the user with hashed password
+      const hashedPassword = await storage.hashPassword(req.body.password);
+      const user = await storage.createUser({
+        ...req.body,
+        password: hashedPassword,
+        subscription: "free"
+      });
+      
+      // Generate JWT token
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
+      
+      // Return user without password and with token
+      const { password, ...userResponse } = user;
+      res.status(201).json({ 
+        ...userResponse, 
+        token 
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+  
+  app.post("/api/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      const isValidPassword = await storage.comparePasswords(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Generate JWT token
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
+      
+      // Return user without password and with token
+      const { password: _, ...userResponse } = user;
+      res.status(200).json({ 
+        ...userResponse, 
+        token 
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+  
+  app.post("/api/logout", (req, res) => {
+    // With JWT, logout is handled client-side by removing the token
+    // Server doesn't need to do anything
+    res.status(200).json({ message: "Logged out successfully" });
+  });
+  
+  app.get("/api/user", requireAuth, async (req, res) => {
+    try {
+      const userId = (req as any).userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Return user without password
+      const { password, ...userResponse } = user;
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Error getting user:", error);
+      res.status(500).json({ message: "Failed to get user data" });
+    }
+  });
+  
+  // Analytics Data API
+  app.get("/api/analytics", requireAuth, async (req, res) => {
 
     try {
       // Mock analytics data

@@ -3,7 +3,8 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import { eq, and, lte, gte, desc, sql } from "drizzle-orm";
-import { SessionStore } from "express-session";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
 import { 
   users, platforms, workflows, workflowPlatforms, posts,
   InsertUser, InsertPlatform, InsertWorkflow, InsertWorkflowPlatform, InsertPost,
@@ -24,25 +25,7 @@ const queryClient = postgres(connectionString);
 // Initialize Drizzle ORM
 const db = drizzle(queryClient);
 
-// Initialize the database with a simple memory store for sessions during development
-class MemorySessionStore implements SessionStore {
-  private sessions: Map<string, any> = new Map();
-
-  get = (sid: string, callback: (err: any, session?: any) => void): void => {
-    const session = this.sessions.get(sid);
-    callback(null, session);
-  };
-
-  set = (sid: string, session: any, callback?: (err?: any) => void): void => {
-    this.sessions.set(sid, session);
-    if (callback) callback();
-  };
-
-  destroy = (sid: string, callback?: (err?: any) => void): void => {
-    this.sessions.delete(sid);
-    if (callback) callback();
-  };
-}
+// No session store needed with JWT authentication
 
 // Run migrations
 export async function runMigrations() {
@@ -160,11 +143,22 @@ async function setupDevSchema() {
   }
 }
 
-// In-memory session store for development
-const sessionStore = new MemorySessionStore();
+const scryptAsync = promisify(scrypt);
 
 class StorageService {
-  sessionStore: SessionStore = sessionStore;
+
+  async hashPassword(password: string) {
+    const salt = randomBytes(16).toString("hex");
+    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+    return `${buf.toString("hex")}.${salt}`;
+  }
+
+  async comparePasswords(supplied: string, stored: string) {
+    const [hashed, salt] = stored.split(".");
+    const hashedBuf = Buffer.from(hashed, "hex");
+    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    return timingSafeEqual(hashedBuf, suppliedBuf);
+  }
   
   // User operations
   async getUser(id: number): Promise<User | undefined> {
