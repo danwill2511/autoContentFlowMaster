@@ -18,6 +18,11 @@ import AnalyticsDashboardPage from "@/pages/analytics-dashboard-page";
 import PlatformsPage from "@/pages/platforms-page";
 import ShowcasePage from "@/pages/showcase-page";
 
+// Placeholder components - replace with actual implementations
+const AIContentGenerationPage = () => <div>AI Content Generation</div>;
+const WorkflowAutomationPage = () => <div>Workflow Automation</div>;
+const MultiPlatformPublishingPage = () => <div>Multi-Platform Publishing</div>;
+
 function Router() {
   return (
     <Switch>
@@ -25,9 +30,10 @@ function Router() {
       <ProtectedRoute path="/workflows" component={WorkflowsPage} />
       <ProtectedRoute path="/workflows/create" component={CreateWorkflowPage} />
       <ProtectedRoute path="/platforms" component={PlatformsPage} />
-      <ProtectedRoute path="/analytics" component={AnalyticsDashboardPage} />
-      <ProtectedRoute path="/subscription" component={SubscriptionPage} />
       <ProtectedRoute path="/showcase" component={ShowcasePage} />
+      <Route path="/ai-content-generation" component={AIContentGenerationPage} />
+      <Route path="/workflow-automation" component={WorkflowAutomationPage} />
+      <Route path="/multi-platform-publishing" component={MultiPlatformPublishingPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
