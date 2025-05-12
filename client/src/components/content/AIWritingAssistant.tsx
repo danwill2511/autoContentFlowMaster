@@ -95,19 +95,21 @@ export function AIWritingAssistant() {
         }
       });
       
+      // Parse the analysis result from the API
       const analysisResult = await result.json();
-      return {
-        tones: [
-            { name: 'Professional', color: 'bg-blue-500', percentage: Math.floor(Math.random() * 30) + 10 },
-            { name: 'Casual', color: 'bg-green-500', percentage: Math.floor(Math.random() * 20) + 5 },
-            { name: 'Enthusiastic', color: 'bg-yellow-500', percentage: Math.floor(Math.random() * 40) + 30 },
-            { name: 'Formal', color: 'bg-purple-500', percentage: Math.floor(Math.random() * 20) + 5 },
-          ];
-          resolve({ tones: mockTones });
-        }, 1500);
-      });
+      
+      // For demonstration purposes, if the API doesn't return tone data
+      if (!analysisResult.tones) {
+        analysisResult.tones = [
+          { name: 'Professional', color: 'bg-blue-500', percentage: Math.floor(Math.random() * 30) + 10 },
+          { name: 'Casual', color: 'bg-green-500', percentage: Math.floor(Math.random() * 20) + 5 },
+          { name: 'Enthusiastic', color: 'bg-yellow-500', percentage: Math.floor(Math.random() * 40) + 30 },
+          { name: 'Formal', color: 'bg-purple-500', percentage: Math.floor(Math.random() * 20) + 5 }
+        ];
+      }
+      
       setAnalyzing(false);
-      return result;
+      return analysisResult;
     },
     onSuccess: (data: any) => {
       setCurrentTone(data.tones);

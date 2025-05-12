@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import { PlatformSelector } from "@/components/workflows/platform-selector";
+import { ContentFlowVisualizer } from "@/components/workflows/content-flow-visualizer";
 import {
   Form,
   FormControl,
@@ -98,7 +99,12 @@ export default function CreateWorkflowPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [selectedPlatforms, setSelectedPlatforms] = useState<number[]>([]);
-  const [activeTab, setActiveTab] = useState("basic");
+  const [activeTab, setActiveTab] = useState("templates");
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [previewWorkflow, setPreviewWorkflow] = useState<any>(null);
+  
+  // State to track if visualization is visible
+  const [showVisualization, setShowVisualization] = useState(false);
   
   // Default values for the form
   const defaultValues: Partial<FormValues> = {
@@ -116,10 +122,37 @@ export default function CreateWorkflowPage() {
     defaultValues,
   });
 
-  // Track scheduling strategy to conditionally show fields
-  const schedulingStrategy = form.watch("schedulingStrategy");
-  const frequency = form.watch("frequency");
-  const useAi = form.watch("useAi");
+  // Track form fields to conditionally show fields and update preview
+  const formValues = form.watch();
+  const schedulingStrategy = formValues.schedulingStrategy;
+  const frequency = formValues.frequency;
+  const useAi = formValues.useAi;
+  
+  // Update the preview workflow when form values change
+  useEffect(() => {
+    // Only show visualization after user has started filling out the form
+    if (formValues.name || selectedTemplate) {
+      setShowVisualization(true);
+      
+      // Create a preview workflow based on current form values
+      setPreviewWorkflow({
+        id: 0, // Placeholder ID for preview
+        name: formValues.name || "New Workflow",
+        description: formValues.description || "",
+        status: "draft",
+        createdAt: new Date(),
+        userId: user?.id || 0,
+        contentType: formValues.contentType || "text",
+        frequency: formValues.frequency || "once",
+        tags: formValues.tags || [],
+        useAi: formValues.useAi || false,
+        schedulingStrategy: formValues.schedulingStrategy || "scheduled",
+        // For visualization purposes only
+        nextPostDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        optimizationCriteria: formValues.optimizationCriteria || []
+      });
+    }
+  }, [formValues, selectedTemplate, user]);
 
   // Update form settings based on complex interactions
   const updateSettings = (field: string, value: any) => {
@@ -127,6 +160,32 @@ export default function CreateWorkflowPage() {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
+    });
+  };
+  
+  // Apply a workflow template
+  const applyTemplate = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    
+    const template = workflowTemplates.find(t => t.id === templateId);
+    if (!template) return;
+    
+    // Update form with template defaults
+    Object.entries(template.defaults).forEach(([field, value]) => {
+      updateSettings(field, value);
+    });
+    
+    // Update selected platforms
+    setSelectedPlatforms(template.platforms);
+    
+    // Move to the next tab if not a custom workflow
+    if (templateId !== 'custom-workflow') {
+      setActiveTab('basic');
+    }
+    
+    toast({
+      title: `${template.name} template applied`,
+      description: "Form has been pre-filled with template settings.",
     });
   };
 
@@ -205,6 +264,89 @@ export default function CreateWorkflowPage() {
     { value: "clicks", label: "Maximize Clicks" },
     { value: "conversions", label: "Maximize Conversions" },
   ];
+  
+  // Workflow templates
+  const workflowTemplates = [
+    {
+      id: "social-media-mix",
+      name: "Social Media Mix",
+      description: "A balanced workflow for posting across multiple social platforms",
+      icon: <RefreshCw className="h-8 w-8 text-blue-500" />,
+      platforms: [1, 2, 4], // Instagram, Twitter, Facebook
+      defaults: {
+        name: "Social Media Mix",
+        contentType: "mixed",
+        frequency: "weekly",
+        useAi: true,
+        schedulingStrategy: "optimal",
+        optimizationCriteria: ["engagement", "reach"],
+        tags: ["social", "content"],
+      }
+    },
+    {
+      id: "professional-networking",
+      name: "Professional Networking",
+      description: "Focus on business-oriented content for professional audiences",
+      icon: <Linkedin className="h-8 w-8 text-blue-700" />,
+      platforms: [3], // LinkedIn
+      defaults: {
+        name: "Professional Networking",
+        contentType: "text",
+        frequency: "weekly",
+        useAi: true,
+        schedulingStrategy: "scheduled",
+        scheduledTime: "09:00",
+        optimizationCriteria: ["conversions"],
+        tags: ["business", "professional", "networking"],
+      }
+    },
+    {
+      id: "visual-storytelling",
+      name: "Visual Storytelling",
+      description: "Image-focused workflow for visually engaging platforms",
+      icon: <Instagram className="h-8 w-8 text-pink-500" />,
+      platforms: [1, 4], // Instagram, Facebook
+      defaults: {
+        name: "Visual Storytelling",
+        contentType: "image",
+        frequency: "daily",
+        useAi: true,
+        schedulingStrategy: "optimal",
+        optimizationCriteria: ["engagement"],
+        tags: ["visual", "storytelling", "images"],
+      }
+    },
+    {
+      id: "trend-engagement",
+      name: "Trend Engagement",
+      description: "Quick responses to trending topics and conversations",
+      icon: <Twitter className="h-8 w-8 text-blue-400" />,
+      platforms: [2], // Twitter
+      defaults: {
+        name: "Trend Engagement",
+        contentType: "text",
+        frequency: "daily",
+        useAi: true,
+        schedulingStrategy: "immediate",
+        optimizationCriteria: ["reach"],
+        tags: ["trends", "realtime", "conversations"],
+      }
+    },
+    {
+      id: "custom-workflow",
+      name: "Custom Workflow",
+      description: "Create a workflow from scratch with your own settings",
+      icon: <PlusCircle className="h-8 w-8 text-gray-500" />,
+      platforms: [],
+      defaults: {
+        name: "",
+        contentType: "text",
+        frequency: "once",
+        useAi: true,
+        schedulingStrategy: "scheduled",
+      }
+    }
+  ];
 
   const renderPlatformIcon = (platform: PlatformType) => {
     switch (platform.icon) {
@@ -235,12 +377,98 @@ export default function CreateWorkflowPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="templates">Templates</TabsTrigger>
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="platforms">Platforms</TabsTrigger>
                 <TabsTrigger value="scheduling">Scheduling</TabsTrigger>
                 <TabsTrigger value="advanced">Advanced</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="templates" className="space-y-6 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {workflowTemplates.map((template) => (
+                    <Card 
+                      key={template.id}
+                      className={cn(
+                        "cursor-pointer transition-all hover:shadow-md",
+                        selectedTemplate === template.id ? "ring-2 ring-primary" : ""
+                      )}
+                      onClick={() => applyTemplate(template.id)}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="h-12 w-12 rounded-md flex items-center justify-center bg-primary/10">
+                            {template.icon}
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg">{template.name}</CardTitle>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-muted-foreground text-sm">{template.description}</p>
+                        
+                        {template.platforms.length > 0 && (
+                          <div className="mt-4">
+                            <p className="text-xs text-muted-foreground mb-2">Platforms:</p>
+                            <div className="flex space-x-2">
+                              {template.platforms.map(platformId => {
+                                const platform = availablePlatforms.find(p => p.id === platformId);
+                                if (!platform) return null;
+                                return (
+                                  <div key={platformId} className="h-7 w-7">
+                                    {renderPlatformIcon(platform)}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {template.id === "custom-workflow" ? (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="mt-3 w-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              applyTemplate(template.id);
+                              setActiveTab("basic");
+                            }}
+                          >
+                            Start from scratch
+                          </Button>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="mt-3 w-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              applyTemplate(template.id);
+                            }}
+                          >
+                            Use this template
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                <div className="flex justify-end mt-6">
+                  <Button
+                    onClick={() => {
+                      if (!selectedTemplate) {
+                        applyTemplate('custom-workflow');
+                      }
+                      setActiveTab('basic');
+                    }}
+                  >
+                    {selectedTemplate ? 'Continue' : 'Skip Templates'} <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </TabsContent>
 
               <TabsContent value="basic" className="space-y-6 pt-4">
                 <Card>
@@ -718,6 +946,43 @@ export default function CreateWorkflowPage() {
                 </Card>
               </TabsContent>
             </Tabs>
+            
+            {/* Preview visualization that updates in real-time */}
+            {showVisualization && previewWorkflow && (
+              <div className="mt-8 pt-8 border-t">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Live Workflow Preview</h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowVisualization(!showVisualization)}
+                  >
+                    {showVisualization ? "Hide Preview" : "Show Preview"}
+                  </Button>
+                </div>
+                <div className="bg-neutral-50 p-4 rounded-lg">
+                  <ContentFlowVisualizer 
+                    workflow={previewWorkflow}
+                    platforms={availablePlatforms
+                      .filter(p => selectedPlatforms.includes(p.id))
+                      .map(p => ({
+                        id: p.id,
+                        name: p.name,
+                        type: p.type,
+                        userId: user?.id || 0,
+                        createdAt: new Date(),
+                        apiKey: null,
+                        apiSecret: null,
+                        accessToken: null
+                      }))}
+                    showControls={false}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  This preview shows how your content will flow through the workflow. It updates as you make changes to your workflow configuration.
+                </p>
+              </div>
+            )}
           </form>
         </Form>
       </main>
