@@ -428,14 +428,16 @@ export default function ApiReferencePage() {
                                 <h4 className="font-medium mb-2">cURL</h4>
                                 <div className="bg-neutral-900 text-neutral-50 p-4 rounded-md">
                                   <div className="flex justify-between">
-                                    <pre className="text-sm overflow-x-auto font-mono">curl -X {endpoint.method} \\
-  https://api.autocontentflow.com/v1{endpoint.endpoint} \\
+                                    <pre className="text-sm overflow-x-auto font-mono">{`curl -X ${endpoint.method} \\
+  https://api.autocontentflow.com/v1${endpoint.endpoint} \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
-    ${endpoint.parameters.filter(p => p.required).map(p => `"${p.name}": "${p.type === 'array' ? '[]' : p.type === 'object' ? '{}' : 'value'}"`)
+    ${endpoint.parameters
+      .filter(p => p.required)
+      .map(p => `"${p.name}": "${p.type === 'array' ? '[]' : p.type === 'object' ? '{}' : 'value'}"`)
       .join(',\n    ')}
-  }'</pre>
+  }'`}</pre>
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
@@ -456,19 +458,21 @@ export default function ApiReferencePage() {
                                 <h4 className="font-medium mb-2">JavaScript</h4>
                                 <div className="bg-neutral-900 text-neutral-50 p-4 rounded-md">
                                   <div className="flex justify-between">
-                                    <pre className="text-sm overflow-x-auto font-mono">const response = await fetch('https://api.autocontentflow.com/v1{endpoint.endpoint}', {
-  method: '{endpoint.method}',
+                                    <pre className="text-sm overflow-x-auto font-mono">{`const response = await fetch('https://api.autocontentflow.com/v1${endpoint.endpoint}', {
+  method: '${endpoint.method}',
   headers: {
     'Authorization': 'Bearer YOUR_API_KEY',
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    ${endpoint.parameters.filter(p => p.required).map(p => `${p.name}: ${p.type === 'array' ? '[]' : p.type === 'object' ? '{}' : '"value"'}`)
+    ${endpoint.parameters
+      .filter(p => p.required)
+      .map(p => `${p.name}: ${p.type === 'array' ? '[]' : p.type === 'object' ? '{}' : '"value"'}`)
       .join(',\n    ')}
   })
 });
 
-const data = await response.json();</pre>
+const data = await response.json();`}</pre>
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
