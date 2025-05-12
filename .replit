@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["playwright-driver", "playwright", "python312Packages.playwright", "python311Packages.playwright"]
+packages = ["playwright-driver", "playwright", "python312Packages.playwright", "python311Packages.playwright", "python312Packages.pytest-playwright", "playwright-test", "python311Packages.pytest-playwright", "vimPlugins.neotest-playwright", "python311Packages.playwright-stealth", "python312Packages.playwright-stealth", "python311Packages.playwrightcapture", "python312Packages.playwrightcapture"]
 
 [deployment]
 deploymentTarget = "autoscale"
