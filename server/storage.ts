@@ -570,8 +570,8 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(posts.status, "pending"),
-          gte(posts.scheduledDate, startOfDay),
-          lte(posts.scheduledDate, endOfDay)
+          gte(posts.scheduledFor, startOfDay),
+          lte(posts.scheduledFor, endOfDay)
         )
       )
       .execute();
