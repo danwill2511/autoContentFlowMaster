@@ -146,44 +146,190 @@ export async function generateContent(options: ContentGenerationOptions): Promis
   return retryWithExponentialBackoff(operation);
 }
 
-const platformFormatting = {
+interface PlatformFormat {
+  maxLength: number;
+  hashtags: boolean;
+  format: string;
+  sections: string[];
+  formatContent: (content: string, options?: any) => string;
+}
+
+const platformFormatting: Record<string, PlatformFormat> = {
   LinkedIn: {
     maxLength: 3000,
     hashtags: true,
     format: "professional",
-    sections: ["hook", "context", "value", "cta"]
+    sections: ["hook", "context", "value", "cta"],
+    formatContent: (content: string, options?: any) => {
+      // Format for professional audience
+      let formatted = content.trim();
+      
+      // Add line breaks between paragraphs
+      formatted = formatted.replace(/\n/g, '\n\n');
+      
+      // Add relevant emojis for professional content
+      formatted = formatted.replace(/^(.*?)$/m, '🎯 $1');
+      
+      // Add hashtags if enabled
+      if (options?.hashtags) {
+        const hashtags = generateProfessionalHashtags(content);
+        formatted += `\n\n${hashtags}`;
+      }
+      
+      return truncateWithEllipsis(formatted, 3000);
+    }
   },
   Twitter: {
     maxLength: 280,
     hashtags: true,
     format: "concise",
-    sections: ["hook", "content", "cta"]
+    sections: ["hook", "content", "cta"],
+    formatContent: (content: string, options?: any) => {
+      // Format for Twitter's brief style
+      let formatted = content.trim();
+      
+      // Remove excessive line breaks
+      formatted = formatted.replace(/\n\s*\n/g, '\n');
+      
+      // Add hashtags if enabled
+      if (options?.hashtags) {
+        const hashtags = generateTrendingHashtags(content);
+        const remainingLength = 280 - formatted.length - 2;
+        if (remainingLength > 0) {
+          formatted += `\n${hashtags.slice(0, remainingLength)}`;
+        }
+      }
+      
+      return truncateWithEllipsis(formatted, 280);
+    }
   },
   Facebook: {
     maxLength: 5000,
     hashtags: false,
     format: "conversational",
-    sections: ["story", "content", "engagement"]
+    sections: ["story", "content", "engagement"],
+    formatContent: (content: string, options?: any) => {
+      // Format for Facebook's conversational style
+      let formatted = content.trim();
+      
+      // Add eye-catching emoji at the start
+      formatted = `👋 ${formatted}`;
+      
+      // Add line breaks for readability
+      formatted = formatted.replace(/\. /g, '.\n\n');
+      
+      // Add engagement question at the end
+      formatted += '\n\nWhat do you think? Let me know in the comments! 💭';
+      
+      return truncateWithEllipsis(formatted, 5000);
+    }
   },
   Pinterest: {
     maxLength: 500,
     hashtags: true,
     format: "visual",
-    sections: ["description", "keywords", "link"]
+    sections: ["description", "keywords", "link"],
+    formatContent: (content: string, options?: any) => {
+      // Format for Pinterest's visual focus
+      let formatted = content.trim();
+      
+      // Add relevant emojis
+      formatted = formatted.replace(/^/m, '📌 ');
+      
+      // Add hashtags if enabled
+      if (options?.hashtags) {
+        const hashtags = generateVisualHashtags(content);
+        formatted += `\n\n${hashtags}`;
+      }
+      
+      return truncateWithEllipsis(formatted, 500);
+    }
   },
   YouTube: {
     maxLength: 5000,
     hashtags: true,
     format: "detailed",
-    sections: ["title", "description", "timestamps", "links"]
+    sections: ["title", "description", "timestamps", "links"],
+    formatContent: (content: string, options?: any) => {
+      // Format for YouTube's detailed description
+      let formatted = content.trim();
+      
+      // Add video structure
+      formatted = `🎥 ${formatted}\n\n` +
+        '⏱️ Timestamps:\n' +
+        '00:00 - Introduction\n' +
+        '00:30 - Main Content\n' +
+        '05:00 - Summary\n\n' +
+        '🔗 Important Links:\n' +
+        '• Website: [Your Website]\n' +
+        '• Social Media: [Links]\n\n' +
+        '👋 Connect With Me:\n' +
+        '[Social Media Links]\n\n' +
+        '#YouTubeContent #Creator';
+      
+      return truncateWithEllipsis(formatted, 5000);
+    }
   },
   Instagram: {
     maxLength: 2200,
     hashtags: true,
     format: "visual",
-    sections: ["caption", "hashtags"]
+    sections: ["caption", "hashtags"],
+    formatContent: (content: string, options?: any) => {
+      // Format for Instagram's visual style
+      let formatted = content.trim();
+      
+      // Add engaging emoji and line breaks
+      formatted = `✨ ${formatted}`;
+      formatted = formatted.replace(/\. /g, '.\n\n');
+      
+      // Add hashtags if enabled
+      if (options?.hashtags) {
+        const hashtags = generateVisualHashtags(content);
+        formatted += '\n\n.\n.\n.\n' + hashtags;
+      }
+      
+      return truncateWithEllipsis(formatted, 2200);
+    }
   }
 };
+
+// Helper functions for formatting
+function truncateWithEllipsis(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength - 3) + '...';
+}
+
+function generateProfessionalHashtags(content: string): string {
+  const words = content.toLowerCase()
+    .split(/\s+/)
+    .filter(word => word.length > 3)
+    .map(word => word.replace(/[^a-z0-9]/g, ''));
+  
+  const professionalTags = ['innovation', 'leadership', 'business', 'professional'];
+  const uniqueWords = Array.from(new Set([...words, ...professionalTags]));
+  return uniqueWords.slice(0, 5).map(word => `#${word}`).join(' ');
+}
+
+function generateTrendingHashtags(content: string): string {
+  const words = content.toLowerCase()
+    .split(/\s+/)
+    .filter(word => word.length > 3)
+    .map(word => word.replace(/[^a-z0-9]/g, ''));
+  
+  return words.slice(0, 3).map(word => `#${word}`).join(' ');
+}
+
+function generateVisualHashtags(content: string): string {
+  const words = content.toLowerCase()
+    .split(/\s+/)
+    .filter(word => word.length > 3)
+    .map(word => word.replace(/[^a-z0-9]/g, ''));
+  
+  const visualTags = ['photooftheday', 'instagood', 'picoftheday'];
+  const uniqueWords = Array.from(new Set([...words, ...visualTags]));
+  return uniqueWords.slice(0, 10).map(word => `#${word}`).join(' ');
+}
 
 export async function generatePlatformSpecificContent(
   content: string,
