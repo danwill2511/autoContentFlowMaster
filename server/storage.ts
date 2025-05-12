@@ -137,6 +137,21 @@ export class MemStorage implements IStorage {
     return user;
   }
   
+  async updateUser(userId: number, updates: Partial<User>): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error(`User ${userId} not found`);
+    }
+    
+    const updatedUser: User = {
+      ...user,
+      ...updates
+    };
+    
+    this.usersMap.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
   async updateUserSubscription(userId: number, subscription: string): Promise<User> {
     const user = await this.getUser(userId);
     if (!user) {
@@ -425,6 +440,20 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUser(userId: number, updates: Partial<User>): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error(`User ${userId} not found`);
+    }
+    
+    return updatedUser;
+  }
+  
   async updateUserSubscription(userId: number, subscription: string): Promise<User> {
     const [updatedUser] = await db
       .update(users)

@@ -1,11 +1,11 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express, Request } from "express";
+import express, { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser, loginSchema } from "@shared/schema";
+import { User as SelectUser, loginSchema, insertUserSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -31,7 +31,7 @@ export async function comparePasswords(supplied: string, stored: string) {
 }
 
 // Helper to get Replit user data from request headers
-function getReplitUser(req: Express.Request) {
+function getReplitUser(req: express.Request) {
   if (req.headers && req.headers["x-replit-user-id"]) {
     return {
       id: req.headers["x-replit-user-id"] as string,
