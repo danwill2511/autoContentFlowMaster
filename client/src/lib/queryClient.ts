@@ -12,6 +12,21 @@ export const queryClient = new QueryClient({
   },
 });
 
+// Helper function to get the auth token from localStorage
+export function getAuthToken(): string | null {
+  return localStorage.getItem('authToken');
+}
+
+// Helper function to set the auth token in localStorage
+export function setAuthToken(token: string): void {
+  localStorage.setItem('authToken', token);
+}
+
+// Helper function to remove the auth token from localStorage
+export function removeAuthToken(): void {
+  localStorage.removeItem('authToken');
+}
+
 // Helper function for API requests
 export async function apiRequest(
   method: string,
@@ -24,10 +39,15 @@ export async function apiRequest(
     ...options?.headers,
   };
 
+  // Add auth token to headers if available
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const config: RequestInit = {
     method,
     headers,
-    credentials: "include",
     ...options,
   };
 
