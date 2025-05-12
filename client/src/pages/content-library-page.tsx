@@ -9,8 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Search, FileText, Bookmark, Calendar, Star, Share2, Download, Plus, Filter } from "lucide-react";
-import Navbar from "@/components/layout/navbar";
-import Footer from "@/components/layout/footer";
+import Layout from "@/components/layout/layout";
 
 // Sample content templates for the library
 // In a real app, this would come from an API or CMS
