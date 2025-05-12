@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useLocation } from 'wouter'; // Added import for useLocation
