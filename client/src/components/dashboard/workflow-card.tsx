@@ -10,7 +10,7 @@ interface WorkflowCardProps {
   platforms: string[];
 }
 
-export function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
+export const WorkflowCard = React.memo(function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
   const { toast } = useToast();
   const [location, setLocation] = useWouterLocation();
 
@@ -181,4 +181,4 @@ export function WorkflowCard({ workflow, platforms }: WorkflowCardProps) {
       </div>
     </div>
   );
-}
+});

@@ -33,6 +33,7 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ErrorBoundary>
       <AuthProvider>
         <ReplitAuthProvider>
           <TooltipProvider>
@@ -41,6 +42,7 @@ function App() {
           </TooltipProvider>
         </ReplitAuthProvider>
       </AuthProvider>
+    </ErrorBoundary>
     </QueryClientProvider>
   );
 }

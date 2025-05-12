@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -62,6 +63,13 @@ interface AnalyticsData {
     shares: number;
   };
   growthRate: number;
+  dailyEngagement?: number[];
+  platformMetrics?: {
+    posts?: number[];
+    engagement?: number[];
+  };
+  totalPosts?: number;
+  activeWorkflows?: number;
 }
 
 export default function AnalyticsDashboardPage() {
@@ -112,8 +120,39 @@ export default function AnalyticsDashboardPage() {
         shares: 980,
       },
       growthRate: 23.4,
+      dailyEngagement: [100, 200, 150, 300, 250, 400, 350],
+      platformMetrics: {
+        posts: [50, 30, 20],
+        engagement: [300, 200, 100],
+      },
+      totalPosts: 150,
+      activeWorkflows: 5,
     },
   });
+
+  const engagementData = React.useMemo(() => ({
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [
+      {
+        label: 'Engagement',
+        data: analyticsData?.dailyEngagement || [],
+      },
+    ],
+  }), [analyticsData?.dailyEngagement]);
+
+  const platformData = React.useMemo(() => ({
+    labels: ['Twitter', 'LinkedIn', 'Facebook'],
+    datasets: [
+      {
+        label: 'Posts',
+        data: analyticsData?.platformMetrics?.posts || [],
+      },
+      {
+        label: 'Engagement',
+        data: analyticsData?.platformMetrics?.engagement || [],
+      },
+    ],
+  }), [analyticsData?.platformMetrics]);
 
   if (isLoading) {
     return (
@@ -226,6 +265,38 @@ export default function AnalyticsDashboardPage() {
               )}
             </CardContent>
           </Card>
+          <Card>
+              <CardHeader>
+                <CardTitle>Total Posts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {analyticsData?.totalPosts || 0}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Total Engagement</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {analyticsData?.totalEngagement || 0}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Workflows</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {analyticsData?.activeWorkflows || 0}
+                </div>
+              </CardContent>
+            </Card>
         </div>
 
         <Tabs defaultValue="engagement" className="mb-8">
@@ -233,6 +304,7 @@ export default function AnalyticsDashboardPage() {
             <TabsTrigger value="engagement">Engagement Over Time</TabsTrigger>
             <TabsTrigger value="platforms">Platform Comparison</TabsTrigger>
             <TabsTrigger value="contentTypes">Content Types</TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
           </TabsList>
           
           <TabsContent value="engagement">
@@ -263,6 +335,28 @@ export default function AnalyticsDashboardPage() {
                 </div>
               </CardContent>
             </Card>
+            <Card>
+            <CardHeader>
+              <CardTitle>Daily Engagement</CardTitle>
+              <CardDescription>
+                Engagement trends over the past week
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={analyticsData.engagementData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="likes" stroke="#8884d8" activeDot={{ r: 8 }} />
+                <Line type="monotone" dataKey="comments" stroke="#82ca9d" />
+                <Line type="monotone" dataKey="shares" stroke="#ffc658" />
+              </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
           </TabsContent>
           
           <TabsContent value="platforms">
@@ -293,6 +387,26 @@ export default function AnalyticsDashboardPage() {
                 </div>
               </CardContent>
             </Card>
+            <Card>
+            <CardHeader>
+              <CardTitle>Platform Performance</CardTitle>
+              <CardDescription>
+                Comparison across different platforms
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={analyticsData.platformPerformance}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" name="Engagement" fill="#8884d8" />
+              </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
           </TabsContent>
           
           <TabsContent value="contentTypes">
@@ -329,6 +443,13 @@ export default function AnalyticsDashboardPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="overview" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            
+
+            
+          </div>
+        </TabsContent>
         </Tabs>
 
         <Card>
