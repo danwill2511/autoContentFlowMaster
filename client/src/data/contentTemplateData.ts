@@ -130,7 +130,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["product", "feature", "highlight"],
     premium: false,
     template: "🔍 Feature Spotlight: [Feature Name]\n\n[Brief description of what the feature does]\n\nHow it helps: [Specific benefit or use case]\n\nTry it now: [Link] #ProductTip",
-    animationPreview: "/assets/animations/feature-highlight.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Feature+Highlight+Workflow",
     workflowSteps: [
       "Select product feature",
       "Generate benefits list",
@@ -150,7 +150,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["tutorial", "how-to", "guide"],
     premium: true,
     template: "📝 How to [Accomplish Task] in [Number] Simple Steps:\n\n1. [Step 1]\n2. [Step 2]\n3. [Step 3]\n...\n\nFor the complete guide: [Link] #HowTo #[Industry]Tips",
-    animationPreview: "/assets/animations/tutorial-series.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Tutorial+Series+Workflow",
     workflowSteps: [
       "Break down process into steps",
       "Create visual guides for each step",
@@ -170,7 +170,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["report", "research", "insights"],
     premium: true,
     template: "📊 Key findings from our latest [Industry] Report:\n\n• [Statistic 1]: [Brief context]\n• [Statistic 2]: [Brief context]\n• [Statistic 3]: [Brief context]\n\nDownload the full report: [Link] #[Industry]Research",
-    animationPreview: "/assets/animations/report-summary.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Report+Summary+Workflow",
     workflowSteps: [
       "Extract key data points",
       "Generate visual data representations",
@@ -190,7 +190,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["FAQ", "questions", "customer support"],
     premium: false,
     template: "❓ #FAQ: \"[Question]\"\n\n[Answer that provides value and showcases expertise]\n\nMore questions? [Link to FAQ page or contact] #[Industry]Help",
-    animationPreview: "/assets/animations/faq-series.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Faq+Series+Workflow",
     workflowSteps: [
       "Compile common questions",
       "Generate concise answers",
@@ -210,7 +210,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["team", "employee", "spotlight"],
     premium: false,
     template: "🌟 Team Spotlight: Meet [Name], our [Position]\n\n[Brief bio and accomplishment]\n\n[Fun fact or personal insight]\n\n[How they contribute to customer success]\n\n#TeamThursday #[Company]Team",
-    animationPreview: "/assets/animations/team-spotlight.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Team+Spotlight+Workflow",
     workflowSteps: [
       "Collect team member information",
       "Create consistent visual template",
@@ -230,7 +230,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["tips", "daily", "advice"],
     premium: false,
     template: "💡 Daily [Industry] Tip: [Tip title]\n\n[Brief, actionable tip that provides immediate value]\n\nWant more tips? Follow us or visit [Link] #DailyTip #[Industry]Advice",
-    animationPreview: "/assets/animations/daily-tips.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Daily+Tips+Workflow",
     workflowSteps: [
       "Generate tip series with AI",
       "Create visual design system",
@@ -250,7 +250,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["case study", "success story", "results"],
     premium: true,
     template: "📈 Case Study: How [Company] achieved [Result]\n\nChallenge: [Brief description of their problem]\nSolution: [Brief description of your solution]\nResults: [Specific metrics and improvements]\n\nRead the full case study: [Link] #CustomerSuccess #CaseStudy",
-    animationPreview: "/assets/animations/case-study.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Case+Study+Workflow",
     workflowSteps: [
       "Document client results",
       "Structure problem-solution narrative",
@@ -270,7 +270,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["behind the scenes", "company culture", "team"],
     premium: false,
     template: "📸 Behind the scenes at [Company Name]!\n\n[Description of what's happening and why it matters]\n\n#BehindTheScenes #[Company]Culture #[Industry]Life",
-    animationPreview: "/assets/animations/behind-scenes.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Behind+Scenes+Workflow",
     workflowSteps: [
       "Capture authentic moments",
       "Create content narrative",
@@ -290,7 +290,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["news", "commentary", "industry"],
     premium: true,
     template: "🔍 Industry Update: [News headline]\n\nWhat happened: [Brief summary of news]\n\nOur take: [Your company's perspective or analysis]\n\nWhat this means for you: [Impact on audience]\n\nSource: [Link] #[Industry]News",
-    animationPreview: "/assets/animations/news-commentary.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=News+Commentary+Workflow",
     workflowSteps: [
       "Monitor industry news sources",
       "Generate expert commentary",
@@ -310,7 +310,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["comparison", "product", "features"],
     premium: true,
     template: "🔄 [Product] vs. Alternatives: What's right for you?\n\n✅ [Your product]: [Key benefits]\n⚠️ Others: [Limitations]\n\nWhy customers choose us: [Unique value proposition]\n\nLearn more: [Link] #ProductComparison",
-    animationPreview: "/assets/animations/product-comparison.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Product+Comparison+Workflow",
     workflowSteps: [
       "Conduct competitive analysis",
       "Create comparison matrix",
@@ -330,7 +330,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["holiday", "seasonal", "promotion"],
     premium: false,
     template: "🎉 [Holiday] Special Offer!\n\nCelebrate [Holiday] with [Discount/Offer details]\n\nValid until: [End date]\nUse code: [Promo code]\n\nShop now: [Link] #[Holiday]Sale #SpecialOffer",
-    animationPreview: "/assets/animations/holiday-promo.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Holiday+Promo+Workflow",
     workflowSteps: [
       "Create holiday theme",
       "Set up promotional details",
@@ -350,7 +350,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["poll", "question", "engagement"],
     premium: false,
     template: "🤔 [Engaging question related to your industry/audience interests]?\n\n• [Option A]\n• [Option B]\n• [Option C]\n• [Option D]\n\nWeigh in below! #[Industry]Poll",
-    animationPreview: "/assets/animations/poll-engagement.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Poll+Engagement+Workflow",
     workflowSteps: [
       "Generate relevant questions",
       "Format for native platform polls",
@@ -370,7 +370,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["myth", "debunked", "facts"],
     premium: false,
     template: "⚠️ Industry Myth: \"[Common misconception]\"\n\n✅ Reality: [Correct information with brief explanation]\n\nWhy it matters: [Impact of the misconception and benefit of knowing the truth]\n\nLearn more: [Link] #MythBusted #[Industry]Facts",
-    animationPreview: "/assets/animations/myth-debunked.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Myth+Debunked+Workflow",
     workflowSteps: [
       "Identify common misconceptions",
       "Research factual information",
@@ -390,7 +390,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["blog", "article", "content"],
     premium: false,
     template: "📝 New on our blog: \"[Blog Post Title]\"\n\n[Brief summary or key takeaway]\n\nRead the full post to discover [benefit/what they'll learn]: [Link]\n\n#NewPost #[Industry]Blog",
-    animationPreview: "/assets/animations/blog-promotion.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Blog+Promotion+Workflow",
     workflowSteps: [
       "Extract key points from blog",
       "Generate platform-specific promotions",
@@ -410,7 +410,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["infographic", "data", "visual"],
     premium: true,
     template: "📊 [Infographic Title/Topic]\n\nKey insights:\n• [Data point 1]\n• [Data point 2]\n• [Data point 3]\n\nSee the full infographic: [Link] #Infographic #[Industry]Data",
-    animationPreview: "/assets/animations/infographic-share.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Infographic+Share+Workflow",
     workflowSteps: [
       "Compile data points",
       "Generate visual infographic",
@@ -430,7 +430,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["UGC", "customer content", "community"],
     premium: false,
     template: "💫 Customer Showcase: @[Customer Handle]\n\n[Brief description of their content and why you're featuring it]\n\n[Message encouraging others to share their experiences]\n\n#CustomerSpotlight #[BrandHashtag]",
-    animationPreview: "/assets/animations/ugc-spotlight.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Ugc+Spotlight+Workflow",
     workflowSteps: [
       "Collect user permissions",
       "Format user content",
@@ -450,7 +450,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["event", "recap", "conference"],
     premium: false,
     template: "🎯 Event Recap: [Event Name]\n\nTop moments:\n• [Highlight 1]\n• [Highlight 2]\n• [Highlight 3]\n\nThank you to all who attended! [Optional: info about next event]\n\nMore photos: [Link] #[EventHashtag] #[Industry]Events",
-    animationPreview: "/assets/animations/event-recap.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Event+Recap+Workflow",
     workflowSteps: [
       "Collect event highlights",
       "Create visual recap collage",
@@ -470,7 +470,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["update", "product", "features"],
     premium: false,
     template: "🆕 Product Update: [Version/Update Name]\n\nNew features:\n• [Feature 1]: [Brief benefit]\n• [Feature 2]: [Brief benefit]\n• [Feature 3]: [Brief benefit]\n\nUpdate now: [Link] #ProductUpdate #NewFeatures",
-    animationPreview: "/assets/animations/product-update.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Product+Update+Workflow",
     workflowSteps: [
       "Compile feature updates",
       "Create demonstration visuals",
@@ -490,7 +490,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["solution", "challenge", "problem-solving"],
     premium: true,
     template: "⚡ [Industry] Challenge: [Common problem]\n\nOur approach to solving it:\n1. [Step/element of solution]\n2. [Step/element of solution]\n3. [Step/element of solution]\n\nHow we've helped others: [Brief success example]\n\nLearn more: [Link] #[Industry]Solutions",
-    animationPreview: "/assets/animations/challenge-solution.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Challenge+Solution+Workflow",
     workflowSteps: [
       "Identify industry pain points",
       "Develop solution framework",
@@ -510,7 +510,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["job", "career", "hiring"],
     premium: false,
     template: "🔍 We're Hiring: [Job Title]\n\nAbout the role: [Brief description]\nLocation: [Location/Remote status]\nIdeal candidate: [Key qualifications/traits]\n\nApply now: [Link] #NowHiring #[Industry]Jobs #JoinOurTeam",
-    animationPreview: "/assets/animations/job-opening.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Job+Opening+Workflow",
     workflowSteps: [
       "Format job requirements",
       "Create team culture highlights",
@@ -530,7 +530,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["ebook", "whitepaper", "resource"],
     premium: true,
     template: "📚 Free [Resource Type]: \"[Title]\"\n\nLearn about:\n• [Topic 1]\n• [Topic 2]\n• [Topic 3]\n\nDownload now (no email required): [Link]\n\n#FreeResource #[Industry]Guide",
-    animationPreview: "/assets/animations/pdf-resource.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Pdf+Resource+Workflow",
     workflowSteps: [
       "Extract resource highlights",
       "Create visual preview",
@@ -550,7 +550,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["challenge", "weekly", "participation"],
     premium: false,
     template: "🏆 This Week's [Industry/Topic] Challenge:\n\n[Description of the challenge and how to participate]\n\nShare your results with #[ChallengeHashtag]!\n\nPrize/Benefit: [What participants get]\n\nDeadline: [Date] #WeeklyChallenge",
-    animationPreview: "/assets/animations/weekly-challenge.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Weekly+Challenge+Workflow",
     workflowSteps: [
       "Design challenge parameters",
       "Create participation instructions",
@@ -570,7 +570,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["service", "spotlight", "offering"],
     premium: false,
     template: "✨ Service Spotlight: [Service Name]\n\nWhat it is: [Brief service description]\n\nIdeal for: [Target audience/use case]\n\nKey benefits:\n• [Benefit 1]\n• [Benefit 2]\n• [Benefit 3]\n\nLearn more: [Link] #[Service]Spotlight",
-    animationPreview: "/assets/animations/service-spotlight.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Service+Spotlight+Workflow",
     workflowSteps: [
       "Identify service highlights",
       "Create visual service overview",
@@ -590,7 +590,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["milestone", "celebration", "achievement"],
     premium: false,
     template: "🎉 We're celebrating [Milestone]!\n\n[Brief reflection on the journey/achievement]\n\nThank you to our amazing [customers/partners/team] for making this possible!\n\n[Optional: special offer to celebrate] #[Company]Milestone #Celebration",
-    animationPreview: "/assets/animations/milestone-celebration.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Milestone+Celebration+Workflow",
     workflowSteps: [
       "Document achievement metrics",
       "Create celebration visuals",
@@ -610,7 +610,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["interview", "expert", "insights"],
     premium: true,
     template: "🎙️ Expert Insights: [Expert Name], [Title/Company]\n\nOn [topic]: \"[Notable quote from interview]\"\n\nKey takeaways:\n• [Insight 1]\n• [Insight 2]\n• [Insight 3]\n\nFull interview: [Link] #ExpertInterview #[Industry]Insights",
-    animationPreview: "/assets/animations/expert-interview.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Expert+Interview+Workflow",
     workflowSteps: [
       "Extract interview highlights",
       "Generate quote graphics",
@@ -630,7 +630,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["data", "visualization", "statistics"],
     premium: true,
     template: "📈 [Data Topic] Visualized:\n\n[Brief insight about what the data shows]\n\nSource: [Data source]\nMethodology: [Brief methodology note]\n\nMore insights: [Link] #DataViz #[Industry]Stats",
-    animationPreview: "/assets/animations/data-visualization.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Data+Visualization+Workflow",
     workflowSteps: [
       "Clean and analyze data",
       "Generate visual charts",
@@ -650,7 +650,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["partnership", "collaboration", "announcement"],
     premium: false,
     template: "🤝 Exciting News: [Company] + [Partner Company]\n\nWe're thrilled to announce our partnership with [Partner] to [brief description of collaboration purpose].\n\nWhat this means for you: [Benefits to customers/audience]\n\nLearn more: [Link] #Partnership #[Industry]Collaboration",
-    animationPreview: "/assets/animations/partnership-announce.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Partnership+Announce+Workflow",
     workflowSteps: [
       "Coordinate with partner marketing",
       "Create co-branded materials",
@@ -670,7 +670,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["problem", "solution", "pain points"],
     premium: false,
     template: "❓ Common Problem: [Problem statement]\n\n😩 Impact: [Brief description of the negative effects]\n\n✅ Our Solution: [How your product/service solves it]\n\n🔍 See how it works: [Link] #ProblemSolved #[Industry]Solutions",
-    animationPreview: "/assets/animations/problem-solution.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Problem+Solution+Workflow",
     workflowSteps: [
       "Identify customer pain points",
       "Create before/after scenario",
@@ -690,7 +690,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["award", "recognition", "achievement"],
     premium: false,
     template: "🏆 Honored to announce: [Company] has been recognized as [Award/Recognition]!\n\n[Brief statement about what this means and thanks]\n\nThis recognition reflects our commitment to [relevant value/mission]\n\n#[Award]Winner #[Industry]Excellence",
-    animationPreview: "/assets/animations/award-recognition.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Award+Recognition+Workflow",
     workflowSteps: [
       "Document award details",
       "Create celebration visuals",
@@ -710,7 +710,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["calendar", "seasonal", "planning"],
     premium: true,
     template: "🗓️ [Season] Content Calendar for [Industry]\n\nKey dates and content themes:\n• [Date/Event 1]: [Content idea]\n• [Date/Event 2]: [Content idea]\n• [Date/Event 3]: [Content idea]\n\nFull calendar: [Link] #ContentPlanning #[Season]Content",
-    animationPreview: "/assets/animations/seasonal-calendar.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Seasonal+Calendar+Workflow",
     workflowSteps: [
       "Research seasonal events",
       "Create themed content concepts",
@@ -730,7 +730,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["tips", "carousel", "swipeable"],
     premium: false,
     template: "👆 Swipe for [Number] Quick Tips on [Topic]!\n\n[Brief introduction to why these tips are valuable]\n\nWhich tip is your favorite? Let us know in the comments!\n\n#QuickTips #[Industry]Advice #Swipe",
-    animationPreview: "/assets/animations/tip-carousel.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Tip+Carousel+Workflow",
     workflowSteps: [
       "Compile related tip series",
       "Create visual slide templates",
@@ -750,7 +750,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["office", "tour", "workspace"],
     premium: false,
     template: "🏢 Welcome to our [Location] office!\n\n[Brief description of what makes your workspace special]\n\nInterested in joining our team? Check out our open positions: [Link]\n\n#OfficeLife #[Company]Culture #WorkplaceWednesday",
-    animationPreview: "/assets/animations/office-tour.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Office+Tour+Workflow",
     workflowSteps: [
       "Capture office highlights",
       "Create visual tour sequence",
@@ -770,7 +770,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["newsletter", "subscription", "email"],
     premium: false,
     template: "📬 Never miss an update!\n\nSubscribe to our [frequency] newsletter to get:\n• [Benefit 1]\n• [Benefit 2]\n• [Benefit 3]\n\nJoin [number] subscribers: [Signup link]\n\n#StayInformed #[Industry]Newsletter",
-    animationPreview: "/assets/animations/newsletter-signup.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Newsletter+Signup+Workflow",
     workflowSteps: [
       "Highlight newsletter benefits",
       "Create subscription form",
@@ -790,7 +790,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["demo", "product", "how it works"],
     premium: true,
     template: "👀 See [Product/Feature] in action!\n\n[Brief description of what the demo shows and the key value it demonstrates]\n\nWant to see more? [Call to action]: [Link]\n\n#ProductDemo #HowItWorks #[Industry]Solutions",
-    animationPreview: "/assets/animations/product-demo.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Product+Demo+Workflow",
     workflowSteps: [
       "Create demonstration scenario",
       "Record feature walkthrough",
@@ -810,7 +810,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["questions", "answers", "customer support"],
     premium: false,
     template: "❓ You Asked: \"[Customer question]\"\n\n💬 Our Answer: [Detailed, helpful response that showcases expertise]\n\nHave a question? Ask us in the comments or at [support handle/link] #YouAskedWeAnswered #[Industry]Help",
-    animationPreview: "/assets/animations/customer-questions.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Customer+Questions+Workflow",
     workflowSteps: [
       "Collect customer questions",
       "Research comprehensive answers",
@@ -830,7 +830,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["testimonial", "video", "customer"],
     premium: true,
     template: "📹 Hear from [Customer Name] at [Company]:\n\n\"[Short quote from the testimonial]\"\n\nWatch the full testimonial to learn how [Your Product/Service] helped them [achieve result]: [Link]\n\n#CustomerStories #[Industry]Testimonial",
-    animationPreview: "/assets/animations/testimonial-video.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Testimonial+Video+Workflow",
     workflowSteps: [
       "Edit customer video",
       "Create caption overlay",
@@ -850,7 +850,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["trends", "predictions", "future"],
     premium: true,
     template: "🔮 [Industry] Trend Prediction: [Trend Title]\n\nWe're seeing [observation about current situation]\n\nWe predict: [Your prediction and reasoning]\n\nHow to prepare: [Actionable advice]\n\nMore insights: [Link] #FutureTrends #[Industry]Predictions",
-    animationPreview: "/assets/animations/trend-prediction.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Trend+Prediction+Workflow",
     workflowSteps: [
       "Research market signals",
       "Generate forecast content",
@@ -870,7 +870,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["before after", "results", "transformation"],
     premium: false,
     template: "👀 Before & After: [Brief description of transformation]\n\nBefore: [Description of initial state/problem]\nAfter: [Description of improved state/solution]\n\nHow we helped: [Brief explanation of your role in the transformation]\n\nSimilar results await: [Link] #BeforeAndAfter #[Industry]Results",
-    animationPreview: "/assets/animations/before-after.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Before+After+Workflow",
     workflowSteps: [
       "Document result measurements",
       "Create side-by-side comparisons",
@@ -890,7 +890,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["anniversary", "celebration", "milestone"],
     premium: false,
     template: "🎂 Celebrating [Number] Years of [Company Name]!\n\nFrom [brief origin story] to [current achievement], it's been an amazing journey.\n\nThank you to our [clients/customers/partners/team] for being part of our story.\n\n[Optional: special anniversary offer] #[Company]Anniversary #[Number]Years",
-    animationPreview: "/assets/animations/company-anniversary.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Company+Anniversary+Workflow",
     workflowSteps: [
       "Compile company timeline",
       "Create celebration visuals",
@@ -910,7 +910,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["list", "tips", "listicle"],
     premium: false,
     template: "📋 [Number] [Type of Items] for [Desired Outcome/Situation]\n\n1️⃣ [Item 1]: [Brief description]\n2️⃣ [Item 2]: [Brief description]\n3️⃣ [Item 3]: [Brief description]\n...\n\nSave this post for future reference!\n\nFull list: [Link] #[Industry]Tips",
-    animationPreview: "/assets/animations/listicle-content.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Listicle+Content+Workflow",
     workflowSteps: [
       "Research list items",
       "Create numbered graphics",
@@ -930,7 +930,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["free", "tool", "resource"],
     premium: false,
     template: "🔧 Free [Resource/Tool] Alert!\n\nWe've created a [description of resource] to help you [benefit].\n\nHow to use it:\n1. [Step 1]\n2. [Step 2]\n3. [Step 3]\n\nGet it now: [Link] #FreeTool #[Industry]Resources",
-    animationPreview: "/assets/animations/free-resource.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Free+Resource+Workflow",
     workflowSteps: [
       "Create resource access flow",
       "Develop visual tutorial",
@@ -950,7 +950,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["review", "rating", "testimonial"],
     premium: false,
     template: "⭐⭐⭐⭐⭐ Customer Review\n\n\"[Review text]\"\n- [Customer name/identifier], [Location/Company]\n\nThank you for your kind words! We're committed to [relevant value proposition].\n\nSee more reviews: [Link] #CustomerReviews #[Industry]Excellence",
-    animationPreview: "/assets/animations/review-highlight.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Review+Highlight+Workflow",
     workflowSteps: [
       "Format verified reviews",
       "Create consistent visual templates",
@@ -970,7 +970,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["process", "how we work", "behind the scenes"],
     premium: true,
     template: "⚙️ Our [Process Name] Process: How We [Outcome]\n\nStep 1: [Brief description]\nStep 2: [Brief description]\nStep 3: [Brief description]\n...\n\nWhy this matters for you: [Client benefit]\n\nLearn more: [Link] #OurProcess #[Industry]Excellence",
-    animationPreview: "/assets/animations/process-breakdown.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Process+Breakdown+Workflow",
     workflowSteps: [
       "Document workflow steps",
       "Create process flow diagram",
@@ -990,7 +990,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["day in the life", "behind the scenes", "team"],
     premium: false,
     template: "⏰ A Day in the Life: [Role/Department]\n\n[Morning routine/tasks]\n[Midday activities/meetings]\n[Afternoon responsibilities]\n[End of day wrap-up]\n\nInterested in joining our team? [CTA]: [Link] #DayInTheLife #[Company]Culture",
-    animationPreview: "/assets/animations/day-in-life.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Day+In+Life+Workflow",
     workflowSteps: [
       "Document typical daily schedule",
       "Create time-based visual sequence",
@@ -1010,7 +1010,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["glossary", "terms", "definitions"],
     premium: false,
     template: "📚 [Industry] Term Explained: \"[Term]\"\n\n🔍 Definition: [Clear, concise definition]\n\n💡 Why it matters: [Brief explanation of relevance]\n\n🔄 Related terms: [Other terms in your glossary]\n\nFull glossary: [Link] #[Industry]Terms #Glossary",
-    animationPreview: "/assets/animations/glossary-terms.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Glossary+Terms+Workflow",
     workflowSteps: [
       "Research terminology definitions",
       "Create educational graphics",
@@ -1030,7 +1030,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["quiz", "trivia", "interactive"],
     premium: false,
     template: "🧠 [Industry] Trivia Time!\n\nQuestion: [Interesting industry question]\n\nA. [Option A]\nB. [Option B]\nC. [Option C]\nD. [Option D]\n\nAnswer in the comments! We'll share the correct answer tomorrow. #[Industry]Trivia #QuizTime",
-    animationPreview: "/assets/animations/interactive-quiz.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Interactive+Quiz+Workflow",
     workflowSteps: [
       "Research interesting facts",
       "Create quiz format graphics",
@@ -1050,7 +1050,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["resources", "roundup", "tools"],
     premium: true,
     template: "🧰 [Number] Essential [Industry] Resources\n\n1. [Resource name]: [Brief description and link]\n2. [Resource name]: [Brief description and link]\n3. [Resource name]: [Brief description and link]\n...\n\nSave this post for future reference! #[Industry]Resources #UsefulTools",
-    animationPreview: "/assets/animations/resource-roundup.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Resource+Roundup+Workflow",
     workflowSteps: [
       "Research quality resources",
       "Create resource directory",
@@ -1070,7 +1070,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["comparison", "features", "decision guide"],
     premium: true,
     template: "⚖️ [Feature A] vs. [Feature B]: Which is right for you?\n\n[Feature A]:\n• [Benefit/characteristic]\n• [Benefit/characteristic]\n• [Use case]\n\n[Feature B]:\n• [Benefit/characteristic]\n• [Benefit/characteristic]\n• [Use case]\n\nNeed help deciding? [Link] #FeatureComparison",
-    animationPreview: "/assets/animations/feature-comparison.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Feature+Comparison+Workflow",
     workflowSteps: [
       "Create comparison matrix",
       "Generate use case scenarios",
@@ -1090,7 +1090,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["tips", "users", "community"],
     premium: false,
     template: "💡 User Tip from @[Username]:\n\n\"[Tip content from user]\"\n\nOur take: [Your brief addition or context]\n\nHave a tip to share? Comment below or tag us with #[YourProduct]Tip #UserTips #[Industry]Community",
-    animationPreview: "/assets/animations/user-tips.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=User+Tips+Workflow",
     workflowSteps: [
       "Collect user permissions",
       "Format user contributions",
@@ -1110,7 +1110,7 @@ export const contentTemplates: ContentTemplate[] = [
     tags: ["productivity", "hack", "efficiency"],
     premium: false,
     template: "⚡ [Industry] Productivity Hack #[Number]:\n\n[Brief description of the hack/tip]\n\nTime saved: [Estimated time/efficiency gain]\nDifficulty: [Easy/Medium/Hard]\n\nTry it and let us know your results! #ProductivityHack #[Industry]Tips",
-    animationPreview: "/assets/animations/productivity-hack.gif",
+    animationPreview: "https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Productivity+Hack+Workflow",
     workflowSteps: [
       "Research efficiency techniques",
       "Create step-by-step guide",
