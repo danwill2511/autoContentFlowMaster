@@ -1,5 +1,5 @@
 // Import Jest DOM extensions
-import '@testing-library/jest-dom';
+require('@testing-library/jest-dom');
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
