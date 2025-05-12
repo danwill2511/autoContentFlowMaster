@@ -268,6 +268,35 @@ export default function CreateWorkflowPage() {
       <Navbar />
 
       <main className="flex-grow max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 w-full">
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 rounded-3xl" />
+          <div className="relative bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-lg">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-4">Create Your Content Magic ✨</h1>
+              <p className="text-lg text-neutral-600">Choose your content type and let's make something amazing!</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {contentTypes.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => selectContentType(type.id)}
+                  className={cn(
+                    "relative p-6 rounded-xl transition-all duration-200 group hover:scale-105",
+                    selectedType === type.id ? "bg-primary/10 border-2 border-primary" : "bg-white border border-neutral-200"
+                  )}
+                >
+                  <div className="text-4xl mb-4">{type.emoji}</div>
+                  <h3 className="text-lg font-semibold mb-2">{type.name}</h3>
+                  <p className="text-sm text-neutral-600">{type.description}</p>
+                  <div className={cn(
+                    "absolute inset-0 rounded-xl transition-opacity",
+                    selectedType === type.id ? "opacity-100" : "opacity-0 group-hover:opacity-50",
+                    "bg-gradient-to-r from-primary/20 to-primary/30"
+                  )} />
+                </button>
+              ))}
+            </div>
         <div className="px-4 sm:px-0 mb-8">
           <h1 className="text-2xl font-semibold text-neutral-900">Create New Workflow</h1>
           <p className="mt-1 text-sm text-neutral-500">

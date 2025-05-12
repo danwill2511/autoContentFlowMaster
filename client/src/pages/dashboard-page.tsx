@@ -64,7 +64,7 @@ export default function DashboardPage() {
       2: ["Pinterest", "Facebook"],
       3: ["YouTube"],
     };
-    
+
     return platformMapping[workflow.id] || ["Facebook", "Twitter"];
   };
 
@@ -80,19 +80,38 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col">
       <Navbar />
-      
+
       <main className="flex-grow max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 w-full">
         {/* PageHeader */}
         <div className="px-4 sm:px-0 mb-8">
           <div className="sm:flex sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-neutral-900">
-                Welcome back, {user?.name || user?.username}!
-              </h1>
-              <p className="mt-1 text-sm text-neutral-500">
-                Here's what's happening with your content workflows today.
-              </p>
+            <div className="text-center sm:text-left">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary/80 to-primary animate-pulse" />
+                <span className="absolute bottom-0 right-0 w-5 h-5 bg-green-500 rounded-full border-2 border-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-neutral-900 mb-1">
+                  Welcome back, {user?.name || user?.username}! 👋
+                </h1>
+                <p className="text-lg text-neutral-600">
+                  Ready to create some amazing content? Let's get started!
+                </p>
+              </div>
             </div>
+            <div className="flex flex-wrap gap-3 mt-4">
+              <Button variant="outline" size="sm" className="animate-bounce">
+                <span className="mr-2">✨</span> Quick Tips
+              </Button>
+              <Button variant="outline" size="sm" className="animate-pulse">
+                <span className="mr-2">🎯</span> Today's Goals
+              </Button>
+              <Button variant="outline" size="sm">
+                <span className="mr-2">🎨</span> Inspiration
+              </Button>
+            </div>
+          </div>
             <div className="mt-4 sm:mt-0">
               <Button asChild>
                 <Link href="/workflows/create">
@@ -239,7 +258,7 @@ export default function DashboardPage() {
         {/* WorkflowList */}
         <div className="mt-8 px-4 sm:px-0">
           <h2 className="text-lg font-medium text-neutral-900 mb-4">Your Content Workflows</h2>
-          
+
           {isLoadingWorkflows || isLoadingPlatforms ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map((i) => (

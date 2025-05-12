@@ -15,51 +15,53 @@ interface PlatformSelectorProps {
   onChange: (selectedIds: number[]) => void;
 }
 
-export function PlatformSelector({ platforms, selectedPlatforms, onChange }: PlatformSelectorProps) {
-  const [selectedIds, setSelectedIds] = useState<number[]>(selectedPlatforms);
+// Utility function for conditional class names
+function cn(...classes: string[]) {
+  return classes.filter(Boolean).join(' ');
+}
 
-  const handlePlatformClick = (platform: Platform) => {
-    const newSelectedIds = selectedIds.includes(platform.id)
-      ? selectedIds.filter(id => id !== platform.id)
-      : [...selectedIds, platform.id];
-    
-    setSelectedIds(newSelectedIds);
-    onChange(newSelectedIds);
+export function PlatformSelector({ platforms, selectedPlatforms, onChange }: PlatformSelectorProps) {
+  // const platforms = [ // Removed since this is now a prop
+  //   { id: 'twitter', name: 'Twitter', icon: '🐦', color: 'bg-blue-400' },
+  //   { id: 'instagram', name: 'Instagram', icon: '📸', color: 'bg-pink-400' },
+  //   { id: 'linkedin', name: 'LinkedIn', icon: '💼', color: 'bg-blue-700' },
+  //   { id: 'pinterest', name: 'Pinterest', icon: '📌', color: 'bg-red-500' },
+  //   { id: 'youtube', name: 'YouTube', icon: '🎥', color: 'bg-red-600' }
+  // ];
+
+  const handlePlatformClick = (platformId: number) => {
+    onChange(
+      selectedPlatforms.includes(platformId)
+        ? selectedPlatforms.filter((id) => id !== platformId)
+        : [...selectedPlatforms, platformId]
+    );
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-      {platforms.map((platform) => (
-        <div 
-          key={platform.id}
-          className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-            selectedIds.includes(platform.id) 
-              ? 'bg-primary-50 border-primary-200' 
-              : 'border-neutral-200 hover:bg-primary-50 hover:border-primary-200'
-          }`}
-          onClick={() => handlePlatformClick(platform)}
-        >
-          <div className="flex items-center">
-            <Checkbox 
-              id={`platform-${platform.id}`} 
-              checked={selectedIds.includes(platform.id)}
-              onCheckedChange={() => handlePlatformClick(platform)}
-              className="h-4 w-4"
-            />
-            <Label 
-              htmlFor={`platform-${platform.id}`} 
-              className="ml-3 block text-sm font-medium text-neutral-700 cursor-pointer"
-            >
-              <div className="flex items-center space-x-2">
-                <div className={`flex items-center justify-center h-8 w-8 rounded-lg ${platform.bgColor}`}>
-                  {platform.icon}
-                </div>
-                <span>{platform.name}</span>
-              </div>
-            </Label>
-          </div>
-        </div>
-      ))}
+    <div className="p-4">
+      <h3 className="text-xl font-semibold mb-6 text-center">Choose Your Platforms ✨</h3>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        {platforms.map((platform) => (
+          <button
+            key={platform.id}
+            onClick={() => handlePlatformClick(platform.id)}
+            className={cn(
+              "relative group p-4 rounded-xl transition-all duration-200 hover:scale-105",
+              selectedPlatforms.includes(platform.id) ? `${platform.bgColor} text-white` : "bg-white border border-neutral-200"
+            )}
+          >
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-3xl">{platform.icon}</span>
+              <span className="font-medium">{platform.name}</span>
+            </div>
+            {selectedPlatforms.includes(platform.id) && (
+              <span className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-sm">
+                ✓
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
