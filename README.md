@@ -6,20 +6,33 @@ This guide provides step-by-step instructions for building AutoContentFlow, an A
 ## 🚀 Phase 1: Project Setup
 
 ### 1. Initial Project Structure
-```bash
-# AI Prompt: "Initialize a new Next.js/React project with TypeScript, Tailwind CSS, and basic folder structure for AutoContentFlow"
 
-Required folders:
-/client
-  /src
-    /components
-    /pages
-    /hooks
-    /lib
-/server
-/mobile
-/tests
+We'll use the Expo Remix template for faster development and better mobile integration:
+
+```bash
+# AI Prompt: "Initialize project using Expo Remix template with TypeScript and Tailwind CSS"
+
+# Create project with Expo Remix template
+npx create-expo-app@latest -e with-remix
+
+Project structure:
+/app
+  /routes         # Route components
+  /components     # Shared components
+  /hooks          # Custom hooks
+  /utils          # Utility functions
+/assets          # Static assets
+/server          # Backend services
+/tests           # Test files
 ```
+
+The Expo Remix template provides:
+- Pre-configured TypeScript setup
+- Built-in mobile-first routing
+- Unified codebase for web and mobile
+- Automatic platform-specific optimizations
+- Hot module replacement
+- Built-in support for native APIs
 
 ### 2. Dependencies Setup
 ```bash
