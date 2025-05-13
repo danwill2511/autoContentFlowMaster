@@ -35,7 +35,7 @@ export async function runMigrations() {
     await migrate(drizzle(migrationClient), { migrationsFolder: "./drizzle" });
     log("Migrations completed successfully.");
   } catch (error) {
-    log("Migration error:", error);
+    log("Migration error:", String(error));
     
     // If migrations fail in development, we create tables directly
     if (process.env.NODE_ENV === "development") {
@@ -45,7 +45,7 @@ export async function runMigrations() {
         await setupDevSchema();
         log("Tables created successfully.");
       } catch (devError) {
-        log("Error creating dev tables:", devError);
+        log("Error creating dev tables:", String(devError));
       }
     }
   }
