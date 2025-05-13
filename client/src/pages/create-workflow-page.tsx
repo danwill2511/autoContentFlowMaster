@@ -143,6 +143,7 @@ export default function CreateWorkflowPage() {
         createdAt: new Date(),
         userId: user?.id || 0,
         contentType: formValues.contentType || "text",
+        contentTone: "professional", // Adding contentTone for visualization
         frequency: formValues.frequency || "once",
         tags: formValues.tags || [],
         useAi: formValues.useAi || false,
