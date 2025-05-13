@@ -81,6 +81,9 @@ export class Scheduler {
         platformIds,
         scheduledFor: postTime,
         status: 'pending',
+        optimizationApplied: false,
+        optimizationData: null,
+        engagementMetrics: null
       };
       
       const post = await storage.createPost(postData);
