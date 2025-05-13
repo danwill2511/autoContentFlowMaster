@@ -122,6 +122,9 @@ async function setupDevSchema() {
           scheduled_for TIMESTAMP NOT NULL,
           posted_at TIMESTAMP,
           platform_ids JSONB NOT NULL,
+          optimization_applied BOOLEAN DEFAULT FALSE,
+          optimization_data JSONB,
+          engagement_metrics JSONB,
           created_at TIMESTAMP DEFAULT NOW() NOT NULL
         )
       `;
