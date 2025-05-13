@@ -315,7 +315,14 @@ class StorageService {
         .select({ count: sql`count(*)` })
         .from(workflows)
         .where(eq(workflows.userId, userId));
-      return parseInt(result[0].count.toString());
+      
+      if (!result || !result[0] || result[0].count === undefined) {
+        return 0;
+      }
+      
+      return typeof result[0].count === 'number' 
+        ? result[0].count 
+        : parseInt(String(result[0].count), 10);
     } catch (error) {
       console.error("Error counting user workflows:", error);
       return 0;
@@ -464,7 +471,13 @@ class StorageService {
           )
         );
       
-      return parseInt(result[0].count.toString());
+      if (!result || !result[0] || result[0].count === undefined) {
+        return 0;
+      }
+      
+      return typeof result[0].count === 'number' 
+        ? result[0].count 
+        : parseInt(String(result[0].count), 10);
     } catch (error) {
       console.error("Error counting posts created today:", error);
       return 0;
